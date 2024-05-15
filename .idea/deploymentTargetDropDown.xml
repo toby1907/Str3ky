@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="deploymentTargetDropDown">
+    <value>
+      <entry key="AddChallengeScreenPreview">
+        <State />
+      </entry>
+      <entry key="ChallengeProgressScreenPreview">
+        <State />
+      </entry>
+      <entry key="CompletePreview">
+        <State />
+      </entry>
+      <entry key="SessionScreenPreview">
+        <State />
+      </entry>
+      <entry key="SessionSettingsScreenPreview">
+        <State />
+      </entry>
+      <entry key="app">
+        <State />
+      </entry>
+    </value>
+  </component>
+</project>
