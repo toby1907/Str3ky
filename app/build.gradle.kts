@@ -89,8 +89,9 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     //dagger hilt di
-    implementation("com.google.dagger:hilt-android:2.44")
-    kapt("com.google.dagger:hilt-android-compiler:2.44")
+    implementation("com.google.dagger:hilt-android:2.50")
+    kapt("com.google.dagger:hilt-android-compiler:2.50")
+    implementation ("androidx.hilt:hilt-navigation-compose:1.2.0")
 
 
 
@@ -109,7 +110,7 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:$lifecycle_version")
 
     // Annotation processor
-    kapt("androidx.lifecycle:lifecycle-compiler:$lifecycle_version")
+  //  kapt("androidx.lifecycle:lifecycle-compiler:$lifecycle_version")
     // alternately - if using Java8, use the following instead of lifecycle-compiler
     implementation("androidx.lifecycle:lifecycle-common-java8:$lifecycle_version")
 
@@ -119,4 +120,7 @@ dependencies {
 // Allow references to generated code
 kapt {
     correctErrorTypes = true
+    arguments {
+        arg ("room.schemaLocation", "$projectDir/schemas".toString())
+    }
 }
