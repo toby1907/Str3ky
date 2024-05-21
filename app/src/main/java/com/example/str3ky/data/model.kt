@@ -11,7 +11,9 @@ import com.example.str3ky.theme.Violet
 
 @Entity
 data class Goal(
-    @PrimaryKey val id: Int,
+    @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "goal_id" )
+    var id: Int? =null,
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "duration") val duration: Long,
     @ColumnInfo(name = "occurrence") val occurrence: Occurrence,
@@ -20,11 +22,14 @@ data class Goal(
     @ColumnInfo(name = "progress") val progress: List<DayProgress>,
     @ColumnInfo(name = "color") var color: Int,
     @ColumnInfo(name = "completed") var completed: Boolean,
+
 ){
     companion object {
         val goalColors = listOf(RedOrange, LightGreen, Violet, BabyBlue, RedPink)
     }
 }
+
+class InvalidGoalException(message: String): Exception(message)
 
 enum class Occurrence {
     DAILY,

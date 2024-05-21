@@ -16,26 +16,66 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.example.str3ky.R
 import com.example.str3ky.theme.Str3kyTheme
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddChallengeScreen() {
+fun AddChallengeScreen(
+    viewModel: AddScreenViewModel = hiltViewModel(),
+    onNavigateToAddVoice: () -> Unit,
+    navController: NavHostController,
+    snackbarHostState: SnackbarHostState,
+    noteColor: Int
+) {
+    val scope = rememberCoroutineScope()
+    val showDialog = remember { mutableStateOf(false) }
 
+    // A function to show the dialog
+    fun showDialog() {
+        showDialog.value = true
+    }
+
+    // A function to hide the dialog
+    fun hideDialog() {
+        showDialog.value = false
+    }
+
+    LaunchedEffect(key1 = true)   {
+        viewModel.eventFlow.collectLatest { event ->
+            when (event) {
+                UiEvent.SaveNote -> TODO()
+                is UiEvent.ShowSnackbar -> scope.launch {
+                    snackbarHostState.showSnackbar(
+                        message = event.message
+                    )
+                }
+            }
+
+        }
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -75,17 +115,14 @@ fun AddChallengeScreen() {
                     .padding(start = 8.dp, end = 8.dp)
                 ,
 
-            ) { // val isImportant = remember { mutableStateOf(false) }
-                val nameText = remember {
-                    mutableStateOf("")
-                }
+            ) {
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedTextField(value = nameText.value, onValueChange = {
-                        nameText.value = it
+                    OutlinedTextField(value = viewModel.goalName.value.goalName, onValueChange = {
+                        viewModel.onEvent(AddChallengeEvent.EnteredName(it))
                     },
                         label = {
                             Text("Name")
@@ -96,11 +133,19 @@ fun AddChallengeScreen() {
 
                     }){
                         OutlinedTextField(
-                            value = nameText.value,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.Transparent,
+                                unfocusedTextColor = Color.Transparent
+                            ),
+                            value ="c",
                             onValueChange = {
-                                nameText.value = it
+
                             },
                             label = {
+                                Text("Color")
+                            },
+                            readOnly = true,
+                            leadingIcon = {
                                 Row(horizontalArrangement = Arrangement.Center) {
                                     Spacer(modifier = Modifier.padding(start = 18.dp))
                                     Column {
@@ -117,32 +162,32 @@ fun AddChallengeScreen() {
 
                                 }
                             },
-                            enabled = false,
                         )
                     }
                 }
 
-                OutlinedTextField(value = nameText.value, onValueChange = {
-                    nameText.value = it
+                OutlinedTextField(value = "Everyday", onValueChange = {
+                   // viewModel.onEvent(AddChallengeEvent.Frequency(it))
                 },
                     label = {
                         Text("Frequency")
-                    }
+                    },
+                    readOnly = true
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
 
                 ) {
-                    OutlinedTextField(value = nameText.value, onValueChange = {
-                        nameText.value = it
+                    OutlinedTextField(value = viewModel.focusTime.value.focusTime.toString(), onValueChange = {
+
                     },
                         label = {
                             Text("focus duration")
                         }
                     )
                     OutlinedTextField(
-                        value = nameText.value,
+                        value = viewModel.,
                         onValueChange = {
                             nameText.value = it
                         },
@@ -158,11 +203,3 @@ fun AddChallengeScreen() {
     )
 }
 
-@Preview(showBackground = true)
-@Composable
-fun AddChallengeScreenPreview() {
-
-    Str3kyTheme {
-        AddChallengeScreen()
-    }
-}

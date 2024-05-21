@@ -11,9 +11,9 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface GoalDao {
-    @Query("SELECT* FROM `goal.db`WHERE goal_id =:goalId")
+    @Query("SELECT* FROM goal WHERE goal_id =:goalId")
     fun getLetter(goalId: Int): Flow<Goal?>
-    @Query("SELECT * FROM 'goal.db' ORDER By goal_id ASC" )
+    @Query("SELECT * FROM goal ORDER By goal_id ASC" )
     fun getRecentGoal(): LiveData<List<Goal>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -27,6 +27,6 @@ interface GoalDao {
     @Delete
     fun delete(goal: Goal)
 
-    @Query("SELECT * FROM `goal.db`")
+    @Query("SELECT * FROM goal")
     fun getAllLetters(): Flow<List<Goal>>
 }

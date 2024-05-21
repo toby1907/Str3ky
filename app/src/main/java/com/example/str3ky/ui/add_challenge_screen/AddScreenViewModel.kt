@@ -1,6 +1,7 @@
 package com.example.str3ky.ui.add_challenge_screen
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -8,17 +9,22 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.str3ky.data.DayProgress
 import com.example.str3ky.data.Goal
+import com.example.str3ky.data.InvalidGoalException
 import com.example.str3ky.repository.GoalRepositoryImpl
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
+@HiltViewModel
 class AddScreenViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val goalRepository: GoalRepositoryImpl,
+    private val context: Context,
 ) : ViewModel() {
 
    private var currentGoalId: Int? =null
@@ -49,6 +55,8 @@ private val _goalName = mutableStateOf(
     )
     private val _eventFlow = MutableSharedFlow<UiEvent>()
 
+    private val _progress = mutableStateOf(emptyList<DayProgress>())
+
 
     val goalName: State<GoalScreenState> = _goalName
     val frequency: State<GoalScreenState> = _frequency
@@ -57,8 +65,11 @@ private val _goalName = mutableStateOf(
     val startDate: State<GoalScreenState> = _startDate
     val goalState: State<GoalState> = _goalState
     val goalColor: State<Int> = _goalColor
-    val goalCompleted = _goalCompleted
+    val progress: State<List<DayProgress>> = _progress
+    val goalCompleted: State<Boolean> = _goalCompleted
     val eventFlow = _eventFlow.asSharedFlow()
+
+
 
     private var recentlyGoal: Goal? = null
 
@@ -68,7 +79,7 @@ private val _goalName = mutableStateOf(
 
         if (goalId != -1 ){
             viewModelScope.launch {
-goalRepository.getGoal(goalId).collect{ goal ->
+/*goalRepository.getGoal(goalId).collect{ goal ->
     _goalState.value = goalState.value.copy(goal = goal)
     if(goal!=null){
         currentGoalId = goal.id
@@ -96,7 +107,7 @@ goalRepository.getGoal(goalId).collect{ goal ->
     }
 
 
-}
+}*/
             }
         }
     }
@@ -125,10 +136,10 @@ goalRepository.getGoal(goalId).collect{ goal ->
                 _goalCompleted.value = event.completed
             }
             is AddChallengeEvent.DeleteGoal -> {
-                viewModelScope.launch {
+              /*  viewModelScope.launch {
                     event.goal?.let { goalRepository.delete(it) }
                     recentlyGoal = event.goal
-                }
+                }*/
             }
             is AddChallengeEvent.EnteredDate -> {
                 _startDate.value = _startDate.value.copy(
@@ -136,16 +147,51 @@ goalRepository.getGoal(goalId).collect{ goal ->
                 )
             }
             is AddChallengeEvent.Error -> {
+                viewModelScope.launch {
+                    _eventFlow.emit(
+                        UiEvent.ShowSnackbar(event.message)
+                    )
+                }
 
             }
             is AddChallengeEvent.FocusTime -> {
-
+_focusTime.value = _focusTime.value.copy(
+    focusTime = event.time
+)
             }
             is AddChallengeEvent.Frequency -> {
-
+_frequency.value = _frequency.value.copy(
+    frequency = event.frequency
+)
             }
             AddChallengeEvent.SaveNote -> {
+viewModelScope.launch {
+    try {
 
+      /*  goalRepository.save(
+            Goal(
+             id = currentGoalId ,
+                title = goalName.value.goalName,
+                duration = focusTime.value.focusTime,
+                occurrence = frequency.value.frequency,
+                alarmTime = alarmTime.value.alarmTime,
+                startDate = startDate.value.startDate,
+                progress =  progress.value,
+                color = goalColor.value,
+                completed = goalCompleted.value
+            )
+        )*/
+        _eventFlow.emit(UiEvent.SaveNote)
+    }
+    catch (e: InvalidGoalException){
+        Log.d("Goal", "could not save")
+        _eventFlow.emit(
+            UiEvent.ShowSnackbar(
+                message = e.message ?: "Couldn't save note"
+            )
+        )
+    }
+}
             }
         }
     }
