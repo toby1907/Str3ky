@@ -22,10 +22,11 @@ data class Goal(
     @ColumnInfo(name = "progress") val progress: List<DayProgress>,
     @ColumnInfo(name = "color") var color: Int,
     @ColumnInfo(name = "completed") var completed: Boolean,
-
+    @ColumnInfo(name = "no_of_days") var noOfDays: Int,
 ){
     companion object {
         val goalColors = listOf(RedOrange, LightGreen, Violet, BabyBlue, RedPink)
+        val no_of_days = listOf(7, 14, 30, 60, 100)
     }
 }
 

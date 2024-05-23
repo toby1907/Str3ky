@@ -31,12 +31,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
-import com.example.str3ky.theme.Str3kyTheme
+import com.example.str3ky.ui.add_challenge_screen.components.ColorsDialog
+import com.example.str3ky.ui.add_challenge_screen.components.FrequencyDialog
+import com.example.str3ky.ui.add_challenge_screen.components.NoOfDaysDialog
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -52,6 +53,14 @@ fun AddChallengeScreen(
 ) {
     val scope = rememberCoroutineScope()
     val showDialog = remember { mutableStateOf(false) }
+    val showNoOfDaysDialog = remember { mutableStateOf(false) }
+    val showFrequencyDialog = remember {
+        mutableStateOf(false)
+    }
+    val showfocusDurationDialog = remember {
+
+        mutableStateOf(false)
+    }
 
     // A function to show the dialog
     fun showDialog() {
@@ -63,7 +72,7 @@ fun AddChallengeScreen(
         showDialog.value = false
     }
 
-    LaunchedEffect(key1 = true)   {
+    LaunchedEffect(key1 = true) {
         viewModel.eventFlow.collectLatest { event ->
             when (event) {
                 UiEvent.SaveNote -> TODO()
@@ -102,7 +111,10 @@ fun AddChallengeScreen(
                 ),
                 navigationIcon = {
                     IconButton(onClick = { /*TODO*/ }) {
-                        Icon(painter = painterResource(id = R.drawable.arrow_back_icon), contentDescription ="" )
+                        Icon(
+                            painter = painterResource(id = R.drawable.arrow_back_icon),
+                            contentDescription = ""
+                        )
                     }
                 }
 
@@ -112,32 +124,31 @@ fun AddChallengeScreen(
             Column(
                 modifier = Modifier
                     .padding(it)
-                    .padding(start = 8.dp, end = 8.dp)
-                ,
+                    .padding(start = 8.dp, end = 8.dp),
 
-            ) {
+                ) {
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedTextField(value = viewModel.goalName.value.goalName, onValueChange = {
-                        viewModel.onEvent(AddChallengeEvent.EnteredName(it))
-                    },
+                    OutlinedTextField(
+                        value = viewModel.goalName.value.goalName,
+                        onValueChange = {
+                            viewModel.onEvent(AddChallengeEvent.EnteredName(it))
+                        },
                         label = {
                             Text("Name")
                         },
 
-                    )
-                    Box(modifier = Modifier.clickable {
-
-                    }){
+                        )
+                    Box {
                         OutlinedTextField(
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.Transparent,
                                 unfocusedTextColor = Color.Transparent
                             ),
-                            value ="c",
+                            value = "c",
                             onValueChange = {
 
                             },
@@ -146,13 +157,20 @@ fun AddChallengeScreen(
                             },
                             readOnly = true,
                             leadingIcon = {
-                                Row(horizontalArrangement = Arrangement.Center) {
+                                // Spacer(modifier = Modifier.padding(start = 18.dp))
+                                Row(horizontalArrangement = Arrangement.End,
+                                    modifier = Modifier.clickable {
+                                        showDialog()
+                                    }
+                                ) {
                                     Spacer(modifier = Modifier.padding(start = 18.dp))
                                     Column {
+                                        Spacer(modifier = Modifier.padding(top = 8.dp))
                                         Box(
+
                                             modifier = Modifier
                                                 .background(
-                                                    color = MaterialTheme.colorScheme.onSurface,
+                                                    color = Color(viewModel.goalColor.value),
                                                     shape = MaterialTheme.shapes.small
                                                 )
                                                 .size(32.dp)
@@ -162,44 +180,141 @@ fun AddChallengeScreen(
 
                                 }
                             },
+                            trailingIcon = {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.expand_more_icon),
+                                    contentDescription = "expand_color_picker"
+                                )
+                            }
                         )
                     }
                 }
 
-                OutlinedTextField(value = "Everyday", onValueChange = {
-                   // viewModel.onEvent(AddChallengeEvent.Frequency(it))
-                },
+                OutlinedTextField(
+                    value = "Everyday",
+                    onValueChange = {
+                        // viewModel.onEvent(AddChallengeEvent.Frequency(it))
+                    },
                     label = {
                         Text("Frequency")
                     },
-                    readOnly = true
+                    readOnly = true,
+                    trailingIcon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.expand_more_icon),
+                            contentDescription = "",
+                            modifier = Modifier.clickable {
+                                showFrequencyDialog.value = true
+                            },
+                        )
+                    },
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
 
                 ) {
-                    OutlinedTextField(value = viewModel.focusTime.value.focusTime.toString(), onValueChange = {
-
-                    },
-                        label = {
-                            Text("focus duration")
-                        }
-                    )
                     OutlinedTextField(
-                        value = viewModel.,
-                        onValueChange = {
-                            nameText.value = it
+                        value = viewModel.focusTime.value.focusTime.toString(), onValueChange = {
+
                         },
                         label = {
+                            Text("focus duration")
+                        },
+                        readOnly = true,
+                        trailingIcon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.expand_more_icon),
+                                contentDescription = "expand focus duration",
+                                modifier = Modifier.clickable {
+                                    showfocusDurationDialog.value = true
+                                },
+                            )
+                        },
+
+                    )
+                    OutlinedTextField(
+                        value = viewModel.noOfDays.value.noOfDays.toString(),
+                        onValueChange = {
+                        },
+
+                        label = {
                             Text("No. of days")
+                        },
+                        readOnly = true,
+                        trailingIcon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.expand_more_icon),
+                                contentDescription = "",
+                                modifier = Modifier.clickable {
+                                    showNoOfDaysDialog.value = true
+                                },
+                            )
                         },
                     )
                 }
 
             }
 
+
         }
     )
+
+    if (showDialog.value) {
+
+        ColorsDialog(
+            viewModel = viewModel,
+            onColorClicked = viewModel::onColorSelected,
+            onCancel = {
+
+                hideDialog()
+
+            },
+            onOk = {
+                hideDialog()/* do something with the selected tags */
+            }
+        )
+    }
+    if (showNoOfDaysDialog.value) {
+
+        NoOfDaysDialog(
+            viewModel = viewModel,
+            onCancel = {
+                showNoOfDaysDialog.value = false
+            },
+            onOk = {
+                showNoOfDaysDialog.value = false
+
+            }
+        )
+    }
+    if (showFrequencyDialog.value) {
+        FrequencyDialog(
+            viewModel = viewModel,
+            onCancel = {
+                showFrequencyDialog.value = false
+            },
+            onOk = {
+                showFrequencyDialog.value = false
+
+            }
+        )
+
+    }
+
+    if (showfocusDurationDialog.value) {
+        FrequencyDialog(
+            viewModel = viewModel,
+            onCancel = {
+                showfocusDurationDialog.value = false
+            },
+            onOk = {
+                showfocusDurationDialog.value = false
+
+            }
+        )
+
+    }
+
 }
 

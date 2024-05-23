@@ -12,7 +12,7 @@ data class GoalScreenState(
     val alarmTime: Long? = null,
     val startDate: Long = System.currentTimeMillis(),
     val progress: List<DayProgress> = emptyList(),
-    val goalDuration: Int = 30
+    val noOfDays: Int = 30
 )
 
 data class GoalState(

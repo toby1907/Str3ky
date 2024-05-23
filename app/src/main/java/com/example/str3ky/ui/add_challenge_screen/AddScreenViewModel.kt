@@ -56,6 +56,9 @@ private val _goalName = mutableStateOf(
     private val _eventFlow = MutableSharedFlow<UiEvent>()
 
     private val _progress = mutableStateOf(emptyList<DayProgress>())
+    private val _noOfDays = mutableStateOf(
+        GoalScreenState()
+    )
 
 
     val goalName: State<GoalScreenState> = _goalName
@@ -67,6 +70,7 @@ private val _goalName = mutableStateOf(
     val goalColor: State<Int> = _goalColor
     val progress: State<List<DayProgress>> = _progress
     val goalCompleted: State<Boolean> = _goalCompleted
+    val noOfDays: State<GoalScreenState> = _noOfDays
     val eventFlow = _eventFlow.asSharedFlow()
 
 
@@ -168,7 +172,7 @@ _frequency.value = _frequency.value.copy(
 viewModelScope.launch {
     try {
 
-      /*  goalRepository.save(
+        goalRepository.save(
             Goal(
              id = currentGoalId ,
                 title = goalName.value.goalName,
@@ -178,9 +182,10 @@ viewModelScope.launch {
                 startDate = startDate.value.startDate,
                 progress =  progress.value,
                 color = goalColor.value,
-                completed = goalCompleted.value
+                completed = goalCompleted.value,
+                noOfDays = noOfDays.value.noOfDays
             )
-        )*/
+        )
         _eventFlow.emit(UiEvent.SaveNote)
     }
     catch (e: InvalidGoalException){
@@ -194,6 +199,15 @@ viewModelScope.launch {
 }
             }
         }
+    }
+
+    fun onColorSelected(color: Int) {
+_goalColor.value = color
+    }
+    fun onNoOfDaysSelected(noOfDays: Int) {
+        _noOfDays.value = _noOfDays.value.copy(
+            noOfDays = noOfDays
+        )
     }
 
 }
