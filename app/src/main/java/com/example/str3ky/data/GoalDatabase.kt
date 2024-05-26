@@ -8,7 +8,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
 @Database(entities = [Goal::class], version = 1)
-@TypeConverters(OccurrenceConverter::class, ProgressConverter::class)
+@TypeConverters(OccurrenceSelectionConverter::class, ProgressConverter::class, DurationTypeConverter::class)
 abstract class GoalDatabase : RoomDatabase() {
 
     abstract fun goalDao(): GoalDao

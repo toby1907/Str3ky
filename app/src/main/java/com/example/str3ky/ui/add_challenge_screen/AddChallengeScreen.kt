@@ -1,5 +1,6 @@
 package com.example.str3ky.ui.add_challenge_screen
 
+import android.app.TimePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,28 +19,38 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
 import com.example.str3ky.ui.add_challenge_screen.components.ColorsDialog
+import com.example.str3ky.ui.add_challenge_screen.components.FocusDurationDialog
 import com.example.str3ky.ui.add_challenge_screen.components.FrequencyDialog
 import com.example.str3ky.ui.add_challenge_screen.components.NoOfDaysDialog
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +82,30 @@ fun AddChallengeScreen(
     fun hideDialog() {
         showDialog.value = false
     }
+
+    val context = LocalContext.current
+    val mCalendar = Calendar.getInstance()
+    val mHour = mCalendar[Calendar.HOUR_OF_DAY]
+    val mMinute = mCalendar[Calendar.MINUTE]
+    val formatter = SimpleDateFormat("hh:mm a", Locale.getDefault())
+    val mTimePickerDialog = TimePickerDialog(
+        context,
+        {_, mHour : Int, mMinute: Int ->
+            val selectedTime = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, mHour)
+                set(Calendar.MINUTE, mMinute)
+                // Set the AM/PM marker based on the hour
+                if (mHour >= 12) {
+                    // PM
+                    set(Calendar.AM_PM, Calendar.PM)
+                } else {
+                    // AM
+                    set(Calendar.AM_PM, Calendar.AM)
+                }
+            }.timeInMillis
+            viewModel.onEvent(AddChallengeEvent.AlarmTime(selectedTime))
+        }, mHour, mMinute, false
+    )
 
     LaunchedEffect(key1 = true) {
         viewModel.eventFlow.collectLatest { event ->
@@ -133,6 +168,9 @@ fun AddChallengeScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
+                        modifier = Modifier.size(
+                            width = 240.dp, height = 56.dp
+                        ),
                         value = viewModel.goalName.value.goalName,
                         onValueChange = {
                             viewModel.onEvent(AddChallengeEvent.EnteredName(it))
@@ -143,7 +181,9 @@ fun AddChallengeScreen(
 
                         )
                     Box {
-                        OutlinedTextField(
+                        OutlinedTextField(modifier = Modifier.size(
+                            width = 240.dp, height = 56.dp
+                        ),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.Transparent,
                                 unfocusedTextColor = Color.Transparent
@@ -183,39 +223,91 @@ fun AddChallengeScreen(
                             trailingIcon = {
                                 Icon(
                                     painter = painterResource(id = R.drawable.expand_more_icon),
-                                    contentDescription = "expand_color_picker"
+                                    contentDescription = "expand_color_picker",
+                                    modifier = Modifier.clickable {
+                                        showDialog()
+                                    }
                                 )
                             }
                         )
                     }
                 }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
 
-                OutlinedTextField(
-                    value = "Everyday",
-                    onValueChange = {
-                        // viewModel.onEvent(AddChallengeEvent.Frequency(it))
-                    },
-                    label = {
-                        Text("Frequency")
-                    },
-                    readOnly = true,
-                    trailingIcon = {
-                        Icon(
-                            painter = painterResource(id = R.drawable.expand_more_icon),
-                            contentDescription = "",
-                            modifier = Modifier.clickable {
-                                showFrequencyDialog.value = true
-                            },
-                        )
-                    },
-                )
+                ) {
+
+                    val calendarTime = Calendar.getInstance()
+                 if(viewModel.alarmTime.value.alarmTime!=null)  {
+                     calendarTime.timeInMillis = viewModel.alarmTime.value.alarmTime!!
+                     val selectedDate = Date(viewModel.alarmTime.value.alarmTime!!)
+                 }
+
+                    val noOfDays = viewModel.frequency.value.frequency.selectedDays.size
+                    OutlinedTextField(
+                        modifier = Modifier.size(
+                            width = 240.dp, height = 56.dp
+                        ),
+                        value = if (viewModel.frequency.value.frequency.selectedDays.isEmpty()) {
+                            viewModel.frequency.value.frequency.dayOption.name
+                        } else {
+                            "$noOfDays days weekly"
+                        },
+                        onValueChange = {
+                            // viewModel.onEvent(AddChallengeEvent.Frequency(it))
+                        },
+                        label = {
+                            Text("Frequency")
+                        },
+                        readOnly = true,
+                        trailingIcon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.expand_more_icon),
+                                contentDescription = "",
+                                modifier = Modifier.clickable {
+                                    showFrequencyDialog.value = true
+                                },
+                            )
+                        },
+                    )
+                    OutlinedTextField(
+                        modifier = Modifier.size(
+                            width = 240.dp, height = 56.dp
+                        ),
+                        value = if(viewModel.alarmTime.value.alarmTime!=null){
+                            val selectedDate = Date(viewModel.alarmTime.value.alarmTime!!)
+                            formatter.format(selectedDate) }else "Not Set",
+                        onValueChange = {
+                        },
+
+                        label = {
+                            Text("Reminder")
+                        },
+                        readOnly = true,
+                        trailingIcon = {
+                            Icon(
+                                painter = painterResource(id = R.drawable.expand_more_icon),
+                                contentDescription = "",
+                                modifier = Modifier.clickable {
+                                    mTimePickerDialog.show()
+
+                                },
+                            )
+                        },
+                    )
+                }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
 
                 ) {
                     OutlinedTextField(
-                        value = viewModel.focusTime.value.focusTime.toString(), onValueChange = {
+                        modifier = Modifier.size(
+                            width = 240.dp, height = 56.dp
+                        ),
+                        value = millisecondsToMinutes(viewModel.focusTime.value.focusTime.countdownTime).toString() + " mins",
+                        onValueChange = {
 
                         },
                         label = {
@@ -232,8 +324,11 @@ fun AddChallengeScreen(
                             )
                         },
 
-                    )
+                        )
                     OutlinedTextField(
+                        modifier = Modifier.size(
+                            width = 240.dp, height = 56.dp
+                        ),
                         value = viewModel.noOfDays.value.noOfDays.toString(),
                         onValueChange = {
                         },
@@ -257,7 +352,8 @@ fun AddChallengeScreen(
             }
 
 
-        }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     )
 
     if (showDialog.value) {
@@ -303,7 +399,7 @@ fun AddChallengeScreen(
     }
 
     if (showfocusDurationDialog.value) {
-        FrequencyDialog(
+        FocusDurationDialog(
             viewModel = viewModel,
             onCancel = {
                 showfocusDurationDialog.value = false
@@ -315,6 +411,7 @@ fun AddChallengeScreen(
         )
 
     }
+
 
 }
 

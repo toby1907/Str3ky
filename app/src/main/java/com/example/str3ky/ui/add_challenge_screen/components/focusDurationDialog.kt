@@ -1,13 +1,12 @@
 package com.example.str3ky.ui.add_challenge_screen.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,8 +20,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,10 +31,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.str3ky.R
-import com.example.str3ky.data.Goal
 import com.example.str3ky.ui.add_challenge_screen.AddChallengeEvent
 import com.example.str3ky.ui.add_challenge_screen.AddScreenViewModel
-import com.example.str3ky.ui.session.TrailingIcon
+import com.example.str3ky.ui.add_challenge_screen.millisecondsToMinutes
+import com.example.str3ky.ui.add_challenge_screen.minutesToMilliseconds
 
 @Composable
 fun FocusDurationDialog(
@@ -53,15 +50,15 @@ fun FocusDurationDialog(
         Card(
             modifier = Modifier
                 .padding(16.dp)
-                .size(width = 280.dp, height = 434.dp)
+                .size(width = 280.dp, height = 280.dp)
 
         ) {
             // Add your UI elements here
-            Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth()
-            ) {
+
+            Column(modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+                ){
                 Row(
                     modifier = Modifier
                         .padding(8.dp)
@@ -80,7 +77,8 @@ fun FocusDurationDialog(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.fillMaxHeight()
                     ) {
-                        BasicTextField(modifier = Modifier.width(96.dp),
+                        BasicTextField(
+                            modifier = Modifier.width(96.dp),
                             textStyle = TextStyle(
                                 textAlign = TextAlign.Center,
                                 fontSize = 24.sp,
@@ -90,7 +88,7 @@ fun FocusDurationDialog(
                                 letterSpacing = 0.1.sp,
                             ),
                             singleLine = true,
-                            value = viewModel.focusTime.value.focusTime.toString(),
+                            value = millisecondsToMinutes(viewModel.focusTime.value.focusTime.countdownTime).toString(),
                             onValueChange = {
                             },
                             readOnly = true
@@ -111,8 +109,8 @@ fun FocusDurationDialog(
                     }
                     DialogTrailingIcon(viewModel)
                 }
-
             }
+
         }
     }
 }
@@ -128,9 +126,9 @@ fun DialogTrailingIcon(viewModel: AddScreenViewModel) {
             IconButton(
                 modifier = Modifier.background(MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(topEnd = 4.dp, topStart = 0.dp, bottomEnd = 4.dp, bottomStart = 0.dp)),
                 onClick = {
-                          viewModel.onEvent(AddChallengeEvent.FocusTime(
-                              viewModel.focusTime.value.focusTime + 10
-                          ))
+                    if (millisecondsToMinutes(viewModel.focusTime.value.focusTime.countdownTime)<240) {
+                         viewModel.timerIncrement()
+                    }
                 },
                 colors = IconButtonDefaults.iconButtonColors(
                     contentColor = MaterialTheme.colorScheme.onSurface,
@@ -148,9 +146,11 @@ fun DialogTrailingIcon(viewModel: AddScreenViewModel) {
 
                 modifier = Modifier.background(MaterialTheme.colorScheme.primary,
                     shape = RoundedCornerShape(topEnd = 4.dp, topStart = 0.dp, bottomEnd = 4.dp, bottomStart = 0.dp)),
-                onClick = {   viewModel.onEvent(AddChallengeEvent.FocusTime(
-                    viewModel.focusTime.value.focusTime - 10
-                )) },
+                onClick = {
+                    if (millisecondsToMinutes(viewModel.focusTime.value.focusTime.countdownTime)>10) {
+                        viewModel.timerDecrement()
+                    }
+                          },
                 colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
             ) {
 
