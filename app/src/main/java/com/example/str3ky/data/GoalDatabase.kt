@@ -5,12 +5,10 @@ import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.TypeConverters
 
 @Database(entities = [Goal::class], version = 1)
-abstract class AppDatabase : RoomDatabase() {
-    abstract fun userDao(): GoalDao
-}
-
+@TypeConverters(OccurrenceSelectionConverter::class, ProgressConverter::class, DurationTypeConverter::class)
 abstract class GoalDatabase : RoomDatabase() {
 
     abstract fun goalDao(): GoalDao
@@ -31,7 +29,7 @@ abstract class GoalDatabase : RoomDatabase() {
                 instance ?: Room.databaseBuilder(
                     context,
                     GoalDatabase::class.java,
-                    "goal.db"
+                    "goal"
                 )
                     .build()
             }

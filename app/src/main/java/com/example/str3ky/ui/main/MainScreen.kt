@@ -2,6 +2,7 @@ package com.example.str3ky.ui.main
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -17,6 +18,7 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -27,16 +29,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.str3ky.Greeting
+import androidx.navigation.NavHostController
 import com.example.str3ky.R
-import com.example.str3ky.theme.Str3kyTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(){
+fun HomeScreen(
+    onNavigateToAddVoice: () -> Unit,
+    navController: NavHostController,
+    snackbarHostState: SnackbarHostState
+) {
 
     Scaffold(
         topBar = {
@@ -48,7 +52,7 @@ fun HomeScreen(){
                      modifier = Modifier.padding(start = 4.dp)
                  )
                  {
-                     IconButton(onClick = { /*TODO*/ }) {
+                     IconButton(onClick = {onNavigateToAddVoice() }) {
                          Icon(
                              painter = painterResource(id = R.drawable.add_icon),
                              contentDescription = ""
@@ -89,7 +93,7 @@ LazyColumn(
     content = {
         items(items){ item ->
 
-ChallengListItem(item)
+ChallengListItem(item,navController)
 
         }
 })
@@ -100,8 +104,8 @@ ChallengListItem(item)
 
 
 @Composable
-fun ChallengListItem(item: Int) {
-    ListItem(
+fun ChallengListItem(item: Int, navController: NavHostController) {
+    ListItem(modifier = Modifier.clickable { navController.navigate("progress") },
         headlineContent = {
 
         Text(
@@ -180,11 +184,3 @@ fun ChallengListItem(item: Int) {
 }
 
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-
-    Str3kyTheme {
-       HomeScreen()
-    }
-}

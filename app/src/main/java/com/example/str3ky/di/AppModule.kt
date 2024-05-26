@@ -4,11 +4,11 @@ import android.app.Application
 import android.content.Context
 import androidx.room.Room
 import com.example.str3ky.data.GoalDatabase
+import com.example.str3ky.repository.GoalRepository
 import com.example.str3ky.repository.GoalRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -22,19 +22,16 @@ class AppModule {
 
     @Provides
     @Singleton
-    fun provideNoteDatabase(app: Application): GoalDatabase {
-        return Room.databaseBuilder(app.applicationContext, GoalDatabase::class.java, "goal.db")
+    fun provideGoalDatabase(app: Application): GoalDatabase {
+        return Room.databaseBuilder(app.applicationContext, GoalDatabase::class.java, "goal")
             .build()
     }
 
     @Provides
     @Singleton
-    fun provideNoteRepository(db: GoalDatabase): GoalRepositoryImpl {
+    fun provideGoalRepository(db: GoalDatabase): GoalRepositoryImpl{
         return GoalRepositoryImpl(db.goalDao())
     }
-
-
-
 
 
 }
