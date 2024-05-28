@@ -1,6 +1,5 @@
 package com.example.str3ky.ui.add_challenge_screen
 
-import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
@@ -9,6 +8,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.str3ky.data.DayOfWeek
 import com.example.str3ky.data.DayProgress
 import com.example.str3ky.data.Duration
 import com.example.str3ky.data.Goal
@@ -20,6 +20,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 
 
@@ -27,7 +28,6 @@ import javax.inject.Inject
 class AddScreenViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val goalRepository: GoalRepositoryImpl,
-    private val context: Context,
 ) : ViewModel() {
 
     private var currentGoalId: Int? = null
@@ -185,21 +185,23 @@ class AddScreenViewModel @Inject constructor(
             AddChallengeEvent.SaveNote -> {
                 viewModelScope.launch {
                     try {
-
-                        goalRepository.save(
-                            Goal(
-                                id = currentGoalId,
-                                title = goalName.value.goalName,
-                                durationInfo = focusTime.value.focusTime,
-                                occurrence = frequency.value.frequency,
-                                alarmTime = alarmTime.value.alarmTime,
-                                startDate = startDate.value.startDate,
-                                progress = progress.value,
-                                color = goalColor.value,
-                                completed = goalCompleted.value,
-                                noOfDays = noOfDays.value.noOfDays
-                            )
+                        val progressList = generateProgress(
+                            noOfDays = noOfDays.value.noOfDays,
+                            selectedDays = convertToDayOfWeekSet(selectedDays.value).toList()
                         )
+                        val goal = Goal(
+                            id = currentGoalId,
+                            title = goalName.value.goalName,
+                            durationInfo = focusTime.value.focusTime,
+                            occurrence = frequency.value.frequency,
+                            alarmTime = alarmTime.value.alarmTime,
+                            startDate = startDate.value.startDate,
+                            progress = progressList,
+                            color = goalColor.value,
+                            completed = goalCompleted.value,
+                            noOfDays = noOfDays.value.noOfDays
+                        )
+                        goalRepository.save(goal)
                         _eventFlow.emit(UiEvent.SaveNote)
                     } catch (e: InvalidGoalException) {
 
@@ -248,21 +250,62 @@ class AddScreenViewModel @Inject constructor(
             )
         } else {
             val occurrence =
-                OccurrenceSelection(Occurrence.DAILY, emptySet())
+                OccurrenceSelection(
+                    Occurrence.DAILY,
+                    setOf(
+                        DayOfWeek.MONDAY,
+                        DayOfWeek.TUESDAY,
+                        DayOfWeek.WEDNESDAY,
+                        DayOfWeek.THURSDAY,
+                        DayOfWeek.FRIDAY,
+                        DayOfWeek.SATURDAY,
+                        DayOfWeek.SUNDAY,
+                    )
+                )
             _frequency.value = _frequency.value.copy(
                 frequency = occurrence
             )
         }
     }
-    fun timerIncrement(){
-        _focusTime.value =_focusTime.value.copy(
-            focusTime = Duration( isCompleted = false,countdownTime = focusTime.value.focusTime.countdownTime+ minutesToMilliseconds(10))
+
+    fun timerIncrement() {
+        _focusTime.value = _focusTime.value.copy(
+            focusTime = Duration(
+                isCompleted = false,
+                countdownTime = focusTime.value.focusTime.countdownTime + minutesToMilliseconds(10)
+            )
         )
     }
-    fun timerDecrement(){
-        _focusTime.value =_focusTime.value.copy(
-            focusTime = Duration( isCompleted = false,countdownTime = focusTime.value.focusTime.countdownTime- minutesToMilliseconds(10))
+
+    fun timerDecrement() {
+        _focusTime.value = _focusTime.value.copy(
+            focusTime = Duration(
+                isCompleted = false,
+                countdownTime = focusTime.value.focusTime.countdownTime - minutesToMilliseconds(10)
+            )
         )
+    }
+
+    fun generateProgress(noOfDays: Int, selectedDays: List<DayOfWeek>): List<DayProgress> {
+
+        val progressList = mutableListOf<DayProgress>()
+
+        // Calculate the number of days for each selected day
+        val daysPerSelectedDay = noOfDays / selectedDays.size
+
+        // Initialize the date (you can set it to the current date or any other start date)
+        val calendar = Calendar.getInstance()
+        calendar.timeInMillis = System.currentTimeMillis()
+
+        // Generate progress for each selected day
+        for (day in selectedDays) {
+            for (i in 0 until daysPerSelectedDay) {
+                progressList.add(DayProgress(calendar.timeInMillis, false))
+                calendar.add(Calendar.DAY_OF_MONTH, 1) // Add one day
+            }
+        }
+
+        return progressList
     }
 
 }

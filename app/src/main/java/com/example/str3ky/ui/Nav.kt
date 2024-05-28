@@ -15,6 +15,8 @@ import com.example.str3ky.ui.add_challenge_screen.AddChallengeScreen
 import com.example.str3ky.ui.add_challenge_screen.AddScreenViewModel
 import com.example.str3ky.ui.main.HomeScreen
 import com.example.str3ky.ui.progress.ProgressScreen
+import com.example.str3ky.ui.session.SessionScreen
+import com.example.str3ky.ui.session.SessionSettingsScreen
 
 @Composable
 fun MyAppNavHost(
@@ -79,7 +81,13 @@ fun MyAppNavHost(
             )
         }
         composable("progress"){
-           ProgressScreen()
+           ProgressScreen(nav = navController)
+        }
+        composable("session_settings"){
+            SessionSettingsScreen(nav =navController)
+        }
+        composable("session"){
+            SessionScreen(nav = navController)
         }
     }
 

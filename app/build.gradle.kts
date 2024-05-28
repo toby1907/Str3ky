@@ -53,6 +53,11 @@ android {
 }
 
 dependencies {
+    val  compose_version = "1.6.4"
+    val  lottieVersion = "6.4.1"
+    // Lottie-compose
+    implementation ("com.airbnb.android:lottie-compose:$lottieVersion")
+
     val room_version = "2.6.1"
     val lifecycle_version = "2.7.0"
     val arch_version = "2.2.0"

@@ -8,17 +8,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -29,21 +25,19 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import com.example.str3ky.R
-import com.example.str3ky.theme.Str3kyTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SessionScreen() {
+fun SessionScreen(nav: NavHostController) {
     val nameText = remember {
         mutableStateOf("30")
     }
@@ -81,7 +75,7 @@ fun SessionScreen() {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ){
-                Timer()
+                Timer(nav = nav)
             }
 
 
@@ -92,7 +86,7 @@ fun SessionScreen() {
 }
 @Composable
 private fun Timer(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier, nav: NavHostController
 ){
     Column(verticalArrangement = Arrangement.spacedBy(48.dp),
         horizontalAlignment = Alignment.CenterHorizontally){
@@ -134,19 +128,20 @@ private fun Timer(
                 )
             )
         }
-        TimerButton()
+        TimerButton(nav = nav)
     }
 }
 @Composable
 private fun TimerStartStopButton(
     timerRunning: Boolean,
+    nav: NavHostController,
 ){
  IconButton(modifier = Modifier
      .padding(1.dp)
      .width(50.dp)
      .height(50.dp)
      .background(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape),
-     onClick = { /*TODO*/ }) {
+     onClick = {  }) {
 
      Icon(painter = painterResource(id = R.drawable.play_arrow_fill1_wght400_grad0_opsz24),
          contentDescription = "",
@@ -175,19 +170,11 @@ private fun TimerRestartButton( timerRunning: Boolean){
     }
 }
 @Composable
-private fun TimerButton(){
+private fun TimerButton(nav: NavHostController){
    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        TimerStartStopButton(true)
+        TimerStartStopButton(true,nav = nav)
         TimerRestartButton(timerRunning = true)
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun SessionScreenPreview() {
-
-    Str3kyTheme {
-        SessionScreen()
-    }
-}
 
