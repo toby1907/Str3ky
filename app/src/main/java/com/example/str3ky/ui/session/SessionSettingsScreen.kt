@@ -181,7 +181,11 @@ Spacer(modifier = Modifier.padding(32.dp))
                      color = MaterialTheme.colorScheme.primary,
                      shape = RoundedCornerShape(size = 10.dp)
                  ),
-                 onClick = { nav.navigate("session") }) {
+                 onClick = {
+                     viewModel.sessionDurationCalculation()
+                     nav.navigate("session"+"?goalId=${2}&totalSessions=${viewModel.numSessions.intValue}&sessionDuration=${viewModel.sessionDuration.value}")
+
+                 }) {
                  Row(
                      verticalAlignment = Alignment.CenterVertically,
                      horizontalArrangement = Arrangement.spacedBy(8.dp,Alignment.CenterHorizontally)

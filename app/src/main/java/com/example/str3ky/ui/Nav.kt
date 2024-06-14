@@ -86,7 +86,28 @@ fun MyAppNavHost(
         composable("session_settings"){
             SessionSettingsScreen(nav =navController)
         }
-        composable("session"){
+        composable(route = "session"+"?goalId={goalId}&totalSessions={totalSessions}&sessionDuration={sessionDuration}",
+            arguments = listOf(
+                navArgument(
+                    name = "goalId"
+                ) {
+                    type = NavType.IntType
+                    defaultValue = -1
+                },
+                navArgument(
+                    name = "totalSessions"
+                ) {
+                    type = NavType.IntType
+                    defaultValue = -1
+                },
+                navArgument(
+                    name = "sessionDuration"
+                ) {
+                    type = NavType.IntType
+                    defaultValue = -1
+                },
+            )
+            ){
             SessionScreen(nav = navController)
         }
     }

@@ -14,6 +14,7 @@ class FocusSessionViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val goalRepository: GoalRepositoryImpl,
 ) : ViewModel() {
+
     var timerValue = mutableStateOf(30)
         private set
 
@@ -23,7 +24,7 @@ class FocusSessionViewModel @Inject constructor(
         private set
     var numBreaks = mutableIntStateOf(0)
         private set
-    var sessionDuration = mutableStateOf(0)
+    var sessionDuration = mutableStateOf(30)
         private set
 
     // Function to increase timer
@@ -94,7 +95,7 @@ class FocusSessionViewModel @Inject constructor(
 
         }
 
-
+      //  sessionDurationCalculation()
 
     }
 

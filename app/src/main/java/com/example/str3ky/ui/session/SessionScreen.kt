@@ -20,6 +20,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -32,18 +34,19 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
+import kotlinx.coroutines.flow.collect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SessionScreen(nav: NavHostController) {
-    val nameText = remember {
-        mutableStateOf("30")
-    }
-    val selected = remember {
-        mutableStateOf(true)
-    }
+fun SessionScreen(nav: NavHostController,viewModel: SessionScreenViewModel= hiltViewModel()) {
+
+
+
+
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -75,7 +78,7 @@ fun SessionScreen(nav: NavHostController) {
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ){
-                Timer(nav = nav)
+                Timer(nav = nav, viewModel = viewModel)
             }
 
 
@@ -86,10 +89,27 @@ fun SessionScreen(nav: NavHostController) {
 }
 @Composable
 private fun Timer(
-    modifier: Modifier = Modifier, nav: NavHostController
+    modifier: Modifier = Modifier, nav: NavHostController,viewModel: SessionScreenViewModel
 ){
     Column(verticalArrangement = Arrangement.spacedBy(48.dp),
         horizontalAlignment = Alignment.CenterHorizontally){
+     /*   val focusPeriod = if(viewModel.isSessionInProgress.value){
+            "Focus period(${viewModel.currentSession.value.currentSession} of ${viewModel.totalNoOfSessions.value.totalSessions})"
+        }
+        else if (viewModel.isBreakInProgress.value){
+            "Focus period(${viewModel.currentBreak.value.currentBreak} of ${viewModel.totalNoOfBreaks.value.totalBreaks})"
+        } else {
+            "Focus period(${viewModel.currentSession.value.currentSession} of ${viewModel.totalNoOfSessions.value.totalSessions})"
+
+        }*/
+        val focusPeriod = viewModel.currentPhase.collectAsState().value.name
+        Text(text = focusPeriod
+        ,style = TextStyle(
+                fontSize = 16.sp,
+                fontWeight = FontWeight(400),
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                textAlign = TextAlign.Center,
+            ))
         Box(
             modifier
                 .padding(0.dp)
@@ -97,9 +117,11 @@ private fun Timer(
                 .height(235.dp),
             contentAlignment = Alignment.Center
         ) {
+            val myFlow = viewModel.currentTimeTargetInMillis.collectAsState(initial = 0L)
+            val progress = (viewModel.timeLeftInMillis.collectAsState(initial = 0L).value.toFloat()/myFlow.value.toFloat())
             Box() {
                 CircularProgressIndicator(
-                    progress = .6f,
+                    progress = progress,
                     modifier = modifier
                         .fillMaxSize()
                         .scale(scaleX = -1f, scaleY = 1f),
@@ -117,8 +139,12 @@ private fun Timer(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = .25f)
                 )
             }
+            val i = viewModel.timeLeftInMillis.collectAsState(initial = 0L).value
+            val minutes = i / 1000 / 60
+            val seconds = i / 1000 % 60
+            val formattedTime = String.format("%02d:%02d", minutes, seconds)
             Text(
-                "25:00",
+                text = formattedTime,
                 style = TextStyle(
                     fontSize = 48.sp,
                     fontWeight = FontWeight(400),
@@ -128,20 +154,23 @@ private fun Timer(
                 )
             )
         }
-        TimerButton(nav = nav)
+        TimerButton(nav = nav,viewModel=viewModel)
     }
 }
 @Composable
 private fun TimerStartStopButton(
     timerRunning: Boolean,
     nav: NavHostController,
+    viewModel: SessionScreenViewModel
 ){
  IconButton(modifier = Modifier
      .padding(1.dp)
      .width(50.dp)
      .height(50.dp)
      .background(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape),
-     onClick = {  }) {
+     onClick = {
+         viewModel.startSession()
+     }) {
 
      Icon(painter = painterResource(id = R.drawable.play_arrow_fill1_wght400_grad0_opsz24),
          contentDescription = "",
@@ -152,7 +181,7 @@ private fun TimerStartStopButton(
  }
 }
 @Composable
-private fun TimerRestartButton( timerRunning: Boolean){
+private fun TimerRestartButton( timerRunning: Boolean,viewModel: SessionScreenViewModel){
     IconButton(modifier = Modifier
         .padding(1.dp)
         .width(50.dp)
@@ -160,7 +189,7 @@ private fun TimerRestartButton( timerRunning: Boolean){
         .background(
             color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape
         ),
-        onClick = { /*TODO*/ }) {
+        onClick = {viewModel.cancelCountdown()  }) {
 
         Icon(painter = painterResource(id = R.drawable.refresh_icon),
             contentDescription = "",
@@ -170,10 +199,10 @@ private fun TimerRestartButton( timerRunning: Boolean){
     }
 }
 @Composable
-private fun TimerButton(nav: NavHostController){
+private fun TimerButton(nav: NavHostController,viewModel: SessionScreenViewModel){
    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        TimerStartStopButton(true,nav = nav)
-        TimerRestartButton(timerRunning = true)
+        TimerStartStopButton(true,nav = nav, viewModel = viewModel)
+        TimerRestartButton(timerRunning = true,viewModel =viewModel)
     }
 }
 
