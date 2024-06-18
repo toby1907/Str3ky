@@ -115,6 +115,7 @@ dependencies {
 
     //gson
     implementation ("com.google.code.gson:gson:2.10.1")
+
 }
 // Allow references to generated code
 kapt {
