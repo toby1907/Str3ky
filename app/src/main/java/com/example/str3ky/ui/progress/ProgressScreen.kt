@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -50,11 +51,11 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(text = viewModel.goalName.value.goalName) },
+            TopAppBar(title = { Text(text ="Reading 10 pages for 30days..." /*viewModel.goalName.value.goalName*/) },
                 navigationIcon = {
-                    Icon(
+                    Icon(modifier = Modifier.padding(8.dp),
                         painter = painterResource(id = R.drawable.arrow_back_icon),
-                        contentDescription = ""
+                        contentDescription = "",
                     )
                 }
             )
@@ -102,10 +103,10 @@ fun TableProgress(
         modifier = modifier.fillMaxSize()
     ) {
         Text(
-            text = "Challenge Progress",
+            text = "Daily Progress",
             style = TextStyle(
-                fontSize = 22.sp,
-                lineHeight = 28.sp,
+                fontSize = 18.sp,
+                lineHeight = 24.sp,
                 fontWeight = FontWeight(400),
                 color = Color(0xFFFFFFFF)
             ),
