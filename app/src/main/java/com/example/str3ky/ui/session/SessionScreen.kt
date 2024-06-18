@@ -8,52 +8,48 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.example.str3ky.R
-import com.example.str3ky.theme.Str3kyTheme
+import com.example.str3ky.data.CountdownTimerManager
+import kotlinx.coroutines.flow.collect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SessionScreen() {
-    val nameText = remember {
-        mutableStateOf("30")
-    }
-    val selected = remember {
-        mutableStateOf(true)
-    }
+fun SessionScreen(nav: NavHostController, viewModel: SessionScreenViewModel = hiltViewModel()) {
+
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Add") },
+                title = { Text(text = "Focus Session") },
                 actions = {
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -76,26 +72,66 @@ fun SessionScreen() {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(it)
-                ,
+                    .padding(it),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
-            ){
-                Timer()
+            ) {
+                Timer(nav = nav, viewModel = viewModel)
             }
-
-
 
 
         }
     )
 }
+
 @Composable
 private fun Timer(
-    modifier: Modifier = Modifier
-){
-    Column(verticalArrangement = Arrangement.spacedBy(48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally){
+    modifier: Modifier = Modifier, nav: NavHostController, viewModel: SessionScreenViewModel
+) {
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        /*   val focusPeriod = if(viewModel.isSessionInProgress.value){
+               "Focus period(${viewModel.currentSession.value.currentSession} of ${viewModel.totalNoOfSessions.value.totalSessions})"
+           }
+           else if (viewModel.isBreakInProgress.value){
+               "Focus period(${viewModel.currentBreak.value.currentBreak} of ${viewModel.totalNoOfBreaks.value.totalBreaks})"
+           } else {
+               "Focus period(${viewModel.currentSession.value.currentSession} of ${viewModel.totalNoOfSessions.value.totalSessions})"
+
+           }*/
+        val pomoName = viewModel.countdownTimerManager.currentPhase.collectAsState().value.name
+        val focusSet = viewModel.countdownTimerManager.focusSet.collectAsState(initial = 0)
+        val totalFocusSet =
+            viewModel.countdownTimerManager.totalFocusSet.collectAsState(initial = 0)
+        val breakSet = viewModel.countdownTimerManager.breakSet.collectAsState(initial = 0)
+        val totalBreakSet =
+            viewModel.countdownTimerManager.totalBreakSet.collectAsState(initial = 0)
+
+        val displayText = when (pomoName) {
+            CountdownTimerManager.Phase.FOCUS_SESSION.name -> {
+                "$pomoName Period (${focusSet.value} of ${totalFocusSet.value})"
+            }
+
+            CountdownTimerManager.Phase.BREAK.name -> {
+                "$pomoName Period (${breakSet.value} of ${totalBreakSet.value})"
+            }
+
+            else -> {
+                "Focus Session Completed"
+            }
+        }
+
+        Text(
+            text = displayText, style = TextStyle(
+                fontSize = 16.sp,
+                fontWeight = FontWeight(400),
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                textAlign = TextAlign.Center,
+            )
+        )
         Box(
             modifier
                 .padding(0.dp)
@@ -103,9 +139,13 @@ private fun Timer(
                 .height(235.dp),
             contentAlignment = Alignment.Center
         ) {
+            val myFlow =
+                viewModel.countdownTimerManager.currentTimeTargetInMillis.collectAsState(initial = 0L)
+            val progress =
+                (viewModel.countdownTimerManager.timeLeftInMillis.collectAsState(initial = 0L).value.toFloat() / myFlow.value.toFloat())
             Box() {
                 CircularProgressIndicator(
-                    progress = .6f,
+                    progress = progress,
                     modifier = modifier
                         .fillMaxSize()
                         .scale(scaleX = -1f, scaleY = 1f),
@@ -123,8 +163,13 @@ private fun Timer(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = .25f)
                 )
             }
+            val i =
+                viewModel.countdownTimerManager.timeLeftInMillis.collectAsState(initial = 0L).value
+            val minutes = i / 1000 / 60
+            val seconds = i / 1000 % 60
+            val formattedTime = String.format("%02d:%02d", minutes, seconds)
             Text(
-                "25:00",
+                text = formattedTime,
                 style = TextStyle(
                     fontSize = 48.sp,
                     fontWeight = FontWeight(400),
@@ -134,30 +179,49 @@ private fun Timer(
                 )
             )
         }
-        TimerButton()
+        TimerButton(nav = nav, viewModel = viewModel)
     }
 }
+
 @Composable
 private fun TimerStartStopButton(
     timerRunning: Boolean,
-){
- IconButton(modifier = Modifier
-     .padding(1.dp)
-     .width(50.dp)
-     .height(50.dp)
-     .background(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape),
-     onClick = { /*TODO*/ }) {
+    nav: NavHostController,
+    viewModel: SessionScreenViewModel
+) {
+    val buttonState = remember {
+        mutableStateOf(false)
+    }
+    IconButton(modifier = Modifier
+        .padding(1.dp)
+        .width(50.dp)
+        .height(50.dp)
+        .background(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape),
+        onClick = {
+            buttonState.value = !buttonState.value
+            // viewModel.startSession()
+            viewModel.pauseResumeCountdown(buttonState.value)
 
-     Icon(painter = painterResource(id = R.drawable.play_arrow_fill1_wght400_grad0_opsz24),
-         contentDescription = "",
-         tint = MaterialTheme.colorScheme.onPrimaryContainer
-         )
+        }) {
+
+        Icon(
+            painter =
+            if (buttonState.value) {
+                painterResource(id = R.drawable.play_arrow_fill1_wght400_grad0_opsz24)
+            } else{
+                painterResource(id = R.drawable.pause_24)
+            }
+                ,
+            contentDescription = "",
+            tint = MaterialTheme.colorScheme.onPrimaryContainer
+        )
 
 
- }
+    }
 }
+
 @Composable
-private fun TimerRestartButton( timerRunning: Boolean){
+private fun TimerRestartButton(timerRunning: Boolean, viewModel: SessionScreenViewModel) {
     IconButton(modifier = Modifier
         .padding(1.dp)
         .width(50.dp)
@@ -165,29 +229,30 @@ private fun TimerRestartButton( timerRunning: Boolean){
         .background(
             color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape
         ),
-        onClick = { /*TODO*/ }) {
+        onClick = {
+            viewModel.cancelCountdown()
 
-        Icon(painter = painterResource(id = R.drawable.refresh_icon),
+        }) {
+
+        Icon(
+            painter = painterResource(id = R.drawable.refresh_icon),
             contentDescription = "",
-            tint = MaterialTheme.colorScheme.onPrimaryContainer )
+            tint = MaterialTheme.colorScheme.onPrimaryContainer
+        )
 
 
     }
 }
+
 @Composable
-private fun TimerButton(){
-   Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        TimerStartStopButton(true)
-        TimerRestartButton(timerRunning = true)
+private fun TimerButton(nav: NavHostController, viewModel: SessionScreenViewModel) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        TimerStartStopButton(true, nav = nav, viewModel = viewModel)
+        TimerRestartButton(timerRunning = true, viewModel = viewModel)
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun SessionScreenPreview() {
-
-    Str3kyTheme {
-        SessionScreen()
-    }
-}
 

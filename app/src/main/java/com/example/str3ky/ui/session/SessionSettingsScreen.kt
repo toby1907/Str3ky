@@ -36,23 +36,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.example.str3ky.R
 import com.example.str3ky.theme.Str3kyTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SessionSettingsScreen() {
-    val nameText = remember {
-        mutableStateOf("30")
-    }
-    val selected = remember {
-
-        mutableStateOf(true)
-    }
+fun SessionSettingsScreen(nav: NavHostController) {
+    val viewModel:FocusSessionViewModel = hiltViewModel()
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Add") },
+                title = { Text(text = "Focus Session Settings") },
                 actions = {
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -111,9 +108,9 @@ fun SessionSettingsScreen() {
                                 letterSpacing = 0.1.sp,
                             ),
                             singleLine = true,
-                            value = nameText.value,
+                            value = viewModel.timerValue.value.toString(),
                             onValueChange = {
-                                nameText.value = it
+
                             }
                         )
                         Text(
@@ -129,11 +126,20 @@ fun SessionSettingsScreen() {
                             )
                         )
                     }
-                    TrailingIcon()
+                    TrailingIcon(viewModel)
                 }
                 Spacer(modifier = Modifier.padding(24.dp))
+                val displayText = when(viewModel.numBreaks.intValue){
+                     0 -> {
+                         "You'll have no break"
+                     }
+                    1 -> "You will have only ${viewModel.numBreaks.intValue} break."
+                    in 2..8 ->  "You will have ${viewModel.numBreaks.intValue} no. of breaks."
+
+                    else -> {   "You'll have no break"   }
+                }
                 Text(
-                    text = "You will have only one break.",
+                    text = if (viewModel.skipBreak.value) "You'll have no break" else displayText,
                     style = TextStyle(
                         fontSize = 14.sp,
                         lineHeight = 20.sp,
@@ -149,8 +155,10 @@ fun SessionSettingsScreen() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Checkbox(
-                        checked = selected.value,
-                        onCheckedChange = { selected.value = !selected.value })
+                        checked = viewModel.skipBreak.value,
+                        onCheckedChange = { viewModel.toggleSkipBreak()},
+                        enabled = viewModel.numBreaks.intValue != 0
+                    )
 
                     Text(
                         text = "Skip break.",
@@ -173,7 +181,11 @@ Spacer(modifier = Modifier.padding(32.dp))
                      color = MaterialTheme.colorScheme.primary,
                      shape = RoundedCornerShape(size = 10.dp)
                  ),
-                 onClick = { /*TODO*/ }) {
+                 onClick = {
+                     viewModel.sessionDurationCalculation()
+                     nav.navigate("session"+"?goalId=${2}&totalSessions=${viewModel.numSessions.intValue}&sessionDuration=${viewModel.sessionDuration.value}")
+
+                 }) {
                  Row(
                      verticalAlignment = Alignment.CenterVertically,
                      horizontalArrangement = Arrangement.spacedBy(8.dp,Alignment.CenterHorizontally)
@@ -198,7 +210,8 @@ Spacer(modifier = Modifier.padding(32.dp))
 }
 
 @Composable
-fun TrailingIcon() {
+fun TrailingIcon(viewModel: FocusSessionViewModel
+) {
 
     Row{
 
@@ -208,7 +221,7 @@ fun TrailingIcon() {
         ) {
             IconButton(
                 modifier = Modifier.background(MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(topEnd = 4.dp, topStart = 0.dp, bottomEnd = 4.dp, bottomStart = 0.dp)),
-                onClick = { /*TODO*/ },
+                onClick = { viewModel.increaseTimer()},
                 colors = IconButtonDefaults.iconButtonColors(
                     contentColor = MaterialTheme.colorScheme.onSurface,
                 )
@@ -216,7 +229,7 @@ fun TrailingIcon() {
                 
                 Icon(
                     painter = painterResource(id = R.drawable.expand_less_icon),
-                    contentDescription = "decrease"
+                    contentDescription = "increase_time"
                 )
             }
             Spacer(modifier = Modifier.padding(2.dp))
@@ -225,24 +238,15 @@ fun TrailingIcon() {
 
                 modifier = Modifier.background(MaterialTheme.colorScheme.primary,
                     shape = RoundedCornerShape(topEnd = 4.dp, topStart = 0.dp, bottomEnd = 4.dp, bottomStart = 0.dp)),
-                onClick = { /*TODO*/ },
+                onClick = { viewModel.decreaseTimer() },
                 colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)
             ) {
 
                 Icon(
                     painter = painterResource(id = R.drawable.expand_more_icon),
-                    contentDescription = "increase_time"
+                    contentDescription = "decrease"
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun SessionSettingsScreenPreview() {
-
-    Str3kyTheme {
-        SessionSettingsScreen()
     }
 }

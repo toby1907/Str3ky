@@ -249,8 +249,8 @@ fun AddChallengeScreen(
                         modifier = Modifier.size(
                             width = 240.dp, height = 56.dp
                         ),
-                        value = if (viewModel.frequency.value.frequency.selectedDays.isEmpty()) {
-                            viewModel.frequency.value.frequency.dayOption.name
+                        value = if (viewModel.frequency.value.frequency.selectedDays.size==7) {
+                           "Daily"
                         } else {
                             "$noOfDays days weekly"
                         },

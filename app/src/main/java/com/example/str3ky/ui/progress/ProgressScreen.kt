@@ -1,18 +1,21 @@
 package com.example.str3ky.ui.progress
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -20,132 +23,155 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
+import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.str3ky.R
-import com.example.str3ky.theme.Str3kyTheme
+import com.example.str3ky.data.DayProgress
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProgressScreen(){
+fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: NavHostController) {
 
     Scaffold(
         topBar = {
-           TopAppBar(title = { Text(text = "Goals Name") },
-               navigationIcon = {
-                   Icon(painter = painterResource(id = R.drawable.arrow_back_icon), contentDescription = "" )
-               }
-               )
+            TopAppBar(title = { Text(text ="Reading 10 pages for 30days..." /*viewModel.goalName.value.goalName*/) },
+                navigationIcon = {
+                    Icon(modifier = Modifier.padding(8.dp),
+                        painter = painterResource(id = R.drawable.arrow_back_icon),
+                        contentDescription = "",
+                    )
+                }
+            )
         },
         content = {
+            val currentDate = System.currentTimeMillis()
+            val dummyProgress = listOf(
+                DayProgress(currentDate, false), // Today (completed)
+                DayProgress(
+                    System.currentTimeMillis() - 2 * 24 * 60 * 60 * 1000,
+                    true
+                ), // Two days ago (completed)
+                DayProgress(
+                    System.currentTimeMillis() - 4 * 24 * 60 * 60 * 1000,
+                    false
+                ), // Four days ago (not completed)
+                // ... add more dummy entries as needed
+            ).sortedBy { dayProgres ->
+                dayProgres.date
+            }
 
-            TableProgress(completedDays = 10, totalDays = 30, modifier = Modifier.padding(it))
+            TableProgress(
+                progress = dummyProgress,
+                modifier = Modifier.padding(it),
+                currentDate = currentDate,
+                nav = nav
+            )
         }
     )
 }
+
 @Composable
 fun TableProgress(
-    completedDays: Int,
-    totalDays: Int,
-    modifier:Modifier
+    progress: List<DayProgress>,
+    modifier: Modifier,
+    currentDate: Long,
+    nav: NavHostController
 ) {
     val gridSize = 6 // Number of rows and columns
     val tileSize = 56.dp
+    val composition by rememberLottieComposition(spec = LottieCompositionSpec.RawRes(R.raw.pulsing))
+    val AnimationProgress by animateLottieCompositionAsState(composition = composition, iterations = LottieConstants.IterateForever)
 
-    Column(modifier = modifier
-        .background(color = MaterialTheme.colorScheme.primaryContainer)
-    ){
-        Text(text = "Challenge Progress",
+    Column(
+        modifier = modifier.fillMaxSize()
+    ) {
+        Text(
+            text = "Daily Progress",
             style = TextStyle(
-                fontSize = 22.sp,
-                lineHeight = 28.sp,
+                fontSize = 18.sp,
+                lineHeight = 24.sp,
                 fontWeight = FontWeight(400),
-                color = Color(0xFFFFFFFF),
-
-                ),
+                color = Color(0xFFFFFFFF)
+            ),
             modifier = Modifier.padding(8.dp)
+        )
 
-            )
-        Spacer(modifier = Modifier.padding(8.dp))
-        Column(
-
-            verticalArrangement = Arrangement.Top,
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = MaterialTheme.colorScheme.primaryContainer)
-
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(6),
+            contentPadding = PaddingValues(8.dp), // Add padding around the grid
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            repeat(gridSize) { row ->
-                Row(
-                 //   modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    repeat(gridSize) { col ->
-                        val day = row * gridSize + col
-                        val isActive = day < completedDays
-                        val tileColor = if (isActive) Color(0xFFF7E388) else MaterialTheme.colorScheme.inverseOnSurface
-                        val indicator = if (isActive) (day + 1).toString() else ""
-                        val showCheckMark = isActive && day == completedDays - 1
+            items(progress.size) { index ->
+                val dayProgress = progress[index]
+                val isActive = dayProgress.date == currentDate
+                val tileColor =
+                    if (isActive || dayProgress.completed) Color(0xFFF7E388) else MaterialTheme.colorScheme.inverseOnSurface
+                val indicator =
+                    if (isActive || dayProgress.completed) (index + 1).toString() else ""
+                val showCheckMark = dayProgress.completed
 
-                        Box(
-                            modifier = Modifier
-                                .size(tileSize)
-                                .clip(RoundedCornerShape(4.dp))
-                                .background(tileColor)
-                                .fillMaxWidth()
-                                .padding(bottom = 8.dp),
-                        ) {
-
-
-                            if (showCheckMark) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .size(24.dp)
-                                        .align(Alignment.Center)
-                                )
+                Box(
+                    modifier = Modifier
+                        .size(tileSize)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(tileColor)
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .clickable {
+                            if (isActive) {
+                                nav.navigate("session_settings")
                             }
-
-                            Text(
-                                text = indicator,
-                                modifier = Modifier
-                                    .align(Alignment.TopStart)
-                                    .background(Color.Transparent)
-                                    .padding(2.dp),
-                                fontSize = 12.sp,
-                                fontFamily = FontFamily.Default,
-                                fontWeight = FontWeight.Bold
-                            )
                         }
+                ) {
+                    if(isActive){
 
+                        LottieAnimation(composition = composition, modifier = Modifier.size(120.dp),progress={AnimationProgress})
                     }
+                    if (showCheckMark) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .align(Alignment.Center)
+                        )
+                    }
+
+                    Text(
+                        text = indicator,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .background(Color.Transparent)
+                            .padding(2.dp),
+                        fontSize = 12.sp,
+                        fontFamily = FontFamily.Default,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
-                Spacer(modifier = Modifier.padding(4.dp))
             }
         }
     }
 }
 
 
-@Preview(showBackground = true)
-@Composable
-fun ChallengeProgressScreenPreview() {
 
-    Str3kyTheme {
-        ProgressScreen()
-    }
-}
+
+
