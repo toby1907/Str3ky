@@ -1,5 +1,6 @@
 package com.example.str3ky
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -10,11 +11,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.str3ky.ui.main.HomeScreen
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import com.example.str3ky.theme.Str3kyTheme
-import com.example.str3ky.ui.MyAppNavHost
+import com.example.str3ky.ui.nav.MyAppNavHost
 import dagger.hilt.android.AndroidEntryPoint
-
+private const val USER_PREFERENCES_NAME = "user_preferences"
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = USER_PREFERENCES_NAME)
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -31,8 +31,9 @@ class GoalRepositoryImpl (private val goalDao: GoalDao):
         return   goalDao.getAllLetters()
     }
 
-
-
+    override fun getGoalsForUser(userId: Int): Flow<List<Goal>> {
+        return  goalDao.getGoalsForUser(userId)
+    }
 
 
 }

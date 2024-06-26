@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -39,13 +38,18 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
 import com.example.str3ky.data.CountdownTimerManager
-import kotlinx.coroutines.flow.collect
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SessionScreen(nav: NavHostController, viewModel: SessionScreenViewModel = hiltViewModel()) {
+fun SessionScreen(
+    nav: NavHostController,
+    viewModel: SessionScreenViewModel = hiltViewModel(),
+    openAndPopUp: (String, String) -> Unit,
+) {
 
-
+LaunchedEffect(Unit){
+   viewModel.startSession(openAndPopUp)
+}
     Scaffold(
         topBar = {
             TopAppBar(
@@ -76,7 +80,10 @@ fun SessionScreen(nav: NavHostController, viewModel: SessionScreenViewModel = hi
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Timer(nav = nav, viewModel = viewModel)
+                Timer(nav = nav,
+                    viewModel = viewModel,
+                    openAndPopUp = openAndPopUp
+                )
             }
 
 
@@ -86,7 +93,9 @@ fun SessionScreen(nav: NavHostController, viewModel: SessionScreenViewModel = hi
 
 @Composable
 private fun Timer(
-    modifier: Modifier = Modifier, nav: NavHostController, viewModel: SessionScreenViewModel
+    modifier: Modifier = Modifier, nav: NavHostController,
+    viewModel: SessionScreenViewModel,
+    openAndPopUp: (String,String) -> Unit
 ) {
 
     Column(
@@ -179,7 +188,7 @@ private fun Timer(
                 )
             )
         }
-        TimerButton(nav = nav, viewModel = viewModel)
+        TimerButton(nav = nav, viewModel = viewModel,openAndPopUp)
     }
 }
 
@@ -187,10 +196,11 @@ private fun Timer(
 private fun TimerStartStopButton(
     timerRunning: Boolean,
     nav: NavHostController,
-    viewModel: SessionScreenViewModel
+    viewModel: SessionScreenViewModel,
+    openAndPopUp: (String, String) -> Unit
 ) {
     val buttonState = remember {
-        mutableStateOf(false)
+        mutableStateOf(viewModel.countdownTimerManager.isSessionInProgress.value)
     }
     IconButton(modifier = Modifier
         .padding(1.dp)
@@ -200,7 +210,7 @@ private fun TimerStartStopButton(
         onClick = {
             buttonState.value = !buttonState.value
             // viewModel.startSession()
-            viewModel.pauseResumeCountdown(buttonState.value)
+            viewModel.pauseResumeCountdown(buttonState.value, openAndPopUp)
 
         }) {
 
@@ -208,10 +218,9 @@ private fun TimerStartStopButton(
             painter =
             if (buttonState.value) {
                 painterResource(id = R.drawable.play_arrow_fill1_wght400_grad0_opsz24)
-            } else{
+            } else {
                 painterResource(id = R.drawable.pause_24)
-            }
-                ,
+            },
             contentDescription = "",
             tint = MaterialTheme.colorScheme.onPrimaryContainer
         )
@@ -245,12 +254,16 @@ private fun TimerRestartButton(timerRunning: Boolean, viewModel: SessionScreenVi
 }
 
 @Composable
-private fun TimerButton(nav: NavHostController, viewModel: SessionScreenViewModel) {
+private fun TimerButton(
+    nav: NavHostController,
+    viewModel: SessionScreenViewModel,
+    openAndPopUp: (String, String) -> Unit
+) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        TimerStartStopButton(true, nav = nav, viewModel = viewModel)
+        TimerStartStopButton(true, nav = nav, viewModel = viewModel, openAndPopUp)
         TimerRestartButton(timerRunning = true, viewModel = viewModel)
     }
 }

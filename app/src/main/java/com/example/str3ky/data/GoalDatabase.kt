@@ -7,12 +7,12 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [Goal::class], version = 1)
-@TypeConverters(OccurrenceSelectionConverter::class, ProgressConverter::class, DurationTypeConverter::class)
+@Database(entities = [Goal::class,User::class], version = 1)
+@TypeConverters(OccurrenceSelectionConverter::class, ProgressConverter::class, DurationTypeConverter::class,Converters::class)
 abstract class GoalDatabase : RoomDatabase() {
 
     abstract fun goalDao(): GoalDao
-
+    abstract fun userDao(): UserDao
     companion object {
 
         @Volatile
@@ -29,9 +29,11 @@ abstract class GoalDatabase : RoomDatabase() {
                 instance ?: Room.databaseBuilder(
                     context,
                     GoalDatabase::class.java,
-                    "goal"
+                    "user_goals_database"
                 )
-                    .build()
+                    .fallbackToDestructiveMigration() // Add this line if you want to handle migrations by destroying and recreating the database
+                    .build().also { instance = it }
+                   // .build()
             }
         }
     }
