@@ -106,6 +106,10 @@ goalRepository.getGoal(goalId).collect{ goal ->
     if (goal!=null){
         _goalCompleted.value = goal.completed
     }
+    if (goal!=null){
+        _progress.value = goal.progress
+    }
+
 
 
 }

@@ -8,9 +8,11 @@ import com.example.str3ky.theme.LightGreen
 import com.example.str3ky.theme.RedOrange
 import com.example.str3ky.theme.RedPink
 import com.example.str3ky.theme.Violet
+import com.florianwalther.incentivetimer.core.ui.IconKey
+import com.florianwalther.incentivetimer.core.ui.defaultRewardIconKey
 import java.time.DayOfWeek
 
-@Entity
+@Entity(tableName = "goal")
 data class Goal(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "goal_id")
@@ -24,6 +26,7 @@ data class Goal(
     @ColumnInfo(name = "color") var color: Int,
     @ColumnInfo(name = "completed") var completed: Boolean,
     @ColumnInfo(name = "no_of_days") var noOfDays: Int,
+    @ColumnInfo(name = "user_id") val userId: Int
 ) {
     companion object {
         val goalColors = listOf(RedOrange, LightGreen, Violet, BabyBlue, RedPink)
@@ -63,3 +66,31 @@ data class Duration(
     val isCompleted: Boolean,
     var countdownTime: Long
 )
+
+@Entity(tableName = "user_table")
+data class User(
+    @PrimaryKey(autoGenerate = true)
+    @ColumnInfo(name = "user_id") var id: Int? = null,
+    @ColumnInfo(name = "total_hours_spent") val totalHoursSpent: Long,
+    @ColumnInfo(name = "achievements_unlocked") val achievementsUnlocked: List<Achievement>,
+    @ColumnInfo(name = "longest_streak") val longestStreak:Int,
+    // Other user-specific fields
+)
+{
+    companion object {
+        val DEFAULT = Achievement(
+            name = "",
+            chanceInPercent = 10,
+            iconKey = defaultRewardIconKey
+        )
+    }
+}
+data class Achievement(
+    val name: String,
+    val chanceInPercent: Int,
+    val iconKey: IconKey,
+    val isUnlocked: Boolean = false,
+    ){
+
+}
+

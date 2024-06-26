@@ -43,6 +43,7 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.str3ky.R
 import com.example.str3ky.data.DayProgress
+import java.util.Calendar
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,7 +52,7 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(text ="Reading 10 pages for 30days..." /*viewModel.goalName.value.goalName*/) },
+            TopAppBar(title = { Text(text = viewModel.goalName.value.goalName) },
                 navigationIcon = {
                     Icon(modifier = Modifier.padding(8.dp),
                         painter = painterResource(id = R.drawable.arrow_back_icon),
@@ -62,6 +63,7 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
         },
         content = {
             val currentDate = System.currentTimeMillis()
+
             val dummyProgress = listOf(
                 DayProgress(currentDate, false), // Today (completed)
                 DayProgress(
@@ -76,9 +78,12 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
             ).sortedBy { dayProgres ->
                 dayProgres.date
             }
+            val progress = viewModel.progress.value.sortedBy { dayProgres ->
+                dayProgres.date
+            }
 
             TableProgress(
-                progress = dummyProgress,
+                progress = progress,
                 modifier = Modifier.padding(it),
                 currentDate = currentDate,
                 nav = nav
@@ -121,7 +126,19 @@ fun TableProgress(
         ) {
             items(progress.size) { index ->
                 val dayProgress = progress[index]
-                val isActive = dayProgress.date == currentDate
+
+                val currentCalendar = Calendar.getInstance()
+                currentCalendar.timeInMillis = currentDate
+
+                val yourDateCalendar = Calendar.getInstance()
+                yourDateCalendar.timeInMillis = dayProgress.date
+
+                val isActive = (currentCalendar.get(Calendar.YEAR) == yourDateCalendar.get(Calendar.YEAR)
+                        && currentCalendar.get(Calendar.MONTH) == yourDateCalendar.get(Calendar.MONTH)
+                        && currentCalendar.get(Calendar.DAY_OF_MONTH) == yourDateCalendar.get(Calendar.DAY_OF_MONTH))
+
+
+            //    val isActive = dayProgress.date == currentDate
                 val tileColor =
                     if (isActive || dayProgress.completed) Color(0xFFF7E388) else MaterialTheme.colorScheme.inverseOnSurface
                 val indicator =
@@ -141,7 +158,7 @@ fun TableProgress(
                             }
                         }
                 ) {
-                    if(isActive){
+                    if(isActive&&!showCheckMark){
 
                         LottieAnimation(composition = composition, modifier = Modifier.size(120.dp),progress={AnimationProgress})
                     }

@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,15 +32,24 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
+import com.example.str3ky.data.Goal
+import com.example.str3ky.data.Occurrence
+import com.example.str3ky.ui.add_challenge_screen.millisecondsToMinutes
+import com.example.str3ky.ui.nav.PROGRESS_SCREEN
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onNavigateToAddVoice: () -> Unit,
     navController: NavHostController,
-    snackbarHostState: SnackbarHostState
+    snackbarHostState: SnackbarHostState,
+    viewModel:MainScreenViewModel = hiltViewModel()
 ) {
 
     Scaffold(
@@ -85,7 +95,7 @@ fun HomeScreen(
         },
         content = { it ->
 
-            val items = (1..2).toList()
+            val items = viewModel.goalList.collectAsState().value
 LazyColumn(
     modifier = Modifier.padding(vertical = 8.dp),
     verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -104,12 +114,18 @@ ChallengListItem(item,navController)
 
 
 @Composable
-fun ChallengListItem(item: Int, navController: NavHostController) {
-    ListItem(modifier = Modifier.clickable { navController.navigate("progress") },
+fun ChallengListItem(item: Goal, navController: NavHostController) {
+    val formatter = SimpleDateFormat("hh:mm a", Locale.getDefault())
+    ListItem(modifier = Modifier.clickable {
+
+        navController.navigate(PROGRESS_SCREEN+"?goalId=${item.id}")
+
+
+                                           },
         headlineContent = {
 
         Text(
-            text = "Goal's Name${item}",
+            text = item.title,
             color = MaterialTheme.colorScheme.primary
         )
 
@@ -131,7 +147,7 @@ fun ChallengListItem(item: Int, navController: NavHostController) {
                     )
 
             ) {
-                Text(text = "A")
+                Text(text = "${item.title[0].uppercaseChar()}")
             }
         },
         supportingContent = {
@@ -141,12 +157,13 @@ fun ChallengListItem(item: Int, navController: NavHostController) {
                  horizontalArrangement = Arrangement.spacedBy(8.dp,Alignment.Start),
                   verticalAlignment = Alignment.CenterVertically
               )  {
+
                     Icon(
                         painter = painterResource(id = R.drawable.arrow_up_circle_icon),
                         contentDescription = ""
                     )
                     Text(
-                        text = "2 hour",
+                        text = millisecondsToMinutes(item.durationInfo.countdownTime).toString()+" mins",
                         style = TextStyle(fontSize = 8.sp),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
@@ -157,8 +174,14 @@ fun ChallengListItem(item: Int, navController: NavHostController) {
                         painter = painterResource(id = R.drawable.calendar_icon),
                         contentDescription = ""
                     )
+                    val text = when(item.occurrence.dayOption.name){
+                        Occurrence.DAILY.name -> "Daily"
+                        Occurrence.DAILY_WITHOUT_WEEKEND.name -> ""
+                        Occurrence.CUSTOM.name ->  "${item.occurrence.selectedDays.size} days weekly"
+                        else -> ""
+                    }
                     Text(
-                        text = "Every day",
+                        text = text ,
                         style = TextStyle(fontSize = 8.sp),
                         color = MaterialTheme.colorScheme.onPrimary
                     )
@@ -169,8 +192,11 @@ fun ChallengListItem(item: Int, navController: NavHostController) {
                         painter = painterResource(id = R.drawable.alert_icon),
                         contentDescription = ""
                     )
+
                     Text(
-                        text = "23:00",
+                        text =  if(item.alarmTime!=null){
+                            val selectedDate = Date(item.alarmTime)
+                            formatter.format(selectedDate) }else "Not Set",
                         style = TextStyle(fontSize = 8.sp),
                         color = MaterialTheme.colorScheme.onPrimary
                     )

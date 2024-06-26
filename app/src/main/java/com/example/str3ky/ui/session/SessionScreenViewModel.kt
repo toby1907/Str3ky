@@ -78,22 +78,20 @@ private val pauseResumeStateFlow = MutableStateFlow(false)
             }
 
         }
-
-        startSession()
     }
 
-    fun  startSession(){
+    fun  startSession(openAndPopUp:(String,String)-> Unit){
 
         viewModelScope.launch {
-countdownTimerManager.startSession()
+countdownTimerManager.startSession(openAndPopUp)
         }
     }
     fun  cancelCountdown(){
         viewModelScope.launch {
-            countdownTimerManager.cancelCountdown()
+            countdownTimerManager.resetCountdown()
         }
     }
-    fun pauseResumeCountdown(state:Boolean){
+    fun pauseResumeCountdown(state:Boolean,openAndPopUp:(String,String)-> Unit){
 
         if (state)
         viewModelScope.launch {
@@ -101,7 +99,7 @@ countdownTimerManager.startSession()
         }
        else {
             viewModelScope.launch {
-                countdownTimerManager.resumeCountdown()
+                countdownTimerManager.resumeCountdown(openAndPopUp)
             }
         }
     }

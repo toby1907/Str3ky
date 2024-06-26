@@ -29,4 +29,21 @@ interface GoalDao {
 
     @Query("SELECT * FROM goal")
     fun getAllLetters(): Flow<List<Goal>>
+    @Query("SELECT * FROM goal WHERE user_id = :userId")
+     fun getGoalsForUser(userId: Int): Flow<List<Goal>>
 }
+@Dao
+interface UserDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertUser(user: User): Long
+
+    @Update
+    suspend fun updateUser(user: User)
+
+    @Query("SELECT * FROM user_table")
+     fun getUser(): Flow<List<User>>
+
+    @Delete
+    suspend   fun deleteUsers(vararg users: User)
+
+ }

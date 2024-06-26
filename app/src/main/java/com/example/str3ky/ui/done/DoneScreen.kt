@@ -165,7 +165,6 @@ private fun Timer(
                 )
             }
         }
-        TimerButton()
 
 
         Row(horizontalArrangement = Arrangement.Center,
@@ -206,50 +205,7 @@ private fun Timer(
         
     }
 }
-@Composable
-private fun TimerStartStopButton(
-    timerRunning: Boolean,
-){
-    IconButton(modifier = Modifier
-        .padding(1.dp)
-        .width(50.dp)
-        .height(50.dp)
-        .background(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape),
-        onClick = { /*TODO*/ }) {
 
-        Icon(painter = painterResource(id = R.drawable.play_arrow_fill1_wght400_grad0_opsz24),
-            contentDescription = "",
-            tint = MaterialTheme.colorScheme.onPrimaryContainer
-        )
-
-
-    }
-}
-@Composable
-private fun TimerRestartButton( timerRunning: Boolean){
-    IconButton(modifier = Modifier
-        .padding(1.dp)
-        .width(50.dp)
-        .height(50.dp)
-        .background(
-            color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape
-        ),
-        onClick = { /*TODO*/ }) {
-
-        Icon(painter = painterResource(id = R.drawable.refresh_icon),
-            contentDescription = "",
-            tint = MaterialTheme.colorScheme.onPrimaryContainer )
-
-
-    }
-}
-@Composable
-private fun TimerButton(){
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        TimerStartStopButton(true)
-        TimerRestartButton(timerRunning = true)
-    }
-}
 
 @Preview(showBackground = true)
 @Composable

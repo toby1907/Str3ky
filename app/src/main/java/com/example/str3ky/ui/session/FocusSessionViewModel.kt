@@ -20,9 +20,9 @@ class FocusSessionViewModel @Inject constructor(
 
     var skipBreak = mutableStateOf(false)
         private set
-    var numSessions = mutableIntStateOf(1)
+    var numSessions = mutableIntStateOf(2)
         private set
-    var numBreaks = mutableIntStateOf(0)
+    var numBreaks = mutableIntStateOf(1)
         private set
     var sessionDuration = mutableStateOf(30)
         private set

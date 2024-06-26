@@ -9,4 +9,5 @@ interface GoalRepository {
     suspend  fun save(goal: Goal)
     suspend fun update(goal: Goal)
     fun getAllGoals() : Flow<List<Goal>>
+    fun getGoalsForUser(userId: Int): Flow<List<Goal>>
 }
