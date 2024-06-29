@@ -26,7 +26,7 @@ class ProgressScreenViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var currentGoalId: Int? = null
-
+private val _goalId = mutableIntStateOf(-1)
     private val _goalName = mutableStateOf(
         GoalScreenState()
     )
@@ -57,6 +57,7 @@ class ProgressScreenViewModel @Inject constructor(
     private val _selectedDays = mutableStateOf(emptyList<String>())
 
 
+    val goalId: State<Int> = _goalId
     val goalName: State<GoalScreenState> = _goalName
     val frequency: State<GoalScreenState> = _frequency
     val focusTime: State<GoalScreenState> = _focusTime
@@ -78,12 +79,13 @@ class ProgressScreenViewModel @Inject constructor(
         savedStateHandle.get<Int>("goalId")?.let { goalId ->
 
             if (goalId != -1) {
-
+                _goalId.value = goalId
                 viewModelScope.launch {
 goalRepository.getGoal(goalId).collect{ goal ->
     _goalState.value = goalState.value.copy(goal = goal)
     if(goal!=null){
         currentGoalId = goal.id
+
     }
     if (goal!=null){
         _goalName.value = _goalName.value.copy(goalName=goal.title)
@@ -106,6 +108,10 @@ goalRepository.getGoal(goalId).collect{ goal ->
     if (goal!=null){
         _goalCompleted.value = goal.completed
     }
+    if (goal!=null){
+        _progress.value = goal.progress
+    }
+
 
 
 }

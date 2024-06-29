@@ -1,9 +1,6 @@
-package com.example.str3ky.ui.add_challenge_screen
+package com.example.str3ky
 
-import android.os.Build
-import androidx.annotation.RequiresApi
 import com.example.str3ky.data.DayOfWeek.*
-import java.time.DayOfWeek
 import java.util.concurrent.TimeUnit
 
 fun minutesToMilliseconds(minutes: Int): Long {

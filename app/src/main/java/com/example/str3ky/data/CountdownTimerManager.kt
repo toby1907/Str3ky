@@ -5,6 +5,9 @@ import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import com.example.str3ky.millisecondsToMinutes
+import com.example.str3ky.ui.nav.DONE_SCREEN
+import com.example.str3ky.ui.nav.SESSION_SCREEN
 import com.example.str3ky.ui.session.SessionScreenState
 import com.example.str3ky.ui.session.SessionScreenViewModel
 import kotlinx.coroutines.flow.Flow
@@ -16,32 +19,38 @@ import javax.inject.Singleton
 @Singleton
 class CountdownTimerManager @Inject constructor(
 
-){
+) {
     enum class Phase {
         FOCUS_SESSION, BREAK, COMPLETED
     }
 
+    var popUpLambda: ((String, String) -> Unit)? = null
+    var work: ((Boolean) -> Unit)? = null
+    var goalId: Int = -1
+
 
     private var countDownTimer: CountDownTimer? = null
+
     // Properties
-    private val 
+    private val
             currentphase = MutableStateFlow(
         Phase.FOCUS_SESSION
     )
 
-     val _sessionTotalDurationMillis = MutableStateFlow(0L)
-  val _countdownTimeMillis = mutableStateOf(SessionScreenState())
-     val _breakDurationMillis = mutableStateOf(SessionScreenState())
+    val _sessionTotalDurationMillis = MutableStateFlow(0L)
+    val _countdownTimeMillis = mutableStateOf(SessionScreenState())
+    val _breakDurationMillis = mutableStateOf(SessionScreenState())
 
 
     // total no of pomo
-     val _totalNoOfSessions = MutableStateFlow(0)
-     val _totalNoOfBreaks = MutableStateFlow(0)
+    val _totalNoOfSessions = MutableStateFlow(0)
+    val _totalNoOfBreaks = MutableStateFlow(0)
+
     //no of pomocompleted
     private val focusSetFlow = MutableStateFlow(0)
     val focusSet: Flow<Int> = focusSetFlow
 
-     val totalFocusSetFlow = MutableStateFlow(_totalNoOfSessions.value)
+    val totalFocusSetFlow = MutableStateFlow(_totalNoOfSessions.value)
     val totalFocusSet: Flow<Int> = totalFocusSetFlow
 
     private val breakSetFlow = MutableStateFlow(0)
@@ -51,19 +60,18 @@ class CountdownTimerManager @Inject constructor(
     val totalBreakSet: Flow<Int> = totalBreakSetFlow
 
 
-
     private var _isSessionInProgress = mutableStateOf(
         false
     )
     private var _isBreakInProgress = mutableStateOf(
         false
     )
-    private  var isCompleted = mutableStateOf(
+    private var isCompleted = mutableStateOf(
         false
     )
-     val  currentTimeTargetInMillisFlow = MutableStateFlow(_sessionTotalDurationMillis.value)
+    val currentTimeTargetInMillisFlow = MutableStateFlow(_sessionTotalDurationMillis.value)
     val currentTimeTargetInMillis: Flow<Long> = currentTimeTargetInMillisFlow
-     val timeLeftInMillisFlow = MutableStateFlow(_sessionTotalDurationMillis.value)
+    val timeLeftInMillisFlow = MutableStateFlow(_sessionTotalDurationMillis.value)
     val timeLeftInMillis: Flow<Long> = timeLeftInMillisFlow
 
     val sessionTotalDurationMillis: Flow<Long> = _sessionTotalDurationMillis
@@ -76,18 +84,20 @@ class CountdownTimerManager @Inject constructor(
     val currentPhase: StateFlow<Phase> = currentphase
     val onSkipClickedFlow = MutableStateFlow(false)
     val onSkipClicked: StateFlow<Boolean> = onSkipClickedFlow
+
     init {
 
         _breakDurationMillis.value = _breakDurationMillis.value.copy(
             breakDurationMillis = 5000L
         )
     }
+
     fun startCountDown(countDownTimeMillis: Long) {
-        if (_sessionTotalDurationMillis.value==countDownTimeMillis){
-            focusSetFlow.value = focusSetFlow.value+1
+        if (_sessionTotalDurationMillis.value == countDownTimeMillis) {
+            focusSetFlow.value = focusSetFlow.value + 1
         }
-        if (breakDurationMillis.value.breakDurationMillis==countDownTimeMillis){
-            breakSetFlow.value =breakSetFlow.value +1
+        if (breakDurationMillis.value.breakDurationMillis == countDownTimeMillis) {
+            breakSetFlow.value = breakSetFlow.value + 1
         }
         countDownTimer = object : CountDownTimer(countDownTimeMillis, 1000) {
 
@@ -100,7 +110,8 @@ class CountdownTimerManager @Inject constructor(
 
 
                 cancelCountdown()
-              startNextPhase()
+
+                popUpLambda?.let { startNextPhase(it) }
 
 
                 // Timer finished (e.g., perform some action)
@@ -109,35 +120,38 @@ class CountdownTimerManager @Inject constructor(
         }.start()
         _isSessionInProgress.value = true
     }
-    fun startSession() {
-if (isCompleted.value){
-    currentphase.value = Phase.FOCUS_SESSION
-    isCompleted.value = false
-}
 
-        Log.d("TimeTarget","${currentTimeTargetInMillisFlow.value}")
+    fun startSession(openAndPopUp: (String, String) -> Unit) {
+        popUpLambda = openAndPopUp
+        /*if (isCompleted.value) {
+            currentphase.value = Phase.FOCUS_SESSION
+            isCompleted.value = false
+        }*/
+
+        Log.d("TimeTarget", "${currentTimeTargetInMillisFlow.value}")
         startCountDown(currentTimeTargetInMillisFlow.value)
 
     }
-    private fun startNextPhase(){
-        val  currentPhase = currentPhase.value
-        val  sessionsCompleted = focusSetFlow.value
-        val  totalNoOfSessions = totalFocusSetFlow.value
 
-        val nextPhase: Phase = when(currentPhase)
-        {
+    private fun startNextPhase(openAndPopUp: (String, String) -> Unit) {
+        val currentPhase = currentPhase.value
+        val sessionsCompleted = focusSetFlow.value
+        val totalNoOfSessions = totalFocusSetFlow.value
+
+        val nextPhase: Phase = when (currentPhase) {
             Phase.FOCUS_SESSION -> {
-                 if (sessionsCompleted >= totalNoOfSessions) {
+                if (sessionsCompleted >= totalNoOfSessions) {
                     Phase.COMPLETED
                 } else if (onSkipClicked.value) {
                     Phase.FOCUS_SESSION
-                 }
-                else{
+                } else {
                     Phase.BREAK
-                 }
+                }
             }
+
             Phase.BREAK -> {
                 Phase.FOCUS_SESSION
+
             }
 
             Phase.COMPLETED -> {
@@ -145,11 +159,12 @@ if (isCompleted.value){
             }
         }
         currentphase.value = nextPhase
-        val nextTimeTarget = when(nextPhase){
+        val nextTimeTarget = when (nextPhase) {
             Phase.FOCUS_SESSION -> {
 
                 _sessionTotalDurationMillis.value
             }
+
             Phase.BREAK -> {
 
                 _breakDurationMillis.value.breakDurationMillis
@@ -157,6 +172,7 @@ if (isCompleted.value){
 
             Phase.COMPLETED -> {
                 _sessionTotalDurationMillis.value
+
             }
         }
         currentTimeTargetInMillisFlow.value = nextTimeTarget
@@ -167,14 +183,30 @@ if (isCompleted.value){
             focusSetFlow.value = 0
             breakSetFlow.value = 0
             isCompleted.value = true
+            work?.invoke(true)
+            popUpLambda?.invoke(DONE_SCREEN+"?goalId=${goalId}&sessionDuration=${_sessionTotalDurationMillis.value}", SESSION_SCREEN)
+
             return // Exit the function
         }
-     startSession()
+        startSession(openAndPopUp)
     }
+
     fun cancelCountdown() {
         countDownTimer?.cancel()
         _isSessionInProgress.value = false
+
+
+
     }
+    fun resetCountdown(){
+        countDownTimer?.cancel()
+        timeLeftInMillisFlow.value = _sessionTotalDurationMillis.value
+        focusSetFlow.value = 0
+        breakSetFlow.value = 0
+        isCompleted.value = true
+        currentphase.value = Phase.FOCUS_SESSION
+    }
+
     // Add a property to save the remaining time when paused
     private var remainingTimeMillis = 0L
 
@@ -184,12 +216,15 @@ if (isCompleted.value){
         cancelCountdown()
     }
 
-    fun resumeCountdown() {
+    fun resumeCountdown(openAndPopUp: (String, String) -> Unit) {
         // Start a new countdown with the remaining time
         startCountDown(remainingTimeMillis)
     }
 
 
+    fun onDayChallengeCompleted( work:(Boolean) -> Unit){
+
+    }
 
 
 }

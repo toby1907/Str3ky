@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "97fabfdf657c24fa2194654d54789527",
+    "identityHash": "2ab30cebb2195fe03ae371bad7c6bd62",
     "entities": [
       {
-        "tableName": "Goal",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`goal_id` INTEGER PRIMARY KEY AUTOINCREMENT, `title` TEXT NOT NULL, `duration` INTEGER NOT NULL, `occurrence` TEXT NOT NULL, `alarm_time` INTEGER, `start_date` INTEGER NOT NULL, `progress` TEXT NOT NULL, `color` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `no_of_days` INTEGER NOT NULL)",
+        "tableName": "goal",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`goal_id` INTEGER PRIMARY KEY AUTOINCREMENT, `title` TEXT NOT NULL, `duration` INTEGER NOT NULL, `occurrence` TEXT NOT NULL, `alarm_time` INTEGER, `start_date` INTEGER NOT NULL, `progress` TEXT NOT NULL, `color` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `no_of_days` INTEGER NOT NULL, `user_id` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -21,7 +21,7 @@
             "notNull": true
           },
           {
-            "fieldPath": "duration",
+            "fieldPath": "durationInfo",
             "columnName": "duration",
             "affinity": "INTEGER",
             "notNull": true
@@ -67,6 +67,12 @@
             "columnName": "no_of_days",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "user_id",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -77,12 +83,50 @@
         },
         "indices": [],
         "foreignKeys": []
+      },
+      {
+        "tableName": "user_table",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id` INTEGER PRIMARY KEY AUTOINCREMENT, `total_hours_spent` INTEGER NOT NULL, `achievements_unlocked` TEXT NOT NULL, `longest_streak` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "user_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "totalHoursSpent",
+            "columnName": "total_hours_spent",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "achievementsUnlocked",
+            "columnName": "achievements_unlocked",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longestStreak",
+            "columnName": "longest_streak",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "user_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
       }
     ],
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '97fabfdf657c24fa2194654d54789527')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2ab30cebb2195fe03ae371bad7c6bd62')"
     ]
   }
 }

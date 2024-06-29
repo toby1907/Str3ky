@@ -24,14 +24,11 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -41,10 +38,13 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
+import com.example.str3ky.millisecondsToMinutes
 import com.example.str3ky.ui.add_challenge_screen.components.ColorsDialog
 import com.example.str3ky.ui.add_challenge_screen.components.FocusDurationDialog
 import com.example.str3ky.ui.add_challenge_screen.components.FrequencyDialog
 import com.example.str3ky.ui.add_challenge_screen.components.NoOfDaysDialog
+import com.example.str3ky.ui.nav.ADD_CHALLENGE_SCREEN
+import com.example.str3ky.ui.nav.MAIN_SCREEN
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -60,7 +60,8 @@ fun AddChallengeScreen(
     onNavigateToAddVoice: () -> Unit,
     navController: NavHostController,
     snackbarHostState: SnackbarHostState,
-    noteColor: Int
+    noteColor: Int,
+    openAndPopUp: (String, String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val showDialog = remember { mutableStateOf(false) }
@@ -110,7 +111,9 @@ fun AddChallengeScreen(
     LaunchedEffect(key1 = true) {
         viewModel.eventFlow.collectLatest { event ->
             when (event) {
-                UiEvent.SaveNote -> TODO()
+                UiEvent.SaveNote -> {
+                    openAndPopUp(MAIN_SCREEN,ADD_CHALLENGE_SCREEN,)
+                }
                 is UiEvent.ShowSnackbar -> scope.launch {
                     snackbarHostState.showSnackbar(
                         message = event.message
@@ -123,7 +126,7 @@ fun AddChallengeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Add") },
+                title = { Text(text = "Add Challenge") },
                 actions = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -132,7 +135,9 @@ fun AddChallengeScreen(
                     )
                     {
                         OutlinedButton(
-                            onClick = { /*TODO*/ },
+                            onClick = {
+                                viewModel.onEvent(AddChallengeEvent.SaveNote)
+                                      },
                             shape = RoundedCornerShape(0.dp)
                         ) {
                             Text(text = "Save")

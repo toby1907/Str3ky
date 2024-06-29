@@ -65,3 +65,18 @@ class DurationTypeConverter {
         return Duration(isCompleted = false, countdownTime = countdownTime)
     }
 }
+
+class Converters {
+    @TypeConverter
+    fun fromAchievementList(achievements: List<Achievement>): String {
+        val gson = Gson()
+        return gson.toJson(achievements)
+    }
+
+    @TypeConverter
+    fun toAchievementList(achievementsString: String): List<Achievement> {
+        val gson = Gson()
+        val type = object : TypeToken<List<Achievement>>() {}.type
+        return gson.fromJson(achievementsString, type)
+    }
+}
