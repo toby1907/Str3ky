@@ -1,4 +1,5 @@
 package com.example.str3ky.ui.done
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -38,12 +40,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.str3ky.R
 import com.example.str3ky.theme.Str3kyTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CompletedScreen() {
+fun CompletedScreen(
+    viewModel: DoneScreenViewModel = hiltViewModel(),
+    sessionDuration:Long,
+) {
     val nameText = remember {
         mutableStateOf("30")
     }
@@ -82,34 +88,38 @@ fun CompletedScreen() {
                     .padding(it),
                 verticalArrangement = Arrangement.Top,
                 horizontalAlignment = Alignment.CenterHorizontally
-            ){
+            ) {
                 Spacer(modifier = Modifier.padding(24.dp))
-                
-                Text(text = "Daily Task Complete! +10xp",
+
+                Text(
+                    text = "Daily Task Complete! +10xp",
                     style = TextStyle(
                         fontSize = 24.sp,
                         fontWeight = FontWeight(700),
                         color = MaterialTheme.colorScheme.onPrimaryContainer,
                     )
-                    )
+                )
 
                 Spacer(modifier = Modifier.padding(24.dp))
 
-                Timer()
+                Timer(viewModel = viewModel,sessionDuration = sessionDuration)
             }
-
-
 
 
         }
     )
 }
+
 @Composable
 private fun Timer(
-    modifier: Modifier = Modifier
-){
-    Column(verticalArrangement = Arrangement.spacedBy(48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally){
+    modifier: Modifier = Modifier,
+    viewModel: DoneScreenViewModel,
+    sessionDuration: Long
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
         Box(
             modifier
                 .padding(0.dp)
@@ -117,9 +127,16 @@ private fun Timer(
                 .height(235.dp),
             contentAlignment = Alignment.Center
         ) {
+
             Box() {
+
+                val myFlow =
+                    viewModel.focusTime.value.focusTime.countdownTime
+                val progress =
+                    (sessionDuration.toFloat() / myFlow.toFloat())
+
                 CircularProgressIndicator(
-                    progress = .6f,
+                    progress = progress,
                     modifier = modifier
                         .fillMaxSize()
                         .scale(scaleX = -1f, scaleY = 1f),
@@ -137,26 +154,31 @@ private fun Timer(
                     color = MaterialTheme.colorScheme.primary.copy(alpha = .25f)
                 )
             }
-           Column(
-               verticalArrangement = Arrangement.Center,
-               horizontalAlignment = Alignment.CenterHorizontally,
-           ) {
-               Box(
-                   modifier = Modifier
-                       .size(width = 70.dp, height = 84.dp)
-               ){
-                   Image(
-                       painter = painterResource(id = R.drawable.main_flame_img),
-                       contentDescription = "",
-                       modifier = Modifier
-                           .fillMaxSize(),
-                       contentScale = ContentScale.Crop,
-                   )
-               }
-
+            Column(
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 70.dp, height = 84.dp)
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.main_flame_img),
+                        contentDescription = "",
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                }
+                val streakValue = viewModel.completedStreak.collectAsState()
+                val text = if (streakValue.value > 1) {
+                    "${streakValue.value} days streak"
+                } else {
+                    "${streakValue.value} day streak"
+                }
                 Text(
 
-                    "2 day streak",
+                    text,
                     style = TextStyle(
                         fontSize = 24.sp,
                         fontWeight = FontWeight(700),
@@ -167,13 +189,16 @@ private fun Timer(
         }
 
 
-        Row(horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically){
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Image(
                 painter = painterResource(id = R.drawable.blob),
                 contentDescription = ""
             )
-            Row(verticalAlignment = Alignment.CenterVertically,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier
                     .width(203.dp)
@@ -186,7 +211,7 @@ private fun Timer(
                 Text(
                     text = "You've met your daily \ngoal!",
                     style = TextStyle(
-                         fontSize = 16.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight(500),
                         color = MaterialTheme.colorScheme.primary,
                         textAlign = TextAlign.Center,
@@ -194,15 +219,17 @@ private fun Timer(
                 )
             }
         }
-        Button(modifier=Modifier
+        Button(modifier = Modifier
             .width(97.dp)
             .height(40.dp)
-            .background(color = MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(size = 10.dp)),
+            .background(
+                color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(size = 10.dp)
+            ),
             onClick = { /*TODO*/ }) {
-          Text(text = "Continue")
+            Text(text = "Continue")
         }
-        
+
     }
 }
 
@@ -212,6 +239,6 @@ private fun Timer(
 fun CompletePreview() {
 
     Str3kyTheme {
-        CompletedScreen()
+        CompletedScreen(sessionDuration = 10000L)
     }
 }

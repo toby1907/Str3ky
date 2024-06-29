@@ -43,6 +43,7 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.str3ky.R
 import com.example.str3ky.data.DayProgress
+import com.example.str3ky.ui.nav.SESSION_SETTINGS_SCREEN
 import java.util.Calendar
 
 
@@ -86,7 +87,8 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
                 progress = progress,
                 modifier = Modifier.padding(it),
                 currentDate = currentDate,
-                nav = nav
+                nav = nav,
+                viewModel = viewModel
             )
         }
     )
@@ -97,7 +99,8 @@ fun TableProgress(
     progress: List<DayProgress>,
     modifier: Modifier,
     currentDate: Long,
-    nav: NavHostController
+    nav: NavHostController,
+    viewModel: ProgressScreenViewModel
 ) {
     val gridSize = 6 // Number of rows and columns
     val tileSize = 56.dp
@@ -153,8 +156,8 @@ fun TableProgress(
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
                         .clickable {
-                            if (isActive) {
-                                nav.navigate("session_settings")
+                            if (isActive && !dayProgress.completed) {
+                                nav.navigate(SESSION_SETTINGS_SCREEN+"?goalId=${viewModel.goalId.value}&focusTime=${viewModel.focusTime.value.focusTime.countdownTime}&progressDate=${dayProgress.date}")
                             }
                         }
                 ) {

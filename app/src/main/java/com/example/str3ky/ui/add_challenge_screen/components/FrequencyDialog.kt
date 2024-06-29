@@ -19,7 +19,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -27,12 +26,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.example.str3ky.data.DayOfWeek
 import com.example.str3ky.data.Occurrence
 import com.example.str3ky.data.OccurrenceSelection
 import com.example.str3ky.ui.add_challenge_screen.AddChallengeEvent
 import com.example.str3ky.ui.add_challenge_screen.AddScreenViewModel
-import com.example.str3ky.ui.add_challenge_screen.convertToDayOfWeekSet
 
 @Composable
 fun FrequencyDialog(

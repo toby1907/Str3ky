@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import com.example.str3ky.millisecondsToMinutes
 import com.example.str3ky.ui.nav.DONE_SCREEN
 import com.example.str3ky.ui.nav.SESSION_SCREEN
 import com.example.str3ky.ui.session.SessionScreenState
@@ -24,6 +25,9 @@ class CountdownTimerManager @Inject constructor(
     }
 
     var popUpLambda: ((String, String) -> Unit)? = null
+    var work: ((Boolean) -> Unit)? = null
+    var goalId: Int = -1
+
 
     private var countDownTimer: CountDownTimer? = null
 
@@ -179,7 +183,8 @@ class CountdownTimerManager @Inject constructor(
             focusSetFlow.value = 0
             breakSetFlow.value = 0
             isCompleted.value = true
-            popUpLambda?.invoke(DONE_SCREEN, SESSION_SCREEN)
+            work?.invoke(true)
+            popUpLambda?.invoke(DONE_SCREEN+"?goalId=${goalId}&sessionDuration=${_sessionTotalDurationMillis.value}", SESSION_SCREEN)
 
             return // Exit the function
         }
@@ -214,6 +219,11 @@ class CountdownTimerManager @Inject constructor(
     fun resumeCountdown(openAndPopUp: (String, String) -> Unit) {
         // Start a new countdown with the remaining time
         startCountDown(remainingTimeMillis)
+    }
+
+
+    fun onDayChallengeCompleted( work:(Boolean) -> Unit){
+
     }
 
 

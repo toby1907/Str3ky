@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.str3ky.convertToDayOfWeekSet
 import com.example.str3ky.data.DayOfWeek
 import com.example.str3ky.data.DayProgress
 import com.example.str3ky.data.Duration
@@ -15,6 +16,8 @@ import com.example.str3ky.data.Goal
 import com.example.str3ky.data.InvalidGoalException
 import com.example.str3ky.data.Occurrence
 import com.example.str3ky.data.OccurrenceSelection
+import com.example.str3ky.getAbbreviation
+import com.example.str3ky.minutesToMilliseconds
 import com.example.str3ky.repository.GoalRepositoryImpl
 import com.example.str3ky.repository.UserRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -63,7 +66,8 @@ class AddScreenViewModel @Inject constructor(
 
     private val _progress = mutableStateOf(emptyList<DayProgress>())
     private val _noOfDays = mutableStateOf(GoalScreenState())
-    private val _selectedDays = mutableStateOf(listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
+    private val _selectedDays =
+        mutableStateOf(listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
 
 
     val goalName: State<GoalScreenState> = _goalName
@@ -130,8 +134,10 @@ class AddScreenViewModel @Inject constructor(
         viewModelScope.launch {
 
             val user = userRepository.getUser().first()
-            if (user[0].id != null) {
-                userId.value = user[0].id!!
+            if (user.isNotEmpty()) {
+                if (user[0].id != null) {
+                    userId.value = user[0].id!!
+                }
             }
 
         }

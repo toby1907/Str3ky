@@ -1,9 +1,12 @@
 package com.example.str3ky.ui.session
 
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import com.example.str3ky.millisecondsToMinutes
+import com.example.str3ky.minutesToMilliseconds
 import com.example.str3ky.repository.GoalRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -15,6 +18,10 @@ class FocusSessionViewModel @Inject constructor(
     private val goalRepository: GoalRepositoryImpl,
 ) : ViewModel() {
 
+    private var currentGoalId: Int? = null
+
+    private val _goalId = mutableIntStateOf(-1)
+    val goalId: State<Int> = _goalId
     var timerValue = mutableStateOf(30)
         private set
 
@@ -26,6 +33,28 @@ class FocusSessionViewModel @Inject constructor(
         private set
     var sessionDuration = mutableStateOf(30)
         private set
+    var progressDate = mutableStateOf(0L)
+        private set
+
+
+    init {
+        savedStateHandle.get<Int>("goalId")?.let { goalId ->
+            if (goalId != -1) {
+                currentGoalId = goalId
+                _goalId.value = goalId
+            }
+        }
+        savedStateHandle.get<Long>("focusTime")?.let { focusTime ->
+            if (focusTime != 0L) {
+                timerValue.value = millisecondsToMinutes(focusTime)
+            }
+        }
+        savedStateHandle.get<Long>("progressDate")?.let { date ->
+            if (date != 0L) {
+            progressDate.value = date
+            }
+        }
+    }
 
     // Function to increase timer
     fun increaseTimer() {
@@ -54,40 +83,47 @@ class FocusSessionViewModel @Inject constructor(
     // Function to toggle the skip break option
     fun toggleSkipBreak() {
         skipBreak.value = !skipBreak.value
-       if(skipBreak.value) {
+        if (skipBreak.value) {
             numSessions.intValue = 1
             numBreaks.intValue = 0
+        } else {
+            numOfSessionsAndBreaks()
         }
-      else  { numOfSessionsAndBreaks() }
     }
 
     // Function to start the focus session
-   private fun numOfSessionsAndBreaks() {
+    private fun numOfSessionsAndBreaks() {
         when (timerValue.value) {
             in 10..25 -> {
                 numSessions.intValue = 1
                 numBreaks.intValue = 0
             }
+
             in 30..65 -> {
                 numSessions.intValue = 2
                 numBreaks.intValue = 1
             }
+
             in 80..95 -> {
                 numSessions.intValue = 3
                 numBreaks.intValue = 2
             }
+
             in 110..140 -> {
                 numSessions.intValue = 4
                 numBreaks.intValue = 3
             }
+
             in 155..170 -> {
                 numSessions.intValue = 6
                 numBreaks.intValue = 5
             }
+
             in 185..215 -> {
                 numSessions.intValue = 7
                 numBreaks.intValue = 6
             }
+
             in 200..240 -> {
                 numSessions.intValue = 8
                 numBreaks.intValue = 7
@@ -95,7 +131,7 @@ class FocusSessionViewModel @Inject constructor(
 
         }
 
-      //  sessionDurationCalculation()
+        //  sessionDurationCalculation()
 
     }
 
@@ -107,7 +143,7 @@ class FocusSessionViewModel @Inject constructor(
         val adjustedTimerValue = timerValue.value - totalBreakTime
 
         // Calculate session duration (including breaks)
-         sessionDuration.value = adjustedTimerValue / numSessions.intValue
+        sessionDuration.value = adjustedTimerValue / numSessions.intValue
     }
 
 

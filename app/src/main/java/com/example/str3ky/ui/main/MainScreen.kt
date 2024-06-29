@@ -37,7 +37,7 @@ import androidx.navigation.NavHostController
 import com.example.str3ky.R
 import com.example.str3ky.data.Goal
 import com.example.str3ky.data.Occurrence
-import com.example.str3ky.ui.add_challenge_screen.millisecondsToMinutes
+import com.example.str3ky.millisecondsToMinutes
 import com.example.str3ky.ui.nav.PROGRESS_SCREEN
 import java.text.SimpleDateFormat
 import java.util.Date

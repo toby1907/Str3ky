@@ -41,6 +41,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
 import com.example.str3ky.theme.Str3kyTheme
+import com.example.str3ky.ui.nav.SESSION_SCREEN
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -183,7 +184,7 @@ Spacer(modifier = Modifier.padding(32.dp))
                  ),
                  onClick = {
                      viewModel.sessionDurationCalculation()
-                     nav.navigate("session"+"?goalId=${2}&totalSessions=${viewModel.numSessions.intValue}&sessionDuration=${viewModel.sessionDuration.value}")
+                     nav.navigate(SESSION_SCREEN+"?goalId=${viewModel.goalId.value}&totalSessions=${viewModel.numSessions.intValue}&sessionDuration=${viewModel.sessionDuration.value}&progressDate=${viewModel.progressDate.value}")
 
                  }) {
                  Row(
