@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import com.example.str3ky.core.notification.TimerServiceManager
 import com.example.str3ky.millisecondsToMinutes
 import com.example.str3ky.ui.nav.DONE_SCREEN
 import com.example.str3ky.ui.nav.SESSION_SCREEN
@@ -92,7 +93,7 @@ class CountdownTimerManager @Inject constructor(
         )
     }
 
-    fun startCountDown(countDownTimeMillis: Long) {
+    private fun startCountDown(countDownTimeMillis: Long) {
         if (_sessionTotalDurationMillis.value == countDownTimeMillis) {
             focusSetFlow.value = focusSetFlow.value + 1
         }
@@ -119,6 +120,7 @@ class CountdownTimerManager @Inject constructor(
             }
         }.start()
         _isSessionInProgress.value = true
+
     }
 
     fun startSession(openAndPopUp: (String, String) -> Unit) {
@@ -226,5 +228,15 @@ class CountdownTimerManager @Inject constructor(
 
     }
 
+//for notification
+    fun startSession() {
+
+        Log.d("TimeTarget", "${currentTimeTargetInMillisFlow.value}")
+        startCountDown(currentTimeTargetInMillisFlow.value)
+
+    }
+    fun resumeCountdown() {
+        startCountDown(remainingTimeMillis)
+    }
 
 }

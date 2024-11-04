@@ -125,7 +125,7 @@ fun ChallengListItem(item: Goal, navController: NavHostController) {
         headlineContent = {
 
         Text(
-            text = item.title,
+            text = item.title?:"",
             color = MaterialTheme.colorScheme.primary
         )
 
@@ -147,7 +147,9 @@ fun ChallengListItem(item: Goal, navController: NavHostController) {
                     )
 
             ) {
-                Text(text = "${item.title[0].uppercaseChar()}")
+                Text(
+                    text = if(item.title!="") "${item.title[0].uppercaseChar()}" else ""
+                )
             }
         },
         supportingContent = {

@@ -12,18 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -57,28 +52,6 @@ fun CompletedScreen(
         mutableStateOf(true)
     }
     Scaffold(
-        topBar = {
-
-            TopAppBar(
-                title = { Text(text = "Add") },
-                actions = {
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                navigationIcon = {
-                    IconButton(onClick = { /*TODO*/ }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.arrow_back_icon),
-                            contentDescription = ""
-                        )
-                    }
-                }
-
-            )
-        },
         content = {
 
 
@@ -208,8 +181,12 @@ private fun Timer(
                         shape = RoundedCornerShape(size = 8.dp)
                     )
             ) {
+                val textValue = if (viewModel.focusTime.value.focusTime.countdownTime.minus(sessionDuration)<=0L){
+                    "You've met your daily goal!"
+                }
+                else "${viewModel.focusTime.value.focusTime.countdownTime-sessionDuration} remaining to  meet your daily\n goal"
                 Text(
-                    text = "You've met your daily \ngoal!",
+                    text = textValue,
                     style = TextStyle(
                         fontSize = 16.sp,
                         fontWeight = FontWeight(500),
