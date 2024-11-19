@@ -32,17 +32,14 @@ class TimerService : Service(){
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = NotificationCompat.Builder(this, TIMER_SERVICE_CHANNEL_ID)
-            .setContentText("Timer Service")
+            .setContentTitle("Timer Service")
             .setContentText("Timer running")
             .setSmallIcon(R.drawable.baseline_timer_24)
             .setSilent(true)
             .setOnlyAlertOnce(true)
             .build()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(TIMER_SERVICE_NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SHORT_SERVICE)
-        } else {
+
             startForeground(TIMER_SERVICE_NOTIFICATION_ID, notification)
-        }
         return START_STICKY
     }
     private fun createNotificationChannel() {
@@ -56,9 +53,7 @@ class TimerService : Service(){
 
             )
 
-            timerServiceChannel.apply {
-                setSound(null,null)
-            }
+            notificationManager.createNotificationChannel(timerServiceChannel)
 
         }
 

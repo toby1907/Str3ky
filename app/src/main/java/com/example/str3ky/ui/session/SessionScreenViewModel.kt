@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.str3ky.core.notification.TimerServiceManager
 import com.example.str3ky.data.CountdownTimerManager
 import com.example.str3ky.data.DayProgress
 import com.example.str3ky.data.Goal
@@ -23,7 +24,8 @@ import javax.inject.Inject
 class SessionScreenViewModel
 @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
-    private val goalRepository: GoalRepositoryImpl
+    private val goalRepository: GoalRepositoryImpl,
+    private val timerServiceManager: TimerServiceManager
 ) : ViewModel() {
     private var currentGoalId: Int? = null
     val countdownTimerManager = CountdownTimerManager()
@@ -114,13 +116,14 @@ countdownTimerManager.goalId = goalId
     }
 
     fun startSession(openAndPopUp: (String, String) -> Unit) {
-
+        timerServiceManager.startTimerService()
         viewModelScope.launch {
             countdownTimerManager.startSession(openAndPopUp)
         }
     }
 
     fun cancelCountdown() {
+        timerServiceManager.stopTimerService()
         viewModelScope.launch {
             countdownTimerManager.resetCountdown()
         }
@@ -140,7 +143,7 @@ countdownTimerManager.goalId = goalId
     }
 
     private fun onDayChallengeCompleted(change: Boolean) {
-
+        timerServiceManager.stopTimerService()
         viewModelScope.launch {
             val progressList = dayProgressFlow.value.map {
                 if (it.date == progressDate.value) {

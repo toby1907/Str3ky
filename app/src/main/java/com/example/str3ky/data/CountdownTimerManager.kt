@@ -19,7 +19,6 @@ import javax.inject.Singleton
 
 @Singleton
 class CountdownTimerManager @Inject constructor(
-
 ) {
     enum class Phase {
         FOCUS_SESSION, BREAK, COMPLETED
