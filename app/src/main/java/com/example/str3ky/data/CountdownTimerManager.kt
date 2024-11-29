@@ -3,23 +3,28 @@ package com.example.str3ky.data
 import android.os.CountDownTimer
 import android.util.Log
 import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import com.example.str3ky.core.notification.TimerServiceManager
-import com.example.str3ky.millisecondsToMinutes
 import com.example.str3ky.ui.nav.DONE_SCREEN
 import com.example.str3ky.ui.nav.SESSION_SCREEN
 import com.example.str3ky.ui.session.SessionScreenState
-import com.example.str3ky.ui.session.SessionScreenViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class CountdownTimerManager @Inject constructor(
 ) {
+    private val scope = CoroutineScope(SupervisorJob())
+
     enum class Phase {
         FOCUS_SESSION, BREAK, COMPLETED
     }
@@ -32,12 +37,19 @@ class CountdownTimerManager @Inject constructor(
     private var countDownTimer: CountDownTimer? = null
 
     // Properties
+    val _sessionTotalDurationMillis = MutableStateFlow(0L)
+    val timeLeftInMillisFlow = MutableStateFlow(_sessionTotalDurationMillis.value)
+    private val timeLeftInMillisForCombine: Flow<Long> = timeLeftInMillisFlow.asStateFlow()
+        .onStart { emit(0L) }
+    val timeLeftInMillis: Flow<Long> = timeLeftInMillisFlow
+
     private val
             currentphase = MutableStateFlow(
         Phase.FOCUS_SESSION
     )
+    val currentPhase: StateFlow<Phase> = currentphase
+    val currentPhaseFlow: Flow<Phase>  = currentPhase
 
-    val _sessionTotalDurationMillis = MutableStateFlow(0L)
     val _countdownTimeMillis = mutableStateOf(SessionScreenState())
     val _breakDurationMillis = mutableStateOf(SessionScreenState())
 
@@ -59,7 +71,27 @@ class CountdownTimerManager @Inject constructor(
     val totalBreakSetFlow = MutableStateFlow(_totalNoOfBreaks.value)
     val totalBreakSet: Flow<Int> = totalBreakSetFlow
 
-
+    val combinedFlow: Flow<CombinedData> = combine(
+        focusSetFlow,
+        totalFocusSetFlow,
+        breakSetFlow,
+        totalBreakSetFlow.asStateFlow(),
+       // timeLeftInMillisForCombine,
+        currentphase.asStateFlow() // Include currentphase as a flow
+    ) { focusSet, totalFocusSet, breakSet, totalBreakSetFlow,currentphase ->
+        CombinedData(
+            focusSet = focusSet,
+            totalFocusSet = totalFocusSet,
+            breakSet = breakSet,
+            totalBreakSet = totalBreakSetFlow,
+            timeLeftInMillis = 0L,
+            currentPhase = currentphase
+        )
+    }.stateIn(
+        scope = scope,
+        started = SharingStarted.WhileSubscribed(300),
+        initialValue = CombinedData(0, 0, 0, 0, Phase.FOCUS_SESSION,0L)
+    )
     private var _isSessionInProgress = mutableStateOf(
         false
     )
@@ -71,8 +103,7 @@ class CountdownTimerManager @Inject constructor(
     )
     val currentTimeTargetInMillisFlow = MutableStateFlow(_sessionTotalDurationMillis.value)
     val currentTimeTargetInMillis: Flow<Long> = currentTimeTargetInMillisFlow
-    val timeLeftInMillisFlow = MutableStateFlow(_sessionTotalDurationMillis.value)
-    val timeLeftInMillis: Flow<Long> = timeLeftInMillisFlow
+
 
     val sessionTotalDurationMillis: Flow<Long> = _sessionTotalDurationMillis
     val breakDurationMillis: State<SessionScreenState> = _breakDurationMillis
@@ -81,7 +112,7 @@ class CountdownTimerManager @Inject constructor(
     val isSessionInProgress: State<Boolean> = _isSessionInProgress
 
     val isBreakInProgress: State<Boolean> = _isBreakInProgress
-    val currentPhase: StateFlow<Phase> = currentphase
+
     val onSkipClickedFlow = MutableStateFlow(false)
     val onSkipClicked: StateFlow<Boolean> = onSkipClickedFlow
 

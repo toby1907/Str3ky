@@ -51,6 +51,7 @@ class SessionScreenViewModel
         private set
 
     init {
+        timerServiceManager.startTimerService()
         savedStateHandle.get<Int>("goalId")?.let { goalId ->
             if (goalId != -1) {
                 currentGoalId = goalId
@@ -131,11 +132,14 @@ countdownTimerManager.goalId = goalId
 
     fun pauseResumeCountdown(state: Boolean, openAndPopUp: (String, String) -> Unit) {
 
-        if (state)
+        if (state) {
+            timerServiceManager.stopTimerService()
             viewModelScope.launch {
                 countdownTimerManager.pauseCountdown()
             }
+        }
         else {
+            timerServiceManager.startTimerService()
             viewModelScope.launch {
                 countdownTimerManager.resumeCountdown(openAndPopUp)
             }

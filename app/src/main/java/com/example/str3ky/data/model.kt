@@ -3,6 +3,7 @@ package com.example.str3ky.data
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.example.str3ky.data.CountdownTimerManager.Phase
 import com.example.str3ky.theme.BabyBlue
 import com.example.str3ky.theme.LightGreen
 import com.example.str3ky.theme.RedOrange
@@ -93,4 +94,13 @@ data class Achievement(
     ){
 
 }
+
+data class CombinedData(
+    val focusSet: Int,
+    val totalFocusSet: Int,
+    val breakSet: Int,
+    val totalBreakSet: Int,
+    val currentPhase: Phase, // Assuming Phase is an enum
+   val timeLeftInMillis: Long
+)
 
