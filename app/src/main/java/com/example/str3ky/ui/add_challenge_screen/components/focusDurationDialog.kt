@@ -31,10 +31,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.str3ky.R
-import com.example.str3ky.ui.add_challenge_screen.AddChallengeEvent
 import com.example.str3ky.ui.add_challenge_screen.AddScreenViewModel
-import com.example.str3ky.ui.add_challenge_screen.millisecondsToMinutes
-import com.example.str3ky.ui.add_challenge_screen.minutesToMilliseconds
+import com.example.str3ky.millisecondsToMinutes
 
 @Composable
 fun FocusDurationDialog(
@@ -126,7 +124,7 @@ fun DialogTrailingIcon(viewModel: AddScreenViewModel) {
             IconButton(
                 modifier = Modifier.background(MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(topEnd = 4.dp, topStart = 0.dp, bottomEnd = 4.dp, bottomStart = 0.dp)),
                 onClick = {
-                    if (millisecondsToMinutes(viewModel.focusTime.value.focusTime.countdownTime)<240) {
+                    if (millisecondsToMinutes(viewModel.focusTime.value.focusTime.countdownTime) <240) {
                          viewModel.timerIncrement()
                     }
                 },
@@ -147,7 +145,7 @@ fun DialogTrailingIcon(viewModel: AddScreenViewModel) {
                 modifier = Modifier.background(MaterialTheme.colorScheme.primary,
                     shape = RoundedCornerShape(topEnd = 4.dp, topStart = 0.dp, bottomEnd = 4.dp, bottomStart = 0.dp)),
                 onClick = {
-                    if (millisecondsToMinutes(viewModel.focusTime.value.focusTime.countdownTime)>10) {
+                    if (millisecondsToMinutes(viewModel.focusTime.value.focusTime.countdownTime) >10) {
                         viewModel.timerDecrement()
                     }
                           },

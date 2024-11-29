@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
+import com.example.str3ky.millisecondsToMinutes
 import com.example.str3ky.ui.add_challenge_screen.components.ColorsDialog
 import com.example.str3ky.ui.add_challenge_screen.components.FocusDurationDialog
 import com.example.str3ky.ui.add_challenge_screen.components.FrequencyDialog
@@ -384,7 +385,6 @@ fun AddChallengeScreen(
             },
             onOk = {
                 showNoOfDaysDialog.value = false
-
             }
         )
     }

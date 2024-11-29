@@ -102,15 +102,7 @@ private fun Timer(
         verticalArrangement = Arrangement.spacedBy(48.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        /*   val focusPeriod = if(viewModel.isSessionInProgress.value){
-               "Focus period(${viewModel.currentSession.value.currentSession} of ${viewModel.totalNoOfSessions.value.totalSessions})"
-           }
-           else if (viewModel.isBreakInProgress.value){
-               "Focus period(${viewModel.currentBreak.value.currentBreak} of ${viewModel.totalNoOfBreaks.value.totalBreaks})"
-           } else {
-               "Focus period(${viewModel.currentSession.value.currentSession} of ${viewModel.totalNoOfSessions.value.totalSessions})"
 
-           }*/
         val pomoName = viewModel.countdownTimerManager.currentPhase.collectAsState().value.name
         val focusSet = viewModel.countdownTimerManager.focusSet.collectAsState(initial = 0)
         val totalFocusSet =

@@ -104,7 +104,7 @@ fun MyAppNavHost(
             ){
            ProgressScreen(nav = appState.navController)
         }
-        composable(route="$SESSION_SETTINGS_SCREEN?goalId={goalId}&focusTime={focusTime}",
+        composable(route="$SESSION_SETTINGS_SCREEN?goalId={goalId}&focusTime={focusTime}&progressDate={progressDate}",
             arguments = listOf(
                 navArgument(
                     name = "goalId"
@@ -116,13 +116,21 @@ fun MyAppNavHost(
                     name = "focusTime"
                 ) {
                     type = NavType.LongType
-                    defaultValue = -1
-                },)
+                    defaultValue = 0L
+                },
+                navArgument(
+                    name = "progressDate"
+                ) {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                },
+
+                )
             ,
             ){
             SessionSettingsScreen(nav =appState.navController)
         }
-        composable(route = "$SESSION_SCREEN?goalId={goalId}&totalSessions={totalSessions}&sessionDuration={sessionDuration}",
+        composable(route = "$SESSION_SCREEN?goalId={goalId}&totalSessions={totalSessions}&sessionDuration={sessionDuration}&progressDate={progressDate}",
             arguments = listOf(
                 navArgument(
                     name = "goalId"
@@ -142,6 +150,12 @@ fun MyAppNavHost(
                     type = NavType.IntType
                     defaultValue = -1
                 },
+                navArgument(
+                    name = "progressDate"
+                ) {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                },
             )
             ){
             SessionScreen(
@@ -149,8 +163,24 @@ fun MyAppNavHost(
                 openAndPopUp = { route, popUp -> appState.navigateAndPopUp(route, popUp) }
                 )
         }
-        composable(DONE_SCREEN){
-            CompletedScreen()
+        composable(route ="$DONE_SCREEN?goalId={goalId}&sessionDuration={sessionDuration}",
+            arguments = listOf(
+                navArgument(
+                    name = "goalId"
+                ) {
+                    type = NavType.IntType
+                    defaultValue = -1
+                },
+                navArgument(
+                    name = "sessionDuration"
+                ) {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                },
+                )
+            ){entry ->
+            val sessionDuration = entry.arguments?.getLong("sessionDuration") ?: 0L
+            CompletedScreen(sessionDuration = sessionDuration)
         }
     }
 

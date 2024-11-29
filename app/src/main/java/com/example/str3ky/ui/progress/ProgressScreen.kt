@@ -42,7 +42,9 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.str3ky.R
+import com.example.str3ky.convertCalendarDayOfWeekToStrings
 import com.example.str3ky.data.DayProgress
+import com.example.str3ky.ui.nav.SESSION_SETTINGS_SCREEN
 import java.util.Calendar
 
 
@@ -86,7 +88,8 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
                 progress = progress,
                 modifier = Modifier.padding(it),
                 currentDate = currentDate,
-                nav = nav
+                nav = nav,
+                viewModel = viewModel
             )
         }
     )
@@ -97,7 +100,8 @@ fun TableProgress(
     progress: List<DayProgress>,
     modifier: Modifier,
     currentDate: Long,
-    nav: NavHostController
+    nav: NavHostController,
+    viewModel: ProgressScreenViewModel
 ) {
     val gridSize = 6 // Number of rows and columns
     val tileSize = 56.dp
@@ -140,10 +144,16 @@ fun TableProgress(
 
             //    val isActive = dayProgress.date == currentDate
                 val tileColor =
-                    if (isActive || dayProgress.completed) Color(0xFFF7E388) else MaterialTheme.colorScheme.inverseOnSurface
-                val indicator =
-                    if (isActive || dayProgress.completed) (index + 1).toString() else ""
+                    if (isActive || dayProgress.completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.inverseOnSurface
+                val indicator = convertCalendarDayOfWeekToStrings(yourDateCalendar.get(Calendar.DAY_OF_WEEK)).take(2)
+                   // if (isActive || dayProgress.completed) (index + 1).toString() else ""
                 val showCheckMark = dayProgress.completed
+                val textColor = if (isActive || dayProgress.completed){
+                    MaterialTheme.colorScheme.background
+                }
+                else{
+                    MaterialTheme.colorScheme.onPrimary
+                }
 
                 Box(
                     modifier = Modifier
@@ -153,8 +163,8 @@ fun TableProgress(
                         .fillMaxWidth()
                         .padding(bottom = 8.dp)
                         .clickable {
-                            if (isActive) {
-                                nav.navigate("session_settings")
+                            if (isActive && !dayProgress.completed) {
+                                nav.navigate(SESSION_SETTINGS_SCREEN+"?goalId=${viewModel.goalId.value}&focusTime=${viewModel.focusTime.value.focusTime.countdownTime}&progressDate=${dayProgress.date}")
                             }
                         }
                 ) {
@@ -180,7 +190,8 @@ fun TableProgress(
                             .padding(2.dp),
                         fontSize = 12.sp,
                         fontFamily = FontFamily.Default,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
                     )
                 }
             }

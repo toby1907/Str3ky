@@ -15,6 +15,8 @@ import com.example.str3ky.ui.add_challenge_screen.GoalState
 import com.example.str3ky.ui.add_challenge_screen.UiEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -26,6 +28,10 @@ class DoneScreenViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var currentGoalId: Int? = null
+    private val completedStreakFlow = MutableStateFlow(
+        0
+    )
+    val completedStreak: StateFlow<Int> = completedStreakFlow
 
     private val _goalName = mutableStateOf(
         GoalScreenState()
@@ -37,6 +43,10 @@ class DoneScreenViewModel @Inject constructor(
     private val _focusTime = mutableStateOf(
         GoalScreenState()
     )
+    var sessionDurationState = mutableStateOf(
+        0L
+    )
+        private set
 
     private val _goalCompleted = mutableStateOf(false)
 
@@ -75,6 +85,9 @@ class DoneScreenViewModel @Inject constructor(
                         }
                         if (goal!=null){
                             _progress.value = goal.progress
+
+                          val streak = streakCalculator(goal.progress)
+                            completedStreakFlow.value = streak
                         }
                         if (goal!=null){
                           goalState.value = goalState.value.copy(
@@ -89,19 +102,30 @@ class DoneScreenViewModel @Inject constructor(
 
             }
         }
+        savedStateHandle.get<Long>("sessionDuration")?.let {sessionDuration->
+            if (sessionDuration != 0L) {
+sessionDurationState.value = sessionDuration
+            }
+        }
     }
 
-    fun onDayChallengeCompleted(change:Boolean,currentGoal: Goal){
 
-        viewModelScope.launch {
-            goalRepository.save(
-                currentGoal.copy(
-                    progress = progress.value.toList()
-                )
-            )
+    fun streakCalculator(dayProgress: List<DayProgress>): Int {
+        val sortedList = dayProgress.sortedBy { it.date }
 
+        var currentStreak = 0
+        var maxStreak = 0
+
+        for (i in sortedList.indices) {
+            if (sortedList[i].completed) {
+                currentStreak++
+                maxStreak = maxOf(maxStreak, currentStreak) // Update max streak
+            } else {
+                currentStreak = 0
+            }
         }
 
-
+        return maxStreak
     }
+
 }
