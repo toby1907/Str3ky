@@ -25,10 +25,11 @@ class SessionScreenViewModel
 @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val goalRepository: GoalRepositoryImpl,
-    private val timerServiceManager: TimerServiceManager
+    val countdownTimerManager: CountdownTimerManager
+
 ) : ViewModel() {
     private var currentGoalId: Int? = null
-    val countdownTimerManager = CountdownTimerManager()
+
     private val currentTimeTargetInMillisFlow = MutableStateFlow(0L)
     val currentTimeTargetInMillis: Flow<Long> = currentTimeTargetInMillisFlow
     private val timeLeftInMillisFlow = MutableStateFlow(10000L)
@@ -51,7 +52,7 @@ class SessionScreenViewModel
         private set
 
     init {
-        timerServiceManager.startTimerService()
+
         savedStateHandle.get<Int>("goalId")?.let { goalId ->
             if (goalId != -1) {
                 currentGoalId = goalId
@@ -117,14 +118,14 @@ countdownTimerManager.goalId = goalId
     }
 
     fun startSession(openAndPopUp: (String, String) -> Unit) {
-        timerServiceManager.startTimerService()
+
         viewModelScope.launch {
             countdownTimerManager.startSession(openAndPopUp)
         }
     }
 
     fun cancelCountdown() {
-        timerServiceManager.stopTimerService()
+
         viewModelScope.launch {
             countdownTimerManager.resetCountdown()
         }
@@ -133,13 +134,13 @@ countdownTimerManager.goalId = goalId
     fun pauseResumeCountdown(state: Boolean, openAndPopUp: (String, String) -> Unit) {
 
         if (state) {
-            timerServiceManager.stopTimerService()
+
             viewModelScope.launch {
                 countdownTimerManager.pauseCountdown()
             }
         }
         else {
-            timerServiceManager.startTimerService()
+
             viewModelScope.launch {
                 countdownTimerManager.resumeCountdown(openAndPopUp)
             }
@@ -147,7 +148,7 @@ countdownTimerManager.goalId = goalId
     }
 
     private fun onDayChallengeCompleted(change: Boolean) {
-        timerServiceManager.stopTimerService()
+
         viewModelScope.launch {
             val progressList = dayProgressFlow.value.map {
                 if (it.date == progressDate.value) {

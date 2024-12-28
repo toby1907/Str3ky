@@ -104,3 +104,7 @@ data class CombinedData(
    val timeLeftInMillis: Long
 )
 
+enum class TimerActions{
+    START,STOP,PAUSE,CANCEL,COMPLETED
+}
+

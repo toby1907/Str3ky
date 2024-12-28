@@ -102,7 +102,7 @@ class DoneScreenViewModel @Inject constructor(
 
             }
         }
-        savedStateHandle.get<Long>("sessionDuration")?.let {sessionDuration->
+        savedStateHandle.get<Long>("sessionCompleted")?.let {sessionDuration->
             if (sessionDuration != 0L) {
 sessionDurationState.value = sessionDuration
             }
