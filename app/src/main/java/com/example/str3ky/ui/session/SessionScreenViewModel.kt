@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.str3ky.core.notification.TimerServiceManager
 import com.example.str3ky.data.CountdownTimerManager
 import com.example.str3ky.data.DayProgress
+import com.example.str3ky.data.Duration
 import com.example.str3ky.data.Goal
 import com.example.str3ky.repository.GoalRepositoryImpl
 import com.example.str3ky.ui.add_challenge_screen.GoalState
@@ -30,6 +31,7 @@ class SessionScreenViewModel
 ) : ViewModel() {
     private var currentGoalId: Int? = null
 
+
     private val currentTimeTargetInMillisFlow = MutableStateFlow(0L)
     val currentTimeTargetInMillis: Flow<Long> = currentTimeTargetInMillisFlow
     private val timeLeftInMillisFlow = MutableStateFlow(10000L)
@@ -50,6 +52,11 @@ class SessionScreenViewModel
 
     var progressDate = mutableStateOf(0L)
         private set
+      var sessionDuration = mutableStateOf(-1)
+        private set
+
+    var dayHourSpent = mutableStateOf(0L)
+    private set
 
     init {
 
@@ -62,6 +69,8 @@ countdownTimerManager.goalId = goalId
                         _goalState.value = _goalState.value.copy(goal = goal)
                         if (goal != null) {
                             dayProgressFlow.value = goal.progress
+
+
                         }
                     }
                 }
@@ -104,6 +113,7 @@ countdownTimerManager.goalId = goalId
                         )*/
 
                     Log.d("sessionDuration", "$it")
+                    sessionDuration.value = it
 
                 }
             }
@@ -112,7 +122,20 @@ countdownTimerManager.goalId = goalId
         savedStateHandle.get<Long>("progressDate")?.let { date ->
             if (date != 0L) {
                 progressDate.value = date
-                countdownTimerManager.work = {it-> onDayChallengeCompleted(it) }
+                countdownTimerManager.setProgressDate(date)
+                countdownTimerManager.work = {
+                    it-> onDayChallengeCompleted(it)
+
+                }
+                viewModelScope.launch {
+                    goalRepository.getGoal(currentGoalId!!).collect { goal ->
+                        if (goal != null) {
+                            dayHourSpent.value =
+                                goal.progress.find { it.date == progressDate.value }?.hoursSpent ?: 0L
+                        }
+                    }
+                }
+
             }
         }
     }
@@ -148,22 +171,29 @@ countdownTimerManager.goalId = goalId
     }
 
     private fun onDayChallengeCompleted(change: Boolean) {
-
+        dayHourSpent.value = sessionDuration.value.toLong()
         viewModelScope.launch {
             val progressList = dayProgressFlow.value.map {
                 if (it.date == progressDate.value) {
                     it.copy(
                         date = progressDate.value,
-                        completed = change
+                        completed = if(it.hoursSpent>=sessionDuration.value.toLong()) change else false,
+                        hoursSpent = it.hoursSpent + dayHourSpent.value
                     )
                 } else it
+
             }
             _goalState.value.goal?.let {
+
                 goalRepository.save(
                     it.copy(
-                        progress = progressList
-                    )
+                        progress = progressList,
+                        durationInfo = Duration(
+                            countdownTime = it.durationInfo.countdownTime + sessionDuration.value.toLong(),
+                            isCompleted = sessionDuration.value.toLong() == it.focusSet
+                        ) )
                 )
+                Log.d("DayHourSpentFromSession","${dayHourSpent.value}")
             }
 
         }

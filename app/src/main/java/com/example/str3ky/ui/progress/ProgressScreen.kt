@@ -67,14 +67,16 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
             val currentDate = System.currentTimeMillis()
 
             val dummyProgress = listOf(
-                DayProgress(currentDate, false), // Today (completed)
+                DayProgress(currentDate, false,30), // Today (completed)
                 DayProgress(
                     System.currentTimeMillis() - 2 * 24 * 60 * 60 * 1000,
-                    true
+                    true,
+                    30
                 ), // Two days ago (completed)
                 DayProgress(
                     System.currentTimeMillis() - 4 * 24 * 60 * 60 * 1000,
-                    false
+                    false,
+                    30
                 ), // Four days ago (not completed)
                 // ... add more dummy entries as needed
             ).sortedBy { dayProgres ->
@@ -164,7 +166,7 @@ fun TableProgress(
                         .padding(bottom = 8.dp)
                         .clickable {
                             if (isActive && !dayProgress.completed) {
-                                nav.navigate(SESSION_SETTINGS_SCREEN+"?goalId=${viewModel.goalId.value}&focusTime=${viewModel.focusTime.value.focusTime.countdownTime}&progressDate=${dayProgress.date}")
+                                nav.navigate(SESSION_SETTINGS_SCREEN+"?goalId=${viewModel.goalId.value}&focusTime=${viewModel.focusTime.value.totalTime}&progressDate=${dayProgress.date}")
                             }
                         }
                 ) {

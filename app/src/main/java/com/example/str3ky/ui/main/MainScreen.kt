@@ -165,7 +165,7 @@ fun ChallengListItem(item: Goal, navController: NavHostController) {
                         contentDescription = ""
                     )
                     Text(
-                        text = millisecondsToMinutes(item.durationInfo.countdownTime).toString()+" mins",
+                        text = millisecondsToMinutes(item.focusSet).toString()+" mins",
                         style = TextStyle(fontSize = 8.sp),
                         color = MaterialTheme.colorScheme.onPrimary
                     )

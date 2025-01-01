@@ -1,5 +1,6 @@
 package com.example.str3ky.ui.done
 
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -27,7 +28,9 @@ class DoneScreenViewModel @Inject constructor(
     private val goalRepository: GoalRepositoryImpl,
 ) : ViewModel() {
 
-    private var currentGoalId: Int? = null
+    private var currentGoalIdFlow = MutableStateFlow(-1)
+    val currentGoalId: StateFlow<Int> = currentGoalIdFlow
+
     private val completedStreakFlow = MutableStateFlow(
         0
     )
@@ -60,15 +63,21 @@ class DoneScreenViewModel @Inject constructor(
     val focusTime: State<GoalScreenState> = _focusTime
    val progress: State<List<DayProgress>> = _progress
     val goalCompleted: State<Boolean> = _goalCompleted
+    val goal: State<GoalState> = goalState
+    var progressDate = mutableStateOf(0L)
+        private set
+    var dayHourSpent = mutableStateOf(0L)
+        private set
+
     init {
         savedStateHandle.get<Int>("goalId")?.let { goalId ->
 
             if (goalId != -1) {
-
+                currentGoalIdFlow.value = goalId
                 viewModelScope.launch {
                     goalRepository.getGoal(goalId).collect{ goal ->
                         if(goal!=null){
-                            currentGoalId = goal.id
+                           // currentGoalId = goal.id
                         }
                         if (goal!=null){
                             _goalName.value = _goalName.value.copy(goalName=goal.title)
@@ -107,10 +116,34 @@ class DoneScreenViewModel @Inject constructor(
 sessionDurationState.value = sessionDuration
             }
         }
+        savedStateHandle.get<Long>("progressDate")?.let { date ->
+            if (date != 0L) {
+                progressDate.value = date
+               if (currentGoalId.value != -1) {
+                    viewModelScope.launch {
+                        goalRepository.getGoal(currentGoalId.value).collect { goal ->
+                            if (goal != null) {
+                                dayHourSpent.value =
+                                    goal.progress.find { it.date == progressDate.value }?.hoursSpent
+                                        ?: 0L
+
+
+                            }
+
+                            if (goal != null) {
+                                Log.d("dayHourSpentGoal", "${   goal.progress.find { it.date == progressDate.value }}")
+                            }
+                        }
+
+                    }
+                }
+                Log.d("dayHourSpent", "${date},${currentGoalId.value}")
+            }
+        }
     }
 
 
-    fun streakCalculator(dayProgress: List<DayProgress>): Int {
+    private fun streakCalculator(dayProgress: List<DayProgress>): Int {
         val sortedList = dayProgress.sortedBy { it.date }
 
         var currentStreak = 0

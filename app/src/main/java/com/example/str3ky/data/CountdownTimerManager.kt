@@ -37,6 +37,14 @@ class CountdownTimerManager @Inject constructor(
     var work: ((Boolean) -> Unit)? = null
     var goalId: Int = -1
 
+    private val _progressDate = mutableStateOf(0L)
+    val progressDate: State<Long> = _progressDate
+
+    fun setProgressDate(date: Long) {
+        _progressDate.value = date
+    }
+
+
 
     private var countDownTimer: CountDownTimer? = null
 
@@ -222,13 +230,14 @@ class CountdownTimerManager @Inject constructor(
             timeLeftInMillisFlow.value = _sessionTotalDurationMillis.value
             focusSetFlow.value = 0
             breakSetFlow.value = 0
+            currentphase.value = Phase.FOCUS_SESSION
             isCompleted.value = true
             work?.invoke(true)
             timerServiceManager.onSessionCompleted()
             timerServiceManager.stopTimerService()
 
             popUpLambda?.invoke(
-                DONE_SCREEN + "?goalId=${goalId}&sessionDuration=${_sessionTotalDurationMillis.value}",
+                DONE_SCREEN + "?goalId=${goalId}&sessionDuration=${_sessionTotalDurationMillis.value}&progressDate=${_progressDate.value}",
                 SESSION_SCREEN
             )
 

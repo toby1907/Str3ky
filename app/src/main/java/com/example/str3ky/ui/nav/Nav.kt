@@ -166,7 +166,7 @@ fun MyAppNavHost(
                 openAndPopUp = { route, popUp -> appState.navigateAndPopUp(route, popUp) }
                 )
         }
-        composable(route ="$DONE_SCREEN?goalId={goalId}&sessionDuration={sessionDuration}",
+        composable(route ="$DONE_SCREEN?goalId={goalId}&sessionDuration={sessionDuration}&progressDate={progressDate}",
             arguments = listOf(
                 navArgument(
                     name = "goalId"
@@ -176,6 +176,12 @@ fun MyAppNavHost(
                 },
                 navArgument(
                     name = MY_ARG
+                ) {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                },
+                navArgument(
+                    name = "progressDate"
                 ) {
                     type = NavType.LongType
                     defaultValue = 0L
