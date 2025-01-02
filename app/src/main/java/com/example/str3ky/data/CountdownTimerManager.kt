@@ -4,6 +4,7 @@ import android.os.CountDownTimer
 import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import com.example.str3ky.core.notification.TimerServiceManager
 import com.example.str3ky.ui.nav.DONE_SCREEN
 import com.example.str3ky.ui.nav.SESSION_SCREEN
 import com.example.str3ky.ui.session.SessionScreenState
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
@@ -22,6 +24,7 @@ import javax.inject.Singleton
 
 @Singleton
 class CountdownTimerManager @Inject constructor(
+    val timerServiceManager: TimerServiceManager
 ) {
     private val scope = CoroutineScope(SupervisorJob())
 
@@ -29,9 +32,18 @@ class CountdownTimerManager @Inject constructor(
         FOCUS_SESSION, BREAK, COMPLETED
     }
 
+
     var popUpLambda: ((String, String) -> Unit)? = null
     var work: ((Boolean) -> Unit)? = null
     var goalId: Int = -1
+
+    private val _progressDate = mutableStateOf(0L)
+    val progressDate: State<Long> = _progressDate
+
+    fun setProgressDate(date: Long) {
+        _progressDate.value = date
+    }
+
 
 
     private var countDownTimer: CountDownTimer? = null
@@ -40,7 +52,6 @@ class CountdownTimerManager @Inject constructor(
     val _sessionTotalDurationMillis = MutableStateFlow(0L)
     val timeLeftInMillisFlow = MutableStateFlow(_sessionTotalDurationMillis.value)
     private val timeLeftInMillisForCombine: Flow<Long> = timeLeftInMillisFlow.asStateFlow()
-        .onStart { emit(0L) }
     val timeLeftInMillis: Flow<Long> = timeLeftInMillisFlow
 
     private val
@@ -48,7 +59,8 @@ class CountdownTimerManager @Inject constructor(
         Phase.FOCUS_SESSION
     )
     val currentPhase: StateFlow<Phase> = currentphase
-    val currentPhaseFlow: Flow<Phase>  = currentPhase
+    val currentPhaseFlow: Flow<Phase> = currentPhase
+
 
     val _countdownTimeMillis = mutableStateOf(SessionScreenState())
     val _breakDurationMillis = mutableStateOf(SessionScreenState())
@@ -72,25 +84,27 @@ class CountdownTimerManager @Inject constructor(
     val totalBreakSet: Flow<Int> = totalBreakSetFlow
 
     val combinedFlow: Flow<CombinedData> = combine(
-        focusSetFlow,
+        //focusSetFlow,
         totalFocusSetFlow,
         breakSetFlow,
-        totalBreakSetFlow.asStateFlow(),
-       // timeLeftInMillisForCombine,
-        currentphase.asStateFlow() // Include currentphase as a flow
-    ) { focusSet, totalFocusSet, breakSet, totalBreakSetFlow,currentphase ->
+        totalBreakSetFlow,
+        currentPhaseFlow,
+        timeLeftInMillisForCombine,
+
+        // Include currentphase as a flow
+    ) { totalFocusSet, breakSet, totalBreakSetFlow, currentPhaseFlow, timeLeftInMillis ->
         CombinedData(
-            focusSet = focusSet,
+            focusSet = 2,
             totalFocusSet = totalFocusSet,
             breakSet = breakSet,
             totalBreakSet = totalBreakSetFlow,
-            timeLeftInMillis = 0L,
-            currentPhase = currentphase
+            currentPhase = currentPhaseFlow,
+            timeLeftInMillis = timeLeftInMillis,
         )
     }.stateIn(
         scope = scope,
         started = SharingStarted.WhileSubscribed(300),
-        initialValue = CombinedData(0, 0, 0, 0, Phase.FOCUS_SESSION,0L)
+        initialValue = CombinedData(0, 0, 0, 0, Phase.COMPLETED, 0L)
     )
     private var _isSessionInProgress = mutableStateOf(
         false
@@ -117,13 +131,14 @@ class CountdownTimerManager @Inject constructor(
     val onSkipClicked: StateFlow<Boolean> = onSkipClickedFlow
 
     init {
-
+        timerServiceManager.startTimerService()
         _breakDurationMillis.value = _breakDurationMillis.value.copy(
             breakDurationMillis = 5000L
         )
     }
 
     private fun startCountDown(countDownTimeMillis: Long) {
+        timerServiceManager.startTimerService()
         if (_sessionTotalDurationMillis.value == countDownTimeMillis) {
             focusSetFlow.value = focusSetFlow.value + 1
         }
@@ -154,6 +169,7 @@ class CountdownTimerManager @Inject constructor(
     }
 
     fun startSession(openAndPopUp: (String, String) -> Unit) {
+
         popUpLambda = openAndPopUp
         /*if (isCompleted.value) {
             currentphase.value = Phase.FOCUS_SESSION
@@ -214,9 +230,16 @@ class CountdownTimerManager @Inject constructor(
             timeLeftInMillisFlow.value = _sessionTotalDurationMillis.value
             focusSetFlow.value = 0
             breakSetFlow.value = 0
+            currentphase.value = Phase.FOCUS_SESSION
             isCompleted.value = true
             work?.invoke(true)
-            popUpLambda?.invoke(DONE_SCREEN+"?goalId=${goalId}&sessionDuration=${_sessionTotalDurationMillis.value}", SESSION_SCREEN)
+            timerServiceManager.onSessionCompleted()
+            timerServiceManager.stopTimerService()
+
+            popUpLambda?.invoke(
+                DONE_SCREEN + "?goalId=${goalId}&sessionDuration=${_sessionTotalDurationMillis.value}&progressDate=${_progressDate.value}",
+                SESSION_SCREEN
+            )
 
             return // Exit the function
         }
@@ -224,13 +247,14 @@ class CountdownTimerManager @Inject constructor(
     }
 
     fun cancelCountdown() {
+
         countDownTimer?.cancel()
         _isSessionInProgress.value = false
 
 
-
     }
-    fun resetCountdown(){
+
+    fun resetCountdown() {
         countDownTimer?.cancel()
         timeLeftInMillisFlow.value = _sessionTotalDurationMillis.value
         focusSetFlow.value = 0
@@ -254,17 +278,18 @@ class CountdownTimerManager @Inject constructor(
     }
 
 
-    fun onDayChallengeCompleted( work:(Boolean) -> Unit){
+    fun onDayChallengeCompleted(work: (Boolean) -> Unit) {
 
     }
 
-//for notification
+    //for notification
     fun startSession() {
 
         Log.d("TimeTarget", "${currentTimeTargetInMillisFlow.value}")
         startCountDown(currentTimeTargetInMillisFlow.value)
 
     }
+
     fun resumeCountdown() {
         startCountDown(remainingTimeMillis)
     }

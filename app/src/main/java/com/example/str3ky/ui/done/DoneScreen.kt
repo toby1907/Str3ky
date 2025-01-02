@@ -38,6 +38,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.str3ky.R
 import com.example.str3ky.theme.Str3kyTheme
+import com.example.str3ky.toMinutes
+import kotlin.text.count
+import kotlin.text.toFloat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -103,10 +106,9 @@ private fun Timer(
 
             Box() {
 
-                val myFlow =
-                    viewModel.focusTime.value.focusTime.countdownTime
-                val progress =
-                    (sessionDuration.toFloat() / myFlow.toFloat())
+                val daysCompleted = viewModel.goal.value.goal?.progress?.count { it.completed }?:0
+                val totalDays =viewModel.goal.value.goal?.noOfDays?:0
+                val progress = if (totalDays > 0) daysCompleted.toFloat() / totalDays.toFloat() else 0f
 
                 CircularProgressIndicator(
                     progress = progress,
@@ -181,10 +183,11 @@ private fun Timer(
                         shape = RoundedCornerShape(size = 8.dp)
                     )
             ) {
-                val textValue = if (viewModel.focusTime.value.focusTime.countdownTime.minus(sessionDuration)<=0L){
+                val textValue = if ((viewModel.goal.value.goal?.focusSet?.toMinutes()?.minus(viewModel.dayHourSpent.value)
+                        ?: 0) <= 0 ){
                     "You've met your daily goal!"
                 }
-                else "${viewModel.focusTime.value.focusTime.countdownTime-sessionDuration} remaining to  meet your daily\n goal"
+                else "${viewModel.goal.value.goal?.focusSet?.toMinutes()?.minus(viewModel.dayHourSpent.value)?:0} remaining to  meet your daily\n goal"
                 Text(
                     text = textValue,
                     style = TextStyle(

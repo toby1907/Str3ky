@@ -223,7 +223,8 @@ class AddScreenViewModel @Inject constructor(
                             color = goalColor.value,
                             completed = goalCompleted.value,
                             noOfDays = noOfDays.value.noOfDays,
-                            userId = userId.value
+                            userId = userId.value,
+                            focusSet = focusTime.value.focusTime.countdownTime
                         )
                         goalRepository.save(goal)
                         _eventFlow.emit(UiEvent.SaveNote)
@@ -322,7 +323,7 @@ class AddScreenViewModel @Inject constructor(
         while (daysAdded < noOfDays) {
             val dayOfWeek = DayOfWeek.entries[calendar.get(Calendar.DAY_OF_WEEK) - 1]
             if (dayOfWeek in selectedDays) {
-                progressList.add(DayProgress(calendar.timeInMillis, false))
+                progressList.add(DayProgress(calendar.timeInMillis, false,0L))
                 daysAdded++
             }
             calendar.add(Calendar.DAY_OF_MONTH, 1) // Add one day

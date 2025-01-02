@@ -87,3 +87,6 @@ fun Int.minutesToMilliseconds(): Long = this * 60_000L
 
 fun Long.millisecondsToMinutes(): Int = (this / 60_000L).toInt()
 */
+fun Long.toMinutes(): Long {
+    return this / 60000
+}

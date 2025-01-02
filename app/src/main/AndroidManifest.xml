@@ -26,6 +26,9 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <data android:host="www.incentivetimer.com" android:scheme="https"/>
+            </intent-filter>
 
         </activity>
         <service android:name=".core.notification.TimerService"
