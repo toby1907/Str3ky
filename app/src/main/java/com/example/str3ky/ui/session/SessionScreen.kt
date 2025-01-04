@@ -1,5 +1,6 @@
 package com.example.str3ky.ui.session
 
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,12 +23,14 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -37,7 +40,12 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
+import com.example.str3ky.core.notification.TimerService
 import com.example.str3ky.data.CountdownTimerManager
+import com.example.str3ky.data.TimerState
+import com.example.str3ky.ui.nav.DONE_SCREEN
+import com.example.str3ky.ui.nav.SESSION_SCREEN
+import kotlinx.coroutines.flow.collectLatest
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,9 +55,23 @@ fun SessionScreen(
     openAndPopUp: (String, String) -> Unit,
 ) {
 
-LaunchedEffect(Unit){
-   viewModel.startSession(openAndPopUp)
-}
+    val timerState by viewModel.timerState.collectAsState()
+    val context = LocalContext.current
+    LaunchedEffect(key1 = Unit) {
+        if (timerState is TimerState.Initial) {
+            viewModel.startSession(openAndPopUp)
+        }
+        viewModel.countdownTimerManager.timerFinishedEvent.collectLatest { isSessionCompleted ->
+            if (isSessionCompleted) {
+                val intent = Intent(context, TimerService::class.java)
+                context.stopService(intent)
+                openAndPopUp(
+                    DONE_SCREEN + "?goalId=${viewModel.countdownTimerManager.goalId.value}&sessionDuration=${viewModel.countdownTimerManager._sessionTotalDurationMillis.value}&progressDate=${viewModel.countdownTimerManager.progressDate.value}",
+                    SESSION_SCREEN
+                )
+            }
+        }
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -82,7 +104,8 @@ LaunchedEffect(Unit){
             ) {
                 Timer(nav = nav,
                     viewModel = viewModel,
-                    openAndPopUp = openAndPopUp
+                    openAndPopUp = openAndPopUp,
+                    timerState = timerState
                 )
             }
 
@@ -95,7 +118,8 @@ LaunchedEffect(Unit){
 private fun Timer(
     modifier: Modifier = Modifier, nav: NavHostController,
     viewModel: SessionScreenViewModel,
-    openAndPopUp: (String,String) -> Unit
+    openAndPopUp: (String,String) -> Unit,
+    timerState: TimerState
 ) {
 
     Column(
@@ -180,7 +204,7 @@ private fun Timer(
                 )
             )
         }
-        TimerButton(nav = nav, viewModel = viewModel,openAndPopUp)
+        TimerButton(nav = nav, viewModel = viewModel,openAndPopUp,timerState is TimerState.Running)
     }
 }
 
@@ -208,7 +232,7 @@ private fun TimerStartStopButton(
 
         Icon(
             painter =
-            if (buttonState.value) {
+            if (buttonState.value || timerRunning) {
                 painterResource(id = R.drawable.play_arrow_fill1_wght400_grad0_opsz24)
             } else {
                 painterResource(id = R.drawable.pause_24)
@@ -249,13 +273,14 @@ private fun TimerRestartButton(timerRunning: Boolean, viewModel: SessionScreenVi
 private fun TimerButton(
     nav: NavHostController,
     viewModel: SessionScreenViewModel,
-    openAndPopUp: (String, String) -> Unit
+    openAndPopUp: (String, String) -> Unit,
+    timerRunning: Boolean
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        TimerStartStopButton(true, nav = nav, viewModel = viewModel, openAndPopUp)
+        TimerStartStopButton(timerRunning, nav = nav, viewModel = viewModel, openAndPopUp)
         TimerRestartButton(timerRunning = true, viewModel = viewModel)
     }
 }

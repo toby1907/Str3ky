@@ -4,45 +4,65 @@ import android.os.CountDownTimer
 import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.viewModelScope
 import com.example.str3ky.core.notification.TimerServiceManager
+import com.example.str3ky.repository.GoalRepositoryImpl
+import com.example.str3ky.ui.add_challenge_screen.GoalState
 import com.example.str3ky.ui.nav.DONE_SCREEN
 import com.example.str3ky.ui.nav.SESSION_SCREEN
 import com.example.str3ky.ui.session.SessionScreenState
+import com.florianwalther.incentivetimer.core.notification.DefaultNotificationHelper
+import com.florianwalther.incentivetimer.core.notification.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class CountdownTimerManager @Inject constructor(
-    val timerServiceManager: TimerServiceManager
-) {
+    val timerServiceManager: TimerServiceManager,
+    val goalRepository: GoalRepositoryImpl,
+    val notificationHelper: DefaultNotificationHelper,
+
+    ) {
     private val scope = CoroutineScope(SupervisorJob())
 
     enum class Phase {
         FOCUS_SESSION, BREAK, COMPLETED
     }
 
+    private val _timerState = MutableStateFlow<TimerState>(TimerState.Initial)
+    val timerState: StateFlow<TimerState> = _timerState
+
+
+    // Event to signal timer completion
+    private val _timerFinishedEvent = MutableSharedFlow<Boolean>()
+    val timerFinishedEvent: SharedFlow<Boolean> = _timerFinishedEvent.asSharedFlow()
 
     var popUpLambda: ((String, String) -> Unit)? = null
     var work: ((Boolean) -> Unit)? = null
-    var goalId: Int = -1
+    val goalId = MutableStateFlow(-1)
 
-    private val _progressDate = mutableStateOf(0L)
+
+  /*  private val _progressDate = mutableStateOf(0L)
     val progressDate: State<Long> = _progressDate
 
     fun setProgressDate(date: Long) {
         _progressDate.value = date
-    }
+    }*/
 
 
 
@@ -53,6 +73,16 @@ class CountdownTimerManager @Inject constructor(
     val timeLeftInMillisFlow = MutableStateFlow(_sessionTotalDurationMillis.value)
     private val timeLeftInMillisForCombine: Flow<Long> = timeLeftInMillisFlow.asStateFlow()
     val timeLeftInMillis: Flow<Long> = timeLeftInMillisFlow
+    //propeties for completion function
+    var dayHourSpent = MutableStateFlow(0L)
+    var sessionDuration = MutableStateFlow(-1)
+    var progressDate =  MutableStateFlow(0L)
+    var progressFlowCombine: Flow<Long> = progressDate.asStateFlow()
+    val dayProgressFlow = MutableStateFlow(emptyList<DayProgress>())
+    val dayProgress: StateFlow<List<DayProgress>> = dayProgressFlow
+    val _goalState = MutableStateFlow(
+        GoalState()
+    )
 
     private val
             currentphase = MutableStateFlow(
@@ -86,25 +116,26 @@ class CountdownTimerManager @Inject constructor(
     val combinedFlow: Flow<CombinedData> = combine(
         //focusSetFlow,
         totalFocusSetFlow,
-        breakSetFlow,
-        totalBreakSetFlow,
+        goalId,
+      //  totalBreakSetFlow,
         currentPhaseFlow,
         timeLeftInMillisForCombine,
+        progressFlowCombine
+
 
         // Include currentphase as a flow
-    ) { totalFocusSet, breakSet, totalBreakSetFlow, currentPhaseFlow, timeLeftInMillis ->
+    ) { totalFocusSet,goalIdFlow, currentPhaseFlow, timeLeftInMillis,progressDateFlow ->
         CombinedData(
-            focusSet = 2,
             totalFocusSet = totalFocusSet,
-            breakSet = breakSet,
-            totalBreakSet = totalBreakSetFlow,
             currentPhase = currentPhaseFlow,
             timeLeftInMillis = timeLeftInMillis,
+           goalId = goalIdFlow,
+            progressDate = progressDateFlow
         )
     }.stateIn(
         scope = scope,
         started = SharingStarted.WhileSubscribed(300),
-        initialValue = CombinedData(0, 0, 0, 0, Phase.COMPLETED, 0L)
+        initialValue = CombinedData( 0,   Phase.COMPLETED, 0,-1,0)
     )
     private var _isSessionInProgress = mutableStateOf(
         false
@@ -131,14 +162,14 @@ class CountdownTimerManager @Inject constructor(
     val onSkipClicked: StateFlow<Boolean> = onSkipClickedFlow
 
     init {
-        timerServiceManager.startTimerService()
+
         _breakDurationMillis.value = _breakDurationMillis.value.copy(
             breakDurationMillis = 5000L
         )
     }
 
     private fun startCountDown(countDownTimeMillis: Long) {
-        timerServiceManager.startTimerService()
+
         if (_sessionTotalDurationMillis.value == countDownTimeMillis) {
             focusSetFlow.value = focusSetFlow.value + 1
         }
@@ -169,7 +200,10 @@ class CountdownTimerManager @Inject constructor(
     }
 
     fun startSession(openAndPopUp: (String, String) -> Unit) {
+        _timerState.value = TimerState.Running
 
+        notificationHelper.removeTimerCompletedNotification()
+        timerServiceManager.startTimerService()
         popUpLambda = openAndPopUp
         /*if (isCompleted.value) {
             currentphase.value = Phase.FOCUS_SESSION
@@ -233,13 +267,18 @@ class CountdownTimerManager @Inject constructor(
             currentphase.value = Phase.FOCUS_SESSION
             isCompleted.value = true
             work?.invoke(true)
-            timerServiceManager.onSessionCompleted()
-            timerServiceManager.stopTimerService()
 
-            popUpLambda?.invoke(
+            timerServiceManager.stopTimerService()
+            notificationHelper.showTimerCompletedNotification(currentPhase,goalId.value,progressDate.value,sessionDuration.value.toLong())
+
+
+            /*popUpLambda?.invoke(
                 DONE_SCREEN + "?goalId=${goalId}&sessionDuration=${_sessionTotalDurationMillis.value}&progressDate=${_progressDate.value}",
                 SESSION_SCREEN
-            )
+            )*/
+            scope.launch {
+                _timerFinishedEvent.emit(true)
+            }
 
             return // Exit the function
         }
@@ -247,7 +286,7 @@ class CountdownTimerManager @Inject constructor(
     }
 
     fun cancelCountdown() {
-
+        timerServiceManager.stopTimerService()
         countDownTimer?.cancel()
         _isSessionInProgress.value = false
 
@@ -255,6 +294,7 @@ class CountdownTimerManager @Inject constructor(
     }
 
     fun resetCountdown() {
+        timerServiceManager.stopTimerService()
         countDownTimer?.cancel()
         timeLeftInMillisFlow.value = _sessionTotalDurationMillis.value
         focusSetFlow.value = 0
@@ -267,12 +307,18 @@ class CountdownTimerManager @Inject constructor(
     private var remainingTimeMillis = 0L
 
     fun pauseCountdown() {
+        timerServiceManager.stopTimerService()
+        _timerState.value = TimerState.Paused
+
         // Save the remaining time and cancel the current timer
         remainingTimeMillis = timeLeftInMillisFlow.value
         cancelCountdown()
     }
 
     fun resumeCountdown(openAndPopUp: (String, String) -> Unit) {
+
+        _timerState.value = TimerState.Running
+        timerServiceManager.startTimerService()
         // Start a new countdown with the remaining time
         startCountDown(remainingTimeMillis)
     }
@@ -294,4 +340,43 @@ class CountdownTimerManager @Inject constructor(
         startCountDown(remainingTimeMillis)
     }
 
+    fun onDayChallengeCompleted(change: Boolean) {
+        _timerState.value = TimerState.Initial
+        dayHourSpent.value = sessionDuration.value.toLong()
+        scope.launch {
+            val progressList = dayProgressFlow.value.map {
+                if (it.date == progressDate.value) {
+                    it.copy(
+                        date = progressDate.value,
+                        completed = if(it.hoursSpent>=sessionDuration.value.toLong()) change else false,
+                        hoursSpent = it.hoursSpent + dayHourSpent.value
+                    )
+                } else it
+
+            }
+            _goalState.value.goal?.let {
+
+                goalRepository.save(
+                    it.copy(
+                        progress = progressList,
+                        durationInfo = Duration(
+                            countdownTime = it.durationInfo.countdownTime + sessionDuration.value.toLong(),
+                            isCompleted = sessionDuration.value.toLong() == it.focusSet
+                        ) )
+                )
+                Log.d("DayHourSpentFromSession","${dayHourSpent.value}")
+            }
+
+        }
+
+
+    }
+
+}
+
+sealed class TimerState {
+    object Initial : TimerState()
+    object Running: TimerState()
+    object Paused : TimerState()
+    object Finished : TimerState()
 }

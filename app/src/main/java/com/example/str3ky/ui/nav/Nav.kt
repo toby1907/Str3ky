@@ -21,7 +21,9 @@ import com.example.str3ky.ui.session.SessionScreen
 import com.example.str3ky.ui.session.SessionSettingsScreen
 
 
-const val MY_URI = "https://www.incentivetimer.com/timer" // TODO: Update me
+const val MY_URI = "myapp://donescreen?goalId={goalId}&sessionDuration={sessionDuration}&progressDate={progressDate}" // TODO: Update me
+const val MY_URI_SESSION_SCREEN ="myapp://sessionscreen?goalId={goalId}&totalSessions={totalSessions}&sessionDuration={sessionDuration}&progressDate={progressDate}"
+//const val MY_URI_SESSION_SCREEN ="myapp://sessionscreen"
 const val MY_ARG = "sessionCompleted"
 @Composable
 fun rememberAppNavState(
@@ -159,7 +161,13 @@ fun MyAppNavHost(
                     type = NavType.LongType
                     defaultValue = 0L
                 },
+            ),
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = MY_URI_SESSION_SCREEN
+                }
             )
+
             ){
             SessionScreen(
                 nav = appState.navController,
@@ -175,7 +183,7 @@ fun MyAppNavHost(
                     defaultValue = -1
                 },
                 navArgument(
-                    name = MY_ARG
+                    name = "sessionDuration"
                 ) {
                     type = NavType.LongType
                     defaultValue = 0L
@@ -194,7 +202,7 @@ fun MyAppNavHost(
             )
 
             ){entry ->
-            val sessionDuration = entry.arguments?.getLong(MY_ARG) ?: 0L
+            val sessionDuration = entry.arguments?.getLong("sessionDuration") ?: 0L
             CompletedScreen(sessionDuration = sessionDuration)
         }
     }

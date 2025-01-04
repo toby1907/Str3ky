@@ -8,15 +8,20 @@ interface NotificationHelper {
     fun updateTimerServiceNotification(
         currentPhase: CountdownTimerManager.Phase,
         timeLeftInMillis: Long,
-        timerRunning: Boolean
+        timerRunning: Boolean,
+        goalId: Int,
+        totalSessions: Int,
+        sessionDuration:Int,
+        progressDate: Long
     )
 
     fun showResumeTimerNotification(
         currentPhase: CountdownTimerManager.Phase,
         timeLeftInMillis: Long,
+
     )
 
-    fun showTimerCompletedNotification(finishedPhase: CountdownTimerManager.Phase)
+    fun showTimerCompletedNotification(finishedPhase: CountdownTimerManager.Phase,goalId: Int, progressDate: Long,sessionDuration: Long)
   //  fun showRewardUnlockedNotification(reward: Reward)
     fun removeTimerServiceNotification()
     fun removeTimerCompletedNotification()

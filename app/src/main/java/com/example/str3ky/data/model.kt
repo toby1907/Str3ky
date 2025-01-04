@@ -62,7 +62,8 @@ data class OccurrenceSelection(
 data class DayProgress(
     var date: Long, // date in milliseconds
     var completed: Boolean, // whether the goal was completed on this day
-    var hoursSpent: Long
+    var hoursSpent: Long,
+
 )
 
 data class Duration(
@@ -98,12 +99,11 @@ data class Achievement(
 }
 
 data class CombinedData(
-    val focusSet: Int,
     val totalFocusSet: Int,
-    val breakSet: Int,
-    val totalBreakSet: Int,
     val currentPhase: Phase, // Assuming Phase is an enum
-   val timeLeftInMillis: Long
+   val timeLeftInMillis: Long,
+    val goalId: Int ,
+  val  progressDate:Long
 )
 
 enum class TimerActions{

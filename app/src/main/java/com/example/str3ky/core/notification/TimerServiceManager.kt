@@ -10,7 +10,7 @@ import javax.inject.Inject
 class TimerServiceManager @Inject constructor(
     @ApplicationContext private val applicationContext: Context,
 ){
-fun startTimerService() {
+/*fun startTimerService() {
     val serviceIntent = Intent(applicationContext,TimerService::class.java).
         also {
            it.action = TimerActions.START.name
@@ -18,10 +18,10 @@ fun startTimerService() {
     ContextCompat.startForegroundService(applicationContext,serviceIntent)
 }
     fun stopTimerService() {
-       /* val serviceIntent = Intent(applicationContext,TimerService::class.java).also {
+       *//* val serviceIntent = Intent(applicationContext,TimerService::class.java).also {
             it.action = TimerActions.STOP.name
         }
-        applicationContext.stopService(serviceIntent)*/
+        applicationContext.stopService(serviceIntent)*//*
         val serviceIntent = Intent(applicationContext,TimerService::class.java)
             .also {
                 it.action = TimerActions.STOP.name
@@ -29,15 +29,34 @@ fun startTimerService() {
         ContextCompat.startForegroundService(applicationContext,serviceIntent)
     }
     fun onSessionCompleted() {
-        /* val serviceIntent = Intent(applicationContext,TimerService::class.java).also {
+        *//* val serviceIntent = Intent(applicationContext,TimerService::class.java).also {
              it.action = TimerActions.STOP.name
          }
-         applicationContext.stopService(serviceIntent)*/
+         applicationContext.stopService(serviceIntent)*//*
         val serviceIntent = Intent(applicationContext,TimerService::class.java)
             .also {
                 it.action = TimerActions.COMPLETED.name
             }
         ContextCompat.startForegroundService(applicationContext,serviceIntent)
     }
+    fun sessionCompletedNotificationCancel() {
+
+        val serviceIntent = Intent(applicationContext,TimerService::class.java)
+            .also {
+                it.action = TimerActions.CANCEL.name
+            }
+        ContextCompat.startForegroundService(applicationContext,serviceIntent)
+    }*/
+
+     fun startTimerService() {
+        val serviceIntent = Intent(applicationContext, TimerService::class.java)
+        ContextCompat.startForegroundService(applicationContext, serviceIntent)
+    }
+
+     fun stopTimerService() {
+        val serviceIntent = Intent(applicationContext, TimerService::class.java)
+        applicationContext.stopService(serviceIntent)
+    }
 
 }
+
