@@ -5,6 +5,8 @@ import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.room.Room
+import com.example.str3ky.core.notification.TimerServiceManager
+import com.example.str3ky.data.CountdownTimerManager
 import com.example.str3ky.data.GoalDatabase
 import com.example.str3ky.dataStore
 import com.example.str3ky.repository.GoalRepositoryImpl
@@ -16,11 +18,22 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import javax.inject.Qualifier
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 class AppModule {
+
+
+    @Singleton
+    @Provides
+    fun provideApplicationScope(): CoroutineScope {
+        return CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    }
 
     @Singleton
     @Provides
@@ -32,7 +45,11 @@ class AppModule {
         return Room.databaseBuilder(app.applicationContext, GoalDatabase::class.java, "user_goals_database")
             .build()
     }
-
+    @Provides
+    @Singleton
+    fun provideTimerServiceManager(application: Application): TimerServiceManager {
+        return TimerServiceManager(application.applicationContext)
+    }
     @Provides
     @Singleton
     fun provideGoalRepository(db: GoalDatabase): GoalRepositoryImpl{
@@ -56,6 +73,8 @@ class AppModule {
         return SettingsRepository(dataStore)
     }
 
-
-
 }
+
+@Retention(AnnotationRetention.RUNTIME)
+@Qualifier
+annotation class ApplicationScope

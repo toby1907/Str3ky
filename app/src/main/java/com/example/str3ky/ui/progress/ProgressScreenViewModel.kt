@@ -94,7 +94,7 @@ goalRepository.getGoal(goalId).collect{ goal ->
         _frequency.value = _frequency.value.copy(frequency = goal.occurrence)
     }
     if (goal!=null){
-        _focusTime.value = _focusTime.value.copy(focusTime = goal.durationInfo)
+        _focusTime.value = _focusTime.value.copy(totalTime = goal.focusSet)
     }
     if (goal!=null){
         _alarmTime.value = _alarmTime.value.copy(alarmTime=goal.alarmTime)

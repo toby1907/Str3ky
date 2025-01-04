@@ -3,6 +3,7 @@ package com.example.str3ky.data
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.example.str3ky.data.CountdownTimerManager.Phase
 import com.example.str3ky.theme.BabyBlue
 import com.example.str3ky.theme.LightGreen
 import com.example.str3ky.theme.RedOrange
@@ -25,6 +26,7 @@ data class Goal(
     @ColumnInfo(name = "progress") var progress: List<DayProgress>,
     @ColumnInfo(name = "color") var color: Int,
     @ColumnInfo(name = "completed") var completed: Boolean,
+    @ColumnInfo(name = "focus_time") var focusSet: Long = 0L,
     @ColumnInfo(name = "no_of_days") var noOfDays: Int,
     @ColumnInfo(name = "user_id") val userId: Int
 ) {
@@ -59,7 +61,9 @@ data class OccurrenceSelection(
 
 data class DayProgress(
     var date: Long, // date in milliseconds
-    var completed: Boolean // whether the goal was completed on this day
+    var completed: Boolean, // whether the goal was completed on this day
+    var hoursSpent: Long,
+
 )
 
 data class Duration(
@@ -92,5 +96,17 @@ data class Achievement(
     val isUnlocked: Boolean = false,
     ){
 
+}
+
+data class CombinedData(
+    val totalFocusSet: Int,
+    val currentPhase: Phase, // Assuming Phase is an enum
+   val timeLeftInMillis: Long,
+    val goalId: Int ,
+  val  progressDate:Long
+)
+
+enum class TimerActions{
+    START,STOP,PAUSE,CANCEL,COMPLETED
 }
 

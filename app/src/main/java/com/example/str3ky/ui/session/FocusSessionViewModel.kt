@@ -1,14 +1,17 @@
 package com.example.str3ky.ui.session
 
+import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.str3ky.data.CountdownTimerManager
 import com.example.str3ky.millisecondsToMinutes
-import com.example.str3ky.minutesToMilliseconds
 import com.example.str3ky.repository.GoalRepositoryImpl
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
@@ -16,6 +19,7 @@ import javax.inject.Inject
 class FocusSessionViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val goalRepository: GoalRepositoryImpl,
+    val countdownTimerManager: CountdownTimerManager
 ) : ViewModel() {
 
     private var currentGoalId: Int? = null
@@ -145,6 +149,20 @@ class FocusSessionViewModel @Inject constructor(
         // Calculate session duration (including breaks)
         sessionDuration.value = adjustedTimerValue / numSessions.intValue
     }
+
+  /*  fun initializeCountdownTimerManger(){
+
+        viewModelScope.launch {
+            // Update the value
+            countdownTimerManager.currentTimeTargetInMillisFlow.value = (sessionDuration.value * 60000).toLong()
+            countdownTimerManager.timeLeftInMillisFlow.value = (sessionDuration.value * 60000).toLong()
+            countdownTimerManager._sessionTotalDurationMillis.value = (sessionDuration.value * 60000).toLong()
+            Log.d("sessionInVMScope", "${(sessionDuration.value * 60000).toLong()}")
+            Log.d("sessionDuration", "${(sessionDuration.value * 60000).toLong()}")
+            countdownTimerManager.sessionDuration.value = sessionDuration.value
+        }
+    }
+    */
 
 
 }

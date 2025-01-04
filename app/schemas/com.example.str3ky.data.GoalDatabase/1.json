@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "2ab30cebb2195fe03ae371bad7c6bd62",
+    "identityHash": "b68c83f743d1187009aecad1325d2ae1",
     "entities": [
       {
         "tableName": "goal",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`goal_id` INTEGER PRIMARY KEY AUTOINCREMENT, `title` TEXT NOT NULL, `duration` INTEGER NOT NULL, `occurrence` TEXT NOT NULL, `alarm_time` INTEGER, `start_date` INTEGER NOT NULL, `progress` TEXT NOT NULL, `color` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `no_of_days` INTEGER NOT NULL, `user_id` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`goal_id` INTEGER PRIMARY KEY AUTOINCREMENT, `title` TEXT NOT NULL, `duration` INTEGER NOT NULL, `occurrence` TEXT NOT NULL, `alarm_time` INTEGER, `start_date` INTEGER NOT NULL, `progress` TEXT NOT NULL, `color` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `focus_time` INTEGER NOT NULL, `no_of_days` INTEGER NOT NULL, `user_id` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -59,6 +59,12 @@
           {
             "fieldPath": "completed",
             "columnName": "completed",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "focusSet",
+            "columnName": "focus_time",
             "affinity": "INTEGER",
             "notNull": true
           },
@@ -126,7 +132,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2ab30cebb2195fe03ae371bad7c6bd62')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b68c83f743d1187009aecad1325d2ae1')"
     ]
   }
 }

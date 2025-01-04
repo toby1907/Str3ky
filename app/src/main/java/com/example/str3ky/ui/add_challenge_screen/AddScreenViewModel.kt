@@ -223,7 +223,8 @@ class AddScreenViewModel @Inject constructor(
                             color = goalColor.value,
                             completed = goalCompleted.value,
                             noOfDays = noOfDays.value.noOfDays,
-                            userId = userId.value
+                            userId = userId.value,
+                            focusSet = focusTime.value.focusTime.countdownTime
                         )
                         goalRepository.save(goal)
                         _eventFlow.emit(UiEvent.SaveNote)
@@ -312,25 +313,24 @@ class AddScreenViewModel @Inject constructor(
     }
 
     fun generateProgress(noOfDays: Int, selectedDays: List<DayOfWeek>): List<DayProgress> {
-
         val progressList = mutableListOf<DayProgress>()
-
-        // Calculate the number of days for each selected day
-        val daysPerSelectedDay = noOfDays / selectedDays.size
 
         // Initialize the date (you can set it to the current date or any other start date)
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = System.currentTimeMillis()
 
-        // Generate progress for each selected day
-        for (day in selectedDays) {
-            for (i in 0 until daysPerSelectedDay) {
-                progressList.add(DayProgress(calendar.timeInMillis, false))
-                calendar.add(Calendar.DAY_OF_MONTH, 1) // Add one day
+        var daysAdded = 0
+        while (daysAdded < noOfDays) {
+            val dayOfWeek = DayOfWeek.entries[calendar.get(Calendar.DAY_OF_WEEK) - 1]
+            if (dayOfWeek in selectedDays) {
+                progressList.add(DayProgress(calendar.timeInMillis, false,0L))
+                daysAdded++
             }
+            calendar.add(Calendar.DAY_OF_MONTH, 1) // Add one day
         }
 
         return progressList
     }
+
 
 }

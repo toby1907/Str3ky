@@ -385,7 +385,6 @@ fun AddChallengeScreen(
             },
             onOk = {
                 showNoOfDaysDialog.value = false
-
             }
         )
     }

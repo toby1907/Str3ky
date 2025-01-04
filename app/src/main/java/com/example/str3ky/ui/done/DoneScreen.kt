@@ -12,18 +12,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
@@ -43,6 +38,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.str3ky.R
 import com.example.str3ky.theme.Str3kyTheme
+import com.example.str3ky.toMinutes
+import kotlin.text.count
+import kotlin.text.toFloat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,28 +55,6 @@ fun CompletedScreen(
         mutableStateOf(true)
     }
     Scaffold(
-        topBar = {
-
-            TopAppBar(
-                title = { Text(text = "Add") },
-                actions = {
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                navigationIcon = {
-                    IconButton(onClick = { /*TODO*/ }) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.arrow_back_icon),
-                            contentDescription = ""
-                        )
-                    }
-                }
-
-            )
-        },
         content = {
 
 
@@ -130,10 +106,9 @@ private fun Timer(
 
             Box() {
 
-                val myFlow =
-                    viewModel.focusTime.value.focusTime.countdownTime
-                val progress =
-                    (sessionDuration.toFloat() / myFlow.toFloat())
+                val daysCompleted = viewModel.goal.value.goal?.progress?.count { it.completed }?:0
+                val totalDays =viewModel.goal.value.goal?.noOfDays?:0
+                val progress = if (totalDays > 0) daysCompleted.toFloat() / totalDays.toFloat() else 0f
 
                 CircularProgressIndicator(
                     progress = progress,
@@ -208,8 +183,13 @@ private fun Timer(
                         shape = RoundedCornerShape(size = 8.dp)
                     )
             ) {
+                val textValue = if ((viewModel.goal.value.goal?.focusSet?.toMinutes()?.minus(viewModel.dayHourSpent.value)
+                        ?: 0) <= 0 ){
+                    "You've met your daily goal!"
+                }
+                else "${viewModel.goal.value.goal?.focusSet?.toMinutes()?.minus(viewModel.dayHourSpent.value)?:0} remaining to  meet your daily\n goal"
                 Text(
-                    text = "You've met your daily \ngoal!",
+                    text = textValue,
                     style = TextStyle(
                         fontSize = 16.sp,
                         fontWeight = FontWeight(500),

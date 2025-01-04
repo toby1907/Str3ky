@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
 import com.example.str3ky.ui.add_challenge_screen.AddChallengeScreen
 import com.example.str3ky.ui.add_challenge_screen.AddScreenViewModel
 import com.example.str3ky.ui.done.CompletedScreen
@@ -20,6 +21,10 @@ import com.example.str3ky.ui.session.SessionScreen
 import com.example.str3ky.ui.session.SessionSettingsScreen
 
 
+const val MY_URI = "myapp://donescreen?goalId={goalId}&sessionDuration={sessionDuration}&progressDate={progressDate}" // TODO: Update me
+const val MY_URI_SESSION_SCREEN ="myapp://sessionscreen?goalId={goalId}&totalSessions={totalSessions}&sessionDuration={sessionDuration}&progressDate={progressDate}"
+//const val MY_URI_SESSION_SCREEN ="myapp://sessionscreen"
+const val MY_ARG = "sessionCompleted"
 @Composable
 fun rememberAppNavState(
     navController: NavHostController = rememberNavController(),
@@ -156,14 +161,20 @@ fun MyAppNavHost(
                     type = NavType.LongType
                     defaultValue = 0L
                 },
+            ),
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = MY_URI_SESSION_SCREEN
+                }
             )
+
             ){
             SessionScreen(
                 nav = appState.navController,
                 openAndPopUp = { route, popUp -> appState.navigateAndPopUp(route, popUp) }
                 )
         }
-        composable(route ="$DONE_SCREEN?goalId={goalId}&sessionDuration={sessionDuration}",
+        composable(route ="$DONE_SCREEN?goalId={goalId}&sessionDuration={sessionDuration}&progressDate={progressDate}",
             arguments = listOf(
                 navArgument(
                     name = "goalId"
@@ -177,7 +188,19 @@ fun MyAppNavHost(
                     type = NavType.LongType
                     defaultValue = 0L
                 },
-                )
+                navArgument(
+                    name = "progressDate"
+                ) {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                },
+                ),
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = MY_URI
+                }
+            )
+
             ){entry ->
             val sessionDuration = entry.arguments?.getLong("sessionDuration") ?: 0L
             CompletedScreen(sessionDuration = sessionDuration)

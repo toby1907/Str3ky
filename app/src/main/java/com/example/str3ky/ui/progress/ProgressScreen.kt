@@ -42,6 +42,7 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.str3ky.R
+import com.example.str3ky.convertCalendarDayOfWeekToStrings
 import com.example.str3ky.data.DayProgress
 import com.example.str3ky.ui.nav.SESSION_SETTINGS_SCREEN
 import java.util.Calendar
@@ -66,14 +67,16 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
             val currentDate = System.currentTimeMillis()
 
             val dummyProgress = listOf(
-                DayProgress(currentDate, false), // Today (completed)
+                DayProgress(currentDate, false,30), // Today (completed)
                 DayProgress(
                     System.currentTimeMillis() - 2 * 24 * 60 * 60 * 1000,
-                    true
+                    true,
+                    30
                 ), // Two days ago (completed)
                 DayProgress(
                     System.currentTimeMillis() - 4 * 24 * 60 * 60 * 1000,
-                    false
+                    false,
+                    30
                 ), // Four days ago (not completed)
                 // ... add more dummy entries as needed
             ).sortedBy { dayProgres ->
@@ -143,10 +146,16 @@ fun TableProgress(
 
             //    val isActive = dayProgress.date == currentDate
                 val tileColor =
-                    if (isActive || dayProgress.completed) Color(0xFFF7E388) else MaterialTheme.colorScheme.inverseOnSurface
-                val indicator =
-                    if (isActive || dayProgress.completed) (index + 1).toString() else ""
+                    if (isActive || dayProgress.completed) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.inverseOnSurface
+                val indicator = convertCalendarDayOfWeekToStrings(yourDateCalendar.get(Calendar.DAY_OF_WEEK)).take(2)
+                   // if (isActive || dayProgress.completed) (index + 1).toString() else ""
                 val showCheckMark = dayProgress.completed
+                val textColor = if (isActive || dayProgress.completed){
+                    MaterialTheme.colorScheme.background
+                }
+                else{
+                    MaterialTheme.colorScheme.onPrimary
+                }
 
                 Box(
                     modifier = Modifier
@@ -157,7 +166,7 @@ fun TableProgress(
                         .padding(bottom = 8.dp)
                         .clickable {
                             if (isActive && !dayProgress.completed) {
-                                nav.navigate(SESSION_SETTINGS_SCREEN+"?goalId=${viewModel.goalId.value}&focusTime=${viewModel.focusTime.value.focusTime.countdownTime}&progressDate=${dayProgress.date}")
+                                nav.navigate(SESSION_SETTINGS_SCREEN+"?goalId=${viewModel.goalId.value}&focusTime=${viewModel.focusTime.value.totalTime}&progressDate=${dayProgress.date}")
                             }
                         }
                 ) {
@@ -183,7 +192,8 @@ fun TableProgress(
                             .padding(2.dp),
                         fontSize = 12.sp,
                         fontFamily = FontFamily.Default,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = textColor
                     )
                 }
             }
