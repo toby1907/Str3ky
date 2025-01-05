@@ -121,17 +121,5 @@ goalRepository.getGoal(goalId).collect{ goal ->
         }
     }
 
-    fun onDayChallengeCompleted(change:Boolean,currentGoal:Goal){
 
-        viewModelScope.launch {
-           goalRepository.save(
-                currentGoal.copy(
-                   progress = progress.value.toList()
-                )
-            )
-
-        }
-
-
-    }
 }

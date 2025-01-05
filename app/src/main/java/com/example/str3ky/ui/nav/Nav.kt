@@ -24,6 +24,7 @@ import com.example.str3ky.ui.session.SessionSettingsScreen
 const val MY_URI = "myapp://donescreen?goalId={goalId}&sessionDuration={sessionDuration}&progressDate={progressDate}" // TODO: Update me
 const val MY_URI_SESSION_SCREEN ="myapp://sessionscreen?goalId={goalId}&totalSessions={totalSessions}&sessionDuration={sessionDuration}&progressDate={progressDate}"
 //const val MY_URI_SESSION_SCREEN ="myapp://sessionscreen"
+const val MY_URI_PROGRESS_SCREEN ="myapp://progressscreen?goalId={goalId}"
 const val MY_ARG = "sessionCompleted"
 @Composable
 fun rememberAppNavState(
@@ -105,7 +106,13 @@ fun MyAppNavHost(
                 ) {
                     type = NavType.IntType
                     defaultValue = -1
-                },)
+                }
+                ),
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = MY_URI_PROGRESS_SCREEN
+                }
+            )
             ){
            ProgressScreen(nav = appState.navController)
         }

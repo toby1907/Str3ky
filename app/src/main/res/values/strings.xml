@@ -14,4 +14,5 @@
     <string name="timer_service_channel_description">Shows a persistent notification when the pomodoro timer is running</string>
     <string name="timer_completed_channel_name">Timer completed notifications</string>
     <string name="timer_completed_channel_description">Shows a notification when a countdown timer finishes</string>
+    <string name="ok">OK</string>
 </resources>

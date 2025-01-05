@@ -1,5 +1,6 @@
 package com.example.str3ky.data
 
+import android.os.Build
 import android.os.CountDownTimer
 import android.util.Log
 import androidx.compose.runtime.State
@@ -344,32 +345,38 @@ class CountdownTimerManager @Inject constructor(
         _timerState.value = TimerState.Initial
         dayHourSpent.value = sessionDuration.value.toLong()
         scope.launch {
-            val progressList = dayProgressFlow.value.map {
-                if (it.date == progressDate.value) {
-                    it.copy(
+            val progressList = dayProgressFlow.value.map { dayProgress ->
+                if (dayProgress.date == progressDate.value) {
+                    val updatedDayProgress = dayProgress.copy(
                         date = progressDate.value,
-                        completed = if(it.hoursSpent>=sessionDuration.value.toLong()) change else false,
-                        hoursSpent = it.hoursSpent + dayHourSpent.value
+                        completed = if (dayProgress.hoursSpent >= sessionDuration.value.toLong()) change else false,
+                        hoursSpent = dayProgress.hoursSpent + dayHourSpent.value
                     )
-                } else it
-
+                    // Cancel the reminder if the day's goal is completed
+                    if (updatedDayProgress.completed) {
+                        _goalState.value.goal?.let { goal ->
+                            goalRepository.cancelReminderForDayProgress(goal, updatedDayProgress)
+                        }
+                    }
+                    updatedDayProgress
+                } else dayProgress
             }
-            _goalState.value.goal?.let {
-
+            _goalState.value.goal?.let { goal ->
                 goalRepository.save(
-                    it.copy(
+                    goal.copy(
                         progress = progressList,
                         durationInfo = Duration(
-                            countdownTime = it.durationInfo.countdownTime + sessionDuration.value.toLong(),
-                            isCompleted = sessionDuration.value.toLong() == it.focusSet
-                        ) )
-                )
-                Log.d("DayHourSpentFromSession","${dayHourSpent.value}")
+                            countdownTime = goal.durationInfo.countdownTime + sessionDuration.value.toLong(),
+                            isCompleted = sessionDuration.value.toLong() == goal.focusSet
+                        )
+                    )
+                ){goalId ->
+                    val goalWithId = goal.copy(id = goalId)
+
+                }
+                Log.d("DayHourSpentFromSession", "${dayHourSpent.value}")
             }
-
         }
-
-
     }
 
 }

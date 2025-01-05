@@ -17,7 +17,7 @@ interface GoalDao {
     fun getRecentGoal(): LiveData<List<Goal>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insert(voiceJournal: Goal):Long
+    fun  insert(voiceJournal: Goal):Long
     @Insert
     fun insertAll(vararg goal: Goal)
 
