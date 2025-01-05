@@ -52,8 +52,8 @@ class AppModule {
     }
     @Provides
     @Singleton
-    fun provideGoalRepository(db: GoalDatabase): GoalRepositoryImpl{
-        return GoalRepositoryImpl(db.goalDao())
+    fun provideGoalRepository(db: GoalDatabase,application: Application): GoalRepositoryImpl{
+        return GoalRepositoryImpl(db.goalDao(), application.applicationContext)
     }
     @Provides
     @Singleton

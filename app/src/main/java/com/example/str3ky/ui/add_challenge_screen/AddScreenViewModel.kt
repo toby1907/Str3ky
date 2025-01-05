@@ -1,6 +1,9 @@
 package com.example.str3ky.ui.add_challenge_screen
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.copy
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -226,7 +229,22 @@ class AddScreenViewModel @Inject constructor(
                             userId = userId.value,
                             focusSet = focusTime.value.focusTime.countdownTime
                         )
-                        goalRepository.save(goal)
+
+                         goalRepository.save(goal){goalId ->
+                             val goalWithId = goal.copy(id = goalId)
+                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                 if (goal.alarmTime != null)  {
+                                     scheduleReminders(
+                                         goalWithId,
+                                         dayProgressList = progressList
+                                     )
+                                 }
+                             }
+                         }
+
+
+
+
                         _eventFlow.emit(UiEvent.SaveNote)
                         _eventFlow.emit(UiEvent.ShowSnackbar("Challenge saved!"))
                     } catch (e: InvalidGoalException) {
@@ -330,6 +348,14 @@ class AddScreenViewModel @Inject constructor(
         }
 
         return progressList
+    }
+
+    val alarmPermissionNeeded = goalRepository.alarmPermissionNeeded
+    @RequiresApi(Build.VERSION_CODES.M)
+    fun scheduleReminders(goal: Goal, dayProgressList: List<DayProgress>) {
+        viewModelScope.launch {
+            goalRepository.scheduleRemindersForGoal(goal, dayProgressList)
+        }
     }
 
 

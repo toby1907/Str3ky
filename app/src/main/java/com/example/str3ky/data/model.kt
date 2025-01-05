@@ -63,7 +63,6 @@ data class DayProgress(
     var date: Long, // date in milliseconds
     var completed: Boolean, // whether the goal was completed on this day
     var hoursSpent: Long,
-
 )
 
 data class Duration(
