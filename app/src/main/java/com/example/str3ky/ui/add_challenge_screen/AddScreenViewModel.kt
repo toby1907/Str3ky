@@ -229,7 +229,6 @@ class AddScreenViewModel @Inject constructor(
                             userId = userId.value,
                             focusSet = focusTime.value.focusTime.countdownTime
                         )
-
                          goalRepository.save(goal){goalId ->
                              val goalWithId = goal.copy(id = goalId)
                              if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {

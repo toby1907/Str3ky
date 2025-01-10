@@ -38,6 +38,7 @@ import com.example.str3ky.R
 import com.example.str3ky.data.Goal
 import com.example.str3ky.data.Occurrence
 import com.example.str3ky.millisecondsToMinutes
+import com.example.str3ky.ui.nav.ACHIEVEMENTS_SCREEN
 import com.example.str3ky.ui.nav.PROGRESS_SCREEN
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -74,7 +75,9 @@ fun HomeScreen(
                             contentDescription = ""
                         )
                      }
-                     IconButton(onClick = { /*TODO*/ }) {
+                     IconButton(onClick = {
+                         navController.navigate(ACHIEVEMENTS_SCREEN)
+                     }) {
 
 
                          Icon(

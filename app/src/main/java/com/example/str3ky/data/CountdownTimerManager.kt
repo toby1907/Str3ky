@@ -1,19 +1,16 @@
 package com.example.str3ky.data
 
-import android.os.Build
 import android.os.CountDownTimer
 import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.viewModelScope
 import com.example.str3ky.core.notification.TimerServiceManager
 import com.example.str3ky.repository.GoalRepositoryImpl
+import com.example.str3ky.repository.UserRepositoryImpl
+import com.example.str3ky.ui.achievements.checkAchievements
 import com.example.str3ky.ui.add_challenge_screen.GoalState
-import com.example.str3ky.ui.nav.DONE_SCREEN
-import com.example.str3ky.ui.nav.SESSION_SCREEN
 import com.example.str3ky.ui.session.SessionScreenState
 import com.florianwalther.incentivetimer.core.notification.DefaultNotificationHelper
-import com.florianwalther.incentivetimer.core.notification.NotificationHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
@@ -25,8 +22,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -37,7 +33,7 @@ class CountdownTimerManager @Inject constructor(
     val timerServiceManager: TimerServiceManager,
     val goalRepository: GoalRepositoryImpl,
     val notificationHelper: DefaultNotificationHelper,
-
+    private val userRepository: UserRepositoryImpl
     ) {
     private val scope = CoroutineScope(SupervisorJob())
 
@@ -343,14 +339,15 @@ class CountdownTimerManager @Inject constructor(
 
     fun onDayChallengeCompleted(change: Boolean) {
         _timerState.value = TimerState.Initial
-        dayHourSpent.value = sessionDuration.value.toLong()
+        val sessionDurationMinutes = sessionDuration.value.toLong()
+
         scope.launch {
             val progressList = dayProgressFlow.value.map { dayProgress ->
                 if (dayProgress.date == progressDate.value) {
                     val updatedDayProgress = dayProgress.copy(
                         date = progressDate.value,
-                        completed = if (dayProgress.hoursSpent >= sessionDuration.value.toLong()) change else false,
-                        hoursSpent = dayProgress.hoursSpent + dayHourSpent.value
+                        completed = if (dayProgress.hoursSpent >= sessionDurationMinutes) change else false,
+                        hoursSpent = dayProgress.hoursSpent + sessionDurationMinutes
                     )
                     // Cancel the reminder if the day's goal is completed
                     if (updatedDayProgress.completed) {
@@ -366,16 +363,39 @@ class CountdownTimerManager @Inject constructor(
                     goal.copy(
                         progress = progressList,
                         durationInfo = Duration(
-                            countdownTime = goal.durationInfo.countdownTime + sessionDuration.value.toLong(),
-                            isCompleted = sessionDuration.value.toLong() == goal.focusSet
+                            countdownTime = goal.durationInfo.countdownTime + sessionDurationMinutes,
+                            isCompleted = sessionDurationMinutes == goal.focusSet
                         )
                     )
                 ){goalId ->
                     val goalWithId = goal.copy(id = goalId)
 
                 }
-                Log.d("DayHourSpentFromSession", "${dayHourSpent.value}")
+                Log.d("DayHourSpentFromSession", "${sessionDurationMinutes}")
             }
+
+
+            val user = userRepository.getUser().first()
+            val updatedTotalHours = user[0].totalHoursSpent + (sessionDurationMinutes / 60) // Add to total hours
+            val updatedUser = user[0].copy(totalHoursSpent = updatedTotalHours) // Create a new user with updated data
+            userRepository.save(updatedUser) // Update the user in the database
+            checkAndUnlockAchievements(updatedUser) // Check for new achievements
+        }
+    }
+
+    private fun checkAndUnlockAchievements(user: User) {
+
+        val newAchievements = checkAchievements(user)
+        if (newAchievements.isNotEmpty()) {
+            // Update the user's achievements list
+            val updatedUser = user.copy(achievementsUnlocked = user.achievementsUnlocked.plus(newAchievements).filter{
+                it.isUnlocked
+            } )
+            scope.launch {
+                userRepository.save(updatedUser)
+            }
+            // Optionally, notify the user about the new achievements
+            Log.d("Achievements", "New achievements unlocked: $newAchievements")
         }
     }
 
