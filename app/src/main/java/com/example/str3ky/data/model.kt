@@ -93,9 +93,9 @@ data class Achievement(
     val chanceInPercent: Int,
     val iconKey: IconKey,
     val isUnlocked: Boolean = false,
-    ){
-
-}
+    val daysRemaining: Int? = null, // Nullable for time-based achievements
+    val hoursRemaining: Int? = null // Nullable for streak-based achievements
+    )
 
 data class CombinedData(
     val totalFocusSet: Int,

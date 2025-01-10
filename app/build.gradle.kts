@@ -53,6 +53,7 @@ android {
 
 dependencies {
 
+    implementation("com.google.android.gms:play-services-games:23.2.0")
     val  compose_version = "1.6.4"
     val  lottieVersion = "6.4.1"
     // Lottie-compose

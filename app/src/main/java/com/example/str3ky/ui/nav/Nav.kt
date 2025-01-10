@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.example.str3ky.ui.achievements.AchievementScreen
 import com.example.str3ky.ui.add_challenge_screen.AddChallengeScreen
 import com.example.str3ky.ui.add_challenge_screen.AddScreenViewModel
 import com.example.str3ky.ui.done.CompletedScreen
@@ -211,6 +212,12 @@ fun MyAppNavHost(
             ){entry ->
             val sessionDuration = entry.arguments?.getLong("sessionDuration") ?: 0L
             CompletedScreen(sessionDuration = sessionDuration)
+        }
+        composable(
+           route = ACHIEVEMENTS_SCREEN ,
+
+        ){
+            AchievementScreen()
         }
     }
 

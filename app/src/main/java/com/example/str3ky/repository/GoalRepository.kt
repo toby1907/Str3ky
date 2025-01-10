@@ -82,9 +82,9 @@ class GoalRepositoryImpl(private val goalDao: GoalDao, private val context: Cont
 
 
         for (dayProgress in dayProgressList) {
-            if (isActive(dayProgress)) {
+
                 scheduleReminder(goal, dayProgress)
-            }
+
         }
     }
     @RequiresApi(Build.VERSION_CODES.M)
