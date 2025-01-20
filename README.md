@@ -1,4 +1,4 @@
-## SketchPad
+## Str3ky
 A Jetpack Compose App that lets users draw on a canvas.
 ## Features
 - Authentication
