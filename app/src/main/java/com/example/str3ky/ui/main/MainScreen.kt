@@ -1,16 +1,25 @@
 package com.example.str3ky.ui.main
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -19,11 +28,13 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,8 +49,12 @@ import com.example.str3ky.R
 import com.example.str3ky.data.Goal
 import com.example.str3ky.data.Occurrence
 import com.example.str3ky.millisecondsToMinutes
+import com.example.str3ky.ui.main.components.OrderSection
 import com.example.str3ky.ui.nav.ACHIEVEMENTS_SCREEN
 import com.example.str3ky.ui.nav.PROGRESS_SCREEN
+import com.example.str3ky.use_case.GoalsEvent
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -52,6 +67,8 @@ fun HomeScreen(
     snackbarHostState: SnackbarHostState,
     viewModel:MainScreenViewModel = hiltViewModel()
 ) {
+    val state = viewModel.state.value
+    val scope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -69,7 +86,9 @@ fun HomeScreen(
                              contentDescription = ""
                          )
                      }
-                     IconButton(onClick = { /*TODO*/ }) {
+                     IconButton(onClick = {
+                            viewModel.onEvent(GoalsEvent.ToggleOrderSection)
+                     }) {
                         Icon(
                             painter = painterResource(id = R.drawable.sorting_icon),
                             contentDescription = ""
@@ -98,18 +117,46 @@ fun HomeScreen(
         },
         content = { it ->
 
-            val items = viewModel.goalList.collectAsState().value
-LazyColumn(
-    modifier = Modifier.padding(vertical = 8.dp),
-    verticalArrangement = Arrangement.spacedBy(8.dp),
-    contentPadding = it,
-    content = {
-        items(items){ item ->
+          Column(
+              modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(it)
+          ) {
+                val items = viewModel.goalList.collectAsState().value
+                AnimatedVisibility(
+                    visible = state.isOrderSectionVisible,
+                    enter = fadeIn() + slideInVertically(),
+                    exit = fadeOut() + slideOutVertically()
+                ) {
+                    OrderSection(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        noteOrder = state.goalOrder,
+                        onOrderChange = {
+                            viewModel.onEvent(GoalsEvent.Order(it))
+                        }
+                    )
+                }
+                LazyColumn(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    content = {
+                        items(state.goals) { goal ->
 
-ChallengListItem(item,navController)
+                            ChallengListItem(goal,
+                                navController,
+                                onDeleteClick = {
+                                    viewModel.onEvent(GoalsEvent.DeleteGoal(goal))
+                                    scope.launch {
+                                     viewModel.showDeleteSnackbar()
+                                    }
+                                }
+                                )
 
-        }
-})
+                        }
+                    })
+            }
         }
     )
 
@@ -117,7 +164,7 @@ ChallengListItem(item,navController)
 
 
 @Composable
-fun ChallengListItem(item: Goal, navController: NavHostController) {
+fun ChallengListItem(item: Goal, navController: NavHostController, onDeleteClick: () -> Unit) {
     val formatter = SimpleDateFormat("hh:mm a", Locale.getDefault())
     ListItem(modifier = Modifier.clickable {
 
@@ -211,6 +258,14 @@ fun ChallengListItem(item: Goal, navController: NavHostController) {
         colors = ListItemDefaults.colors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
+        trailingContent = {
+            IconButton(onClick = onDeleteClick) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = ""
+                )
+            }
+        }
         )
 }
 

@@ -4,10 +4,13 @@ import android.app.Service
 import android.content.Intent
 import android.os.IBinder
 import com.example.str3ky.data.CountdownTimerManager
+import com.example.str3ky.di.ApplicationScope
 import com.example.str3ky.millisecondsToMinutes
 import com.florianwalther.incentivetimer.core.notification.DefaultNotificationHelper
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collectLatest
@@ -17,13 +20,16 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class TimerService : Service() {
 
-    private val serviceScope = CoroutineScope(SupervisorJob())
+    @Inject
+    lateinit var serviceScope: CoroutineScope
 
     @Inject
     lateinit var notificationHelper: DefaultNotificationHelper
 
     @Inject
     lateinit var countdownTimerManager: CountdownTimerManager
+    private val coroutineScope  = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var timerJob: Job? = null
 
 /*    private lateinit var notificationManager: NotificationManagerCompat
 
@@ -44,7 +50,8 @@ class TimerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(TIMER_SERVICE_NOTIFICATION_ID, notificationHelper.getBaseTimerServiceNotification().build())
 
-        serviceScope.launch {
+        timerJob?.cancel()
+        timerJob = coroutineScope.launch {
             countdownTimerManager.combinedFlow.collectLatest { timerStates ->
 
                 notificationHelper.

@@ -40,7 +40,8 @@ fun rememberAppNavState(
 fun MyAppNavHost(
     modifier: Modifier = Modifier,
     startDestination: String = "main",
-    viewModel: AddScreenViewModel = hiltViewModel()
+    viewModel: AddScreenViewModel = hiltViewModel(),
+    navController: NavHostController
 
 ) {
     val snackbarHostState = remember { SnackbarHostState() }

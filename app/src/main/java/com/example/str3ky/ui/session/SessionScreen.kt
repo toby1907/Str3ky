@@ -163,7 +163,8 @@ private fun Timer(
                 .width(235.dp)
                 .height(235.dp),
             contentAlignment = Alignment.Center
-        ) {
+        )
+        {
             val myFlow =
                 viewModel.countdownTimerManager.currentTimeTargetInMillis.collectAsState(initial = 0L)
             val progress =
@@ -199,7 +200,6 @@ private fun Timer(
                     fontSize = 48.sp,
                     fontWeight = FontWeight(400),
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
-
                     textAlign = TextAlign.Center,
                 )
             )
@@ -215,8 +215,9 @@ private fun TimerStartStopButton(
     viewModel: SessionScreenViewModel,
     openAndPopUp: (String, String) -> Unit
 ) {
+    val timerState = viewModel.countdownTimerManager.isSessionInProgress.collectAsState()
     val buttonState = remember {
-        mutableStateOf(viewModel.countdownTimerManager.isSessionInProgress.value)
+        mutableStateOf(true)
     }
     IconButton(modifier = Modifier
         .padding(1.dp)
@@ -232,7 +233,7 @@ private fun TimerStartStopButton(
 
         Icon(
             painter =
-            if (buttonState.value || timerRunning) {
+            if (!buttonState.value) {
                 painterResource(id = R.drawable.play_arrow_fill1_wght400_grad0_opsz24)
             } else {
                 painterResource(id = R.drawable.pause_24)
