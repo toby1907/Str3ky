@@ -18,7 +18,7 @@ A Jetpack Compose App that lets users draw on a canvas.
 
   ***Or you can install the apk from below 👇🏽***
 
-  [![Artio App](https://img.shields.io/badge/Streaky-APK-green.svg?style=for-the-badge&logo=android)](https://github.com/slowburn-404/SketchPad/releases/tag/v3.0.0)
+  [![Artio App](https://img.shields.io/badge/Str3ky-APK-green.svg?style=for-the-badge&logo=android)](https://github.com/slowburn-404/SketchPad/releases/tag/v3.0.0)
 
 
 ## Technology Stack
