@@ -1,5 +1,5 @@
 ## Str3ky
-A Jetpack Compose App that lets users draw on a canvas.
+A  productivity and time management app designed to help users build positive habits, stay focused, and achieve their goals through structured focus sessions, streak tracking, and a rewarding achievement system
 ## Features
 - Authentication
 - Draw on a Canvas
