@@ -23,6 +23,8 @@ import com.example.str3ky.getAbbreviation
 import com.example.str3ky.minutesToMilliseconds
 import com.example.str3ky.repository.GoalRepositoryImpl
 import com.example.str3ky.repository.UserRepositoryImpl
+import com.example.str3ky.ui.snackbar.SnackbarController
+import com.example.str3ky.ui.snackbar.SnackbarEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -354,6 +356,17 @@ class AddScreenViewModel @Inject constructor(
     fun scheduleReminders(goal: Goal, dayProgressList: List<DayProgress>) {
         viewModelScope.launch {
             goalRepository.scheduleRemindersForGoal(goal, dayProgressList)
+        }
+    }
+
+    fun showSnackbar() {
+        viewModelScope.launch {
+            SnackbarController.sendEvent(
+                event = SnackbarEvent(
+                    message = "Goal added Successfully",
+
+                    )
+            )
         }
     }
 

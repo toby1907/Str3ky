@@ -115,9 +115,7 @@ fun AddChallengeScreen(
                     openAndPopUp(MAIN_SCREEN,ADD_CHALLENGE_SCREEN,)
                 }
                 is UiEvent.ShowSnackbar -> scope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = event.message
-                    )
+                    viewModel.showSnackbar()
                 }
             }
 

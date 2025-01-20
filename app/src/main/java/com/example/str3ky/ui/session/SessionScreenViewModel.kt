@@ -30,7 +30,6 @@ class SessionScreenViewModel
     private val savedStateHandle: SavedStateHandle,
     private val goalRepository: GoalRepositoryImpl,
     val countdownTimerManager: CountdownTimerManager
-
 ) : ViewModel() {
     val timerState: StateFlow<TimerState> = countdownTimerManager.timerState
     private var currentGoalId: Int? = null
@@ -113,11 +112,12 @@ class SessionScreenViewModel
                   if(countdownTimerManager.timerState.value==TimerState.Initial)  {
                         viewModelScope.launch {
                             // Update the value
-                            countdownTimerManager.currentTimeTargetInMillisFlow.value =
-                                (it * 60000).toLong()
-                            countdownTimerManager.timeLeftInMillisFlow.value = (it * 60000).toLong()
-                            countdownTimerManager._sessionTotalDurationMillis.value =
-                                (it * 60000).toLong()
+                            countdownTimerManager.currentTimeTargetInMillisFlow.value =10000L
+                           //     (it * 60000).toLong()
+                            countdownTimerManager.timeLeftInMillisFlow.value = 10000L
+                           //     (it * 60000).toLong()
+                            countdownTimerManager._sessionTotalDurationMillis.value = 10000L
+                           //     (it * 60000).toLong()
                             Log.d("sessionInVMScope", "$it")
                             Log.d("sessionDuration", "$it")
                             countdownTimerManager.sessionDuration.value = it
@@ -128,7 +128,6 @@ class SessionScreenViewModel
                             )*/
 
                         Log.d("sessionDuration", "$it")
-                        countdownTimerManager.sessionDuration.value = it
                     }
 
                 }
@@ -192,7 +191,7 @@ class SessionScreenViewModel
 
     fun pauseResumeCountdown(state: Boolean, openAndPopUp: (String, String) -> Unit) {
 
-        if (state || countdownTimerManager.timerState.value==TimerState.Running) {
+        if (timerState.value==TimerState.Running) {
 
             viewModelScope.launch {
                 countdownTimerManager.pauseCountdown()
