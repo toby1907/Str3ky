@@ -1,17 +1,17 @@
 ## Str3ky
 A  productivity and time management app designed to help users build positive habits, stay focused, and achieve their goals through structured focus sessions, streak tracking, and a rewarding achievement system
 ## Features
-- Authentication
-- Draw on a Canvas
-- Change brush color
-- Change brush size
-- Include text on canvas
-- Erase drawing
-- Canvas Management (Update, Save and Delete)
-- Local data persistence of a canvas
-- Export sketches in PNG and PDF
-- Cloud sync (so you never have to lose your drawings)
-- Realtime collaborative drawing with chat feature
+- Goal Setting: Users can define specific goals or challenges they want to achieve.
+- Structured Focus Sessions: Users can initiate timed focus sessions based on their goals.
+- Alarm Reminders: Users can set alarms to remind them to start their focus sessions.
+- Progress Tracking: The app tracks the user's progress towards their goals.
+- Streak Management: The app maintains a streak counter to encourage daily engagement.
+- Achievement System: The app features a built-in achievement system to reward users for their progress.
+- Streak Milestones: Reaching consecutive day milestones (e.g., 3 days, 7 days, 30 days).
+- Total Hours Spent: Accumulating total hours in focus sessions (e.g., 10 hours, 50 hours, 100 hours).
+- Data Persistence: The app uses Room, an Android persistence library, to store user data, goals, and achievements
+- User Data: The app stores user data such as total hours spent, achievements unlocked and longest streak
+
 
 ## Demo
 ***Explore the virtualized demonstration of the release apk version [here](https://appetize.io/app/b_iztxobblihyfqohggeteabz4bi)***
