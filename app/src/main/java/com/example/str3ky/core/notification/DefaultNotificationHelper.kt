@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationChannelCompat
@@ -35,15 +36,6 @@ class DefaultNotificationHelper @Inject constructor(
         PendingIntent.FLAG_UPDATE_CURRENT
     }
 
-    private val openTimerIntent = Intent(
-        Intent.ACTION_VIEW,
-        "https://www.incentivetimer.com/timer".toUri(),
-        applicationContext,
-        MainActivity::class.java
-    )
-    private val openTimerPendingIntent = PendingIntent.getActivity(
-        applicationContext, 0, openTimerIntent, pendingIntentFlags
-    )
 
     private val openRewardListIntent = Intent(
         Intent.ACTION_VIEW,
@@ -62,20 +54,36 @@ class DefaultNotificationHelper @Inject constructor(
     override fun getBaseTimerServiceNotification() =
         NotificationCompat.Builder(applicationContext, TIMER_SERVICE_CHANNEL_ID)
             .setSmallIcon(R.drawable.baseline_timer_24)
-            .setContentIntent(openTimerPendingIntent)
             .setSilent(true)
             .setOnlyAlertOnce(true)
 
     override fun updateTimerServiceNotification(
         currentPhase: CountdownTimerManager.Phase,
         timeLeftInMillis: Long,
-        timerRunning: Boolean
+        timerRunning: Boolean,
+        goalId: Int,
+        totalSessions: Int,
+        sessionDuration:Int,
+        progressDate: Long
     ) {
+     //   val deepLink2 = Uri.parse("myapp://sessionscreen")
+        val deepLink = Uri.parse("myapp://sessionscreen?goalId=${goalId}&totalSessions=${totalSessions}&sessionDuration=${sessionDuration}&progressDate=${progressDate}")
+        val openTimerIntent = Intent(
+            Intent.ACTION_VIEW,
+            deepLink,
+            applicationContext,
+            MainActivity::class.java
+        )
+         val openTimerPendingIntent = PendingIntent.getActivity(
+            applicationContext, 0, openTimerIntent, pendingIntentFlags
+        )
+
         val actionIntent = getTimerNotificationActionIntent(
             currentPhase, timeLeftInMillis, timerRunning
         )
 
         val notificationUpdate = getBaseTimerServiceNotification()
+            .setContentIntent(openTimerPendingIntent)
             .setContentTitle(currentPhase.name)
             .setContentText(formatMillisecondsToTimeString(timeLeftInMillis))
             .addAction(
@@ -159,7 +167,7 @@ class DefaultNotificationHelper @Inject constructor(
         )
     }
 
-    override fun showTimerCompletedNotification(finishedPhase: CountdownTimerManager.Phase) {
+    override fun showTimerCompletedNotification(finishedPhase: CountdownTimerManager.Phase,goalId: Int, progressDate: Long,sessionDuration: Long) {
         val title: Int
         val text: Int
 
@@ -180,6 +188,15 @@ class DefaultNotificationHelper @Inject constructor(
             }
         }
 
+        val deepLink = Uri.parse("myapp://donescreen?goalId=$goalId&sessionDuration=$sessionDuration&progressDate=$progressDate")
+
+        val openTimerIntent = Intent(
+            Intent.ACTION_VIEW,
+            deepLink
+        )
+        val openTimerPendingIntent = PendingIntent.getActivity(
+            applicationContext, 0, openTimerIntent, pendingIntentFlags
+        )
         val timerCompletedNotification =
             NotificationCompat.Builder(applicationContext, TIMER_COMPLETED_CHANNEL_ID)
                 .setContentTitle(applicationContext.getString(title))

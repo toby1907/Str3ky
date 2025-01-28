@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import com.example.str3ky.ui.achievements.AchievementScreen
 import com.example.str3ky.ui.add_challenge_screen.AddChallengeScreen
 import com.example.str3ky.ui.add_challenge_screen.AddScreenViewModel
 import com.example.str3ky.ui.done.CompletedScreen
@@ -21,7 +22,10 @@ import com.example.str3ky.ui.session.SessionScreen
 import com.example.str3ky.ui.session.SessionSettingsScreen
 
 
-const val MY_URI = "https://www.incentivetimer.com/timer" // TODO: Update me
+const val MY_URI = "myapp://donescreen?goalId={goalId}&sessionDuration={sessionDuration}&progressDate={progressDate}" // TODO: Update me
+const val MY_URI_SESSION_SCREEN ="myapp://sessionscreen?goalId={goalId}&totalSessions={totalSessions}&sessionDuration={sessionDuration}&progressDate={progressDate}"
+//const val MY_URI_SESSION_SCREEN ="myapp://sessionscreen"
+const val MY_URI_PROGRESS_SCREEN ="myapp://progressscreen?goalId={goalId}"
 const val MY_ARG = "sessionCompleted"
 @Composable
 fun rememberAppNavState(
@@ -36,7 +40,8 @@ fun rememberAppNavState(
 fun MyAppNavHost(
     modifier: Modifier = Modifier,
     startDestination: String = "main",
-    viewModel: AddScreenViewModel = hiltViewModel()
+    viewModel: AddScreenViewModel = hiltViewModel(),
+    navController: NavHostController
 
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -62,30 +67,23 @@ fun MyAppNavHost(
             )
         }
         composable(
-            route = ADD_CHALLENGE_SCREEN +
-                    "?noteId={noteId}&noteColor={noteColor}",
+            route ="$ADD_CHALLENGE_SCREEN?goalId={goalId}&goalColor={goalColor}",
             arguments = listOf(
                 navArgument(
-                    name = "noteId"
+                    name = "goalId"
                 ) {
                     type = NavType.IntType
                     defaultValue = -1
                 },
                 navArgument(
-                    name = "noteColor"
+                    name = "goalColor"
                 ) {
                     type = NavType.IntType
                     defaultValue = -1
-                },
-                navArgument(
-                    name = "note"
-                ) {
-                    type = NavType.StringType
-                    defaultValue = ""
                 },
             )
         ) { entry ->
-            val color = entry.arguments?.getInt("noteColor") ?: -1
+            val color = entry.arguments?.getInt("goalColor") ?: -1
 
             AddChallengeScreen(
                 onNavigateToAddVoice = {
@@ -103,7 +101,13 @@ fun MyAppNavHost(
                 ) {
                     type = NavType.IntType
                     defaultValue = -1
-                },)
+                }
+                ),
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = MY_URI_PROGRESS_SCREEN
+                }
+            )
             ){
            ProgressScreen(nav = appState.navController)
         }
@@ -159,7 +163,13 @@ fun MyAppNavHost(
                     type = NavType.LongType
                     defaultValue = 0L
                 },
+            ),
+            deepLinks = listOf(
+                navDeepLink {
+                    uriPattern = MY_URI_SESSION_SCREEN
+                }
             )
+
             ){
             SessionScreen(
                 nav = appState.navController,
@@ -175,7 +185,7 @@ fun MyAppNavHost(
                     defaultValue = -1
                 },
                 navArgument(
-                    name = MY_ARG
+                    name = "sessionDuration"
                 ) {
                     type = NavType.LongType
                     defaultValue = 0L
@@ -194,8 +204,14 @@ fun MyAppNavHost(
             )
 
             ){entry ->
-            val sessionDuration = entry.arguments?.getLong(MY_ARG) ?: 0L
+            val sessionDuration = entry.arguments?.getLong("sessionDuration") ?: 0L
             CompletedScreen(sessionDuration = sessionDuration)
+        }
+        composable(
+           route = ACHIEVEMENTS_SCREEN ,
+
+        ){
+            AchievementScreen()
         }
     }
 

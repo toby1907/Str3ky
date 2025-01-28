@@ -1,91 +1,61 @@
 package com.example.str3ky.core.notification
 
-import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.app.Service
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
 import android.os.IBinder
-import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationChannelCompat
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.net.toUri
-import com.example.str3ky.MainActivity
-import com.example.str3ky.R
-import com.example.str3ky.data.CombinedData
 import com.example.str3ky.data.CountdownTimerManager
-import com.example.str3ky.data.TimerActions
-import com.example.str3ky.ui.nav.MY_ARG
-import com.example.str3ky.ui.nav.MY_URI
+import com.example.str3ky.di.ApplicationScope
+import com.example.str3ky.millisecondsToMinutes
 import com.florianwalther.incentivetimer.core.notification.DefaultNotificationHelper
 import dagger.hilt.android.AndroidEntryPoint
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
 class TimerService : Service() {
 
-    private val serviceScope = CoroutineScope(SupervisorJob())
+    @Inject
+    lateinit var serviceScope: CoroutineScope
 
     @Inject
     lateinit var notificationHelper: DefaultNotificationHelper
 
-
     @Inject
     lateinit var countdownTimerManager: CountdownTimerManager
+    private val coroutineScope  = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var timerJob: Job? = null
 
-    private lateinit var notificationManager: NotificationManagerCompat
+/*    private lateinit var notificationManager: NotificationManagerCompat
 
-    private lateinit var timerNotification: NotificationCompat.Builder
+    private lateinit var timerNotification: NotificationCompat.Builder*/
+/*
 
     private val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
     } else {
         PendingIntent.FLAG_UPDATE_CURRENT
     }
+*/
 
 
 
 
-
-    override fun onCreate() {
-        super.onCreate()
-        notificationManager = NotificationManagerCompat.from(this)
-        createNotificationChannel()
-        timerNotification = NotificationCompat.Builder(this, TIMER_SERVICE_CHANNEL_ID)
-            .setSmallIcon(R.drawable.baseline_timer_24)
-            .setSilent(true)
-            .setOnlyAlertOnce(true)
-
-    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        startForeground(TIMER_SERVICE_NOTIFICATION_ID, notificationHelper.getBaseTimerServiceNotification().build())
 
-        when (intent?.action) {
-            TimerActions.START.name -> start()
-            TimerActions.STOP.name -> stop()
-            TimerActions.COMPLETED.name -> sessionCompletedNotification()
-        }
+        timerJob?.cancel()
+        timerJob = coroutineScope.launch {
+            countdownTimerManager.combinedFlow.collectLatest { timerStates ->
 
-
-
-        return START_STICKY
-    }
-
-    fun start() {
-        serviceScope.launch {
-            countdownTimerManager.combinedFlow.collect { timerStates ->
-
-                updateTimerNotification(timerStates)
+                notificationHelper.
+                updateTimerServiceNotification(timerStates.currentPhase,timerStates.timeLeftInMillis,true,timerStates.goalId,timerStates.totalFocusSet,millisecondsToMinutes(timerStates.timeLeftInMillis),timerStates.progressDate)
 
                 /* if(it==CountdownTimerManager.Phase.COMPLETED){
                      stopForeground(STOP_FOREGROUND_REMOVE)
@@ -94,14 +64,63 @@ class TimerService : Service() {
 
             }
         }
+       /* notificationManager = NotificationManagerCompat.from(this)
+        createNotificationChannel()
+        timerNotification = NotificationCompat.Builder(this, TIMER_SERVICE_CHANNEL_ID)
+            .setSmallIcon(R.drawable.baseline_timer_24)
+            .setSilent(true)
+            .setOnlyAlertOnce(true)*/
+
+ /*goalId = countdownTimerManager.goalId
+        val sessionDuration = countdownTimerManager.timeLeftInMillisFlow.value
+        val progressDate = countdownTimerManager.progressDate.value
+        when (intent?.action) {
+            TimerActions.START.name -> {
+                start()
+                stopCompletedNotification()
+            }
+            TimerActions.STOP.name -> stop()
+            TimerActions.COMPLETED.name -> {
+                stop()
+                sessionCompletedNotification(goalId, progressDate, sessionDuration)
+            }
+            TimerActions. CANCEL.name -> stopCompletedNotification()
+        }*/
+
+
+
+        return START_STICKY
     }
 
-    private fun sessionCompletedNotification() {
-        val openTimerIntent = Intent(
+  /*  fun start() {
+
+        serviceScope.launch {
+            countdownTimerManager.combinedFlow.collect { timerStates ->
+
+                updateTimerNotification(timerStates)
+
+                *//* if(it==CountdownTimerManager.Phase.COMPLETED){
+                     stopForeground(STOP_FOREGROUND_REMOVE)
+                     stopSelf()
+                 }*//*
+
+            }
+        }
+    }*/
+
+ /*   private fun sessionCompletedNotification( goalId: Int, progressDate: Long,sessionDuration: Long) {
+        *//*val openTimerIntent = Intent(
             Intent.ACTION_VIEW,
             MY_URI.toUri(),
             applicationContext,
             MainActivity::class.java
+        )*//*
+        stop()
+        val deepLink = Uri.parse("myapp://donescreen?goalId=$goalId&sessionDuration=$sessionDuration&progressDate=$progressDate")
+
+        val openTimerIntent = Intent(
+            Intent.ACTION_VIEW,
+          deepLink
         )
      val openTimerPendingIntent = PendingIntent.getActivity(
             applicationContext, 0, openTimerIntent, pendingIntentFlags
@@ -129,20 +148,24 @@ class TimerService : Service() {
             // for ActivityCompat#requestPermissions for more details.
             return
         }
-        startForeground(TIMER_COMPLETED_NOTIFICATION_ID, timerCompletedNotification)
+        notificationManager.notify(TIMER_COMPLETED_NOTIFICATION_ID, timerCompletedNotification)
 
     }
-
+*/
     /*fun stop() {
         serviceScope.cancel()
         countdownTimerManager.cancelCountdown()
         stopSelf()
     }*/
-    fun stop() {
+   /* fun stop() {
         notificationManager.cancel(TIMER_SERVICE_NOTIFICATION_ID)
     }
+    fun stopCompletedNotification(){
+        notificationManager.cancel(TIMER_COMPLETED_NOTIFICATION_ID)
+    }*/
 
-    private fun updateTimerNotification(timerState: CombinedData) {
+    /*private fun updateTimerNotification(timerState: CombinedData) {
+
         val minutes = timerState.timeLeftInMillis / 1000 / 60
         val seconds = timerState.timeLeftInMillis / 1000 % 60
         val formattedTime = String.format("%02d:%02d", minutes, seconds)
@@ -170,18 +193,18 @@ class TimerService : Service() {
         notificationManager.notify(TIMER_SERVICE_NOTIFICATION_ID, notificationUpdate)
 
 
-    }
+    }*/
 
-    private fun createNotificationChannel() {
+    /*private fun createNotificationChannel() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 
-            /*   val timerServiceChannel = NotificationChannel(
+            *//*   val timerServiceChannel = NotificationChannel(
                    TIMER_SERVICE_CHANNEL_ID,
                    getString(R.string.timer_service_channel_name),
                    NotificationManager.IMPORTANCE_DEFAULT
 
-               )*/
+               )*//*
             val timerServiceChannel = NotificationChannelCompat.Builder(
                 TIMER_SERVICE_CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_HIGH
             ).setName(getString(R.string.timer_service_channel_name))
@@ -207,7 +230,7 @@ class TimerService : Service() {
 
         }
 
-    }
+    }*/
 
     override fun onBind(p0: Intent?): IBinder? {
         TODO("Not yet implemented")
@@ -216,7 +239,8 @@ class TimerService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         serviceScope.cancel()
-        countdownTimerManager.cancelCountdown()
+       // countdownTimerManager.cancelCountdown()
+        notificationHelper.removeTimerServiceNotification()
     }
 }
 

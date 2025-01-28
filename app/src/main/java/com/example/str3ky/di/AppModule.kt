@@ -6,13 +6,15 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.room.Room
 import com.example.str3ky.core.notification.TimerServiceManager
-import com.example.str3ky.data.CountdownTimerManager
 import com.example.str3ky.data.GoalDatabase
 import com.example.str3ky.dataStore
 import com.example.str3ky.repository.GoalRepositoryImpl
 import com.example.str3ky.repository.SettingsRepository
 import com.example.str3ky.repository.UserRepositoryImpl
-import dagger.Component
+import com.example.str3ky.use_case.AddGoal
+import com.example.str3ky.use_case.DeleteGoal
+import com.example.str3ky.use_case.GetGoals
+import com.example.str3ky.use_case.GoalUseCases
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -32,7 +34,7 @@ class AppModule {
     @Singleton
     @Provides
     fun provideApplicationScope(): CoroutineScope {
-        return CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        return CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 
     @Singleton
@@ -52,8 +54,8 @@ class AppModule {
     }
     @Provides
     @Singleton
-    fun provideGoalRepository(db: GoalDatabase): GoalRepositoryImpl{
-        return GoalRepositoryImpl(db.goalDao())
+    fun provideGoalRepository(db: GoalDatabase,application: Application): GoalRepositoryImpl{
+        return GoalRepositoryImpl(db.goalDao(), application.applicationContext)
     }
     @Provides
     @Singleton
@@ -71,6 +73,16 @@ class AppModule {
     @Singleton
     fun provideSettingsRepository(dataStore: DataStore<Preferences>): SettingsRepository {
         return SettingsRepository(dataStore)
+    }
+
+    @Provides
+    @Singleton
+    fun provideNoteUseCases(repository: GoalRepositoryImpl): GoalUseCases {
+        return GoalUseCases(
+            getGoals = GetGoals(repository),
+            deleteGoal = DeleteGoal(repository),
+            addGoal = AddGoal(repository),
+        )
     }
 
 }

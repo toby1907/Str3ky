@@ -1,6 +1,9 @@
 package com.example.str3ky.ui.add_challenge_screen
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.compose.animation.core.copy
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +23,8 @@ import com.example.str3ky.getAbbreviation
 import com.example.str3ky.minutesToMilliseconds
 import com.example.str3ky.repository.GoalRepositoryImpl
 import com.example.str3ky.repository.UserRepositoryImpl
+import com.example.str3ky.ui.snackbar.SnackbarController
+import com.example.str3ky.ui.snackbar.SnackbarEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -39,25 +44,12 @@ class AddScreenViewModel @Inject constructor(
     private var currentGoalId: Int? = null
     private var userId = mutableStateOf(0)
 
-    private val _goalName = mutableStateOf(
-        GoalScreenState()
-    )
-
-    private val _frequency = mutableStateOf(
-        GoalScreenState()
-    )
-    private val _focusTime = mutableStateOf(
-        GoalScreenState()
-    )
-    private val _alarmTime = mutableStateOf(
-        GoalScreenState()
-    )
-    private val _startDate = mutableStateOf(
-        GoalScreenState()
-    )
-    private val _goalState = mutableStateOf(
-        GoalState()
-    )
+    private val _goalName = mutableStateOf(GoalScreenState())
+    private val _frequency = mutableStateOf(GoalScreenState())
+    private val _focusTime = mutableStateOf(GoalScreenState())
+    private val _alarmTime = mutableStateOf(GoalScreenState())
+    private val _startDate = mutableStateOf(GoalScreenState())
+    private val _goalState = mutableStateOf(GoalState())
     private val _goalColor = mutableIntStateOf(Goal.goalColors.random().toArgb())
 
     private val _goalCompleted = mutableStateOf(false)
@@ -68,6 +60,7 @@ class AddScreenViewModel @Inject constructor(
     private val _noOfDays = mutableStateOf(GoalScreenState())
     private val _selectedDays =
         mutableStateOf(listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"))
+    private  val _description = mutableStateOf(GoalScreenState())
 
 
     val goalName: State<GoalScreenState> = _goalName
@@ -82,6 +75,7 @@ class AddScreenViewModel @Inject constructor(
     val noOfDays: State<GoalScreenState> = _noOfDays
     val eventFlow = _eventFlow.asSharedFlow()
     val selectedDays: State<List<String>> = _selectedDays
+    val description: State<GoalScreenState> = _description
 
 
     private var recentlyGoal: Goal? = null
@@ -91,7 +85,7 @@ class AddScreenViewModel @Inject constructor(
         savedStateHandle.get<Int>("goalId")?.let { goalId ->
 
             if (goalId != -1) {
-
+                Log.d("Goal","$goalId")
                 viewModelScope.launch {
                     goalRepository.getGoal(goalId).collect { goal ->
                         _goalState.value = goalState.value.copy(goal = goal)
@@ -122,6 +116,10 @@ class AddScreenViewModel @Inject constructor(
                         if (goal != null) {
                             userId.value = goal.userId
                         }
+                        if (goal != null) {
+                            _description.value = _description.value.copy(description = goal.description)
+                        }
+
 
                     }
 
@@ -224,22 +222,43 @@ class AddScreenViewModel @Inject constructor(
                             completed = goalCompleted.value,
                             noOfDays = noOfDays.value.noOfDays,
                             userId = userId.value,
-                            focusSet = focusTime.value.focusTime.countdownTime
+                            focusSet = focusTime.value.focusTime.countdownTime,
+                            description = description.value.description,
                         )
-                        goalRepository.save(goal)
+                         goalRepository.save(goal){goalId ->
+                             val goalWithId = goal.copy(id = goalId)
+                             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                 if (goal.alarmTime != null)  {
+                                     scheduleReminders(
+                                         goalWithId,
+                                         dayProgressList = progressList
+                                     )
+                                 }
+                             }
+                         }
+
+
+
+
                         _eventFlow.emit(UiEvent.SaveNote)
-                        _eventFlow.emit(UiEvent.ShowSnackbar("Challenge saved!"))
+                        _eventFlow.emit(UiEvent.ShowSnackbar("Task saved!"))
                     } catch (e: InvalidGoalException) {
 
-                        Log.d("Goal", "could not save")
+                        Log.d("Task", "could not save")
                         _eventFlow.emit(
                             UiEvent.ShowSnackbar(
-                                message = e.message ?: "Couldn't save note"
+                                message = e.message ?: "Couldn't save task"
                             )
                         )
 
                     }
                 }
+            }
+
+            is AddChallengeEvent.EnteredDescription -> {
+                _description.value = _description.value.copy(
+                    description = event.value
+                )
             }
         }
     }
@@ -330,6 +349,25 @@ class AddScreenViewModel @Inject constructor(
         }
 
         return progressList
+    }
+
+    val alarmPermissionNeeded = goalRepository.alarmPermissionNeeded
+    @RequiresApi(Build.VERSION_CODES.M)
+    fun scheduleReminders(goal: Goal, dayProgressList: List<DayProgress>) {
+        viewModelScope.launch {
+            goalRepository.scheduleRemindersForGoal(goal, dayProgressList)
+        }
+    }
+
+    fun showSnackbar() {
+        viewModelScope.launch {
+            SnackbarController.sendEvent(
+                event = SnackbarEvent(
+                    message = "Task added Successfully",
+
+                    )
+            )
+        }
     }
 
 

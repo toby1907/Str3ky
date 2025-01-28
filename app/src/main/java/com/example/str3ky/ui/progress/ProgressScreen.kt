@@ -1,5 +1,6 @@
 package com.example.str3ky.ui.progress
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -44,6 +46,7 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.example.str3ky.R
 import com.example.str3ky.convertCalendarDayOfWeekToStrings
 import com.example.str3ky.data.DayProgress
+import com.example.str3ky.ui.nav.ADD_CHALLENGE_SCREEN
 import com.example.str3ky.ui.nav.SESSION_SETTINGS_SCREEN
 import java.util.Calendar
 
@@ -58,9 +61,21 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
                 navigationIcon = {
                     Icon(modifier = Modifier.padding(8.dp),
                         painter = painterResource(id = R.drawable.arrow_back_icon),
-                        contentDescription = "",
-                    )
+                        contentDescription = "",)
+                },
+                actions = {
+                    IconButton(onClick = {
+
+                        nav.navigate(
+                            "$ADD_CHALLENGE_SCREEN?goalId=${viewModel.goalId.value}&goalColor=${viewModel.goalColor.value}"
+                        )
+                        Log.d("ProgressScreen", "ProgressScreen: ${viewModel.goalId.value}")
+                    }) {
+                        Text("Edit")
+                    }
+
                 }
+
             )
         },
         content = {

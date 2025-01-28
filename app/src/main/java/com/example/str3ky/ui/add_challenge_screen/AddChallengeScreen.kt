@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -34,7 +35,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
@@ -115,9 +118,7 @@ fun AddChallengeScreen(
                     openAndPopUp(MAIN_SCREEN,ADD_CHALLENGE_SCREEN,)
                 }
                 is UiEvent.ShowSnackbar -> scope.launch {
-                    snackbarHostState.showSnackbar(
-                        message = event.message
-                    )
+                    viewModel.showSnackbar()
                 }
             }
 
@@ -126,7 +127,8 @@ fun AddChallengeScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Add Challenge") },
+                title = { Text(text = "Add Task",
+                    color = MaterialTheme.colorScheme.onPrimary,) },
                 actions = {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -134,13 +136,13 @@ fun AddChallengeScreen(
                         modifier = Modifier.padding(start = 4.dp)
                     )
                     {
-                        OutlinedButton(
+                        IconButton(
                             onClick = {
                                 viewModel.onEvent(AddChallengeEvent.SaveNote)
                                       },
-                            shape = RoundedCornerShape(0.dp)
                         ) {
-                            Text(text = "Save")
+                            Text(text = "Save",
+                                color = MaterialTheme.colorScheme.onPrimary,)
                         }
                     }
                 },
@@ -150,10 +152,13 @@ fun AddChallengeScreen(
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 navigationIcon = {
-                    IconButton(onClick = { /*TODO*/ }) {
+                    IconButton(onClick = {
+                        navController.popBackStack()
+                    }) {
                         Icon(
                             painter = painterResource(id = R.drawable.arrow_back_icon),
-                            contentDescription = ""
+                            contentDescription = "",
+                            tint = MaterialTheme.colorScheme.onPrimary,
                         )
                     }
                 }
@@ -168,6 +173,16 @@ fun AddChallengeScreen(
 
                 ) {
 
+                Spacer(modifier = Modifier.padding(top = 24.dp))
+                Text(text = "Enter Task Details",
+                    style = TextStyle(
+                        fontSize = 20.sp,
+                        lineHeight = 28.sp,
+                        color = MaterialTheme.colorScheme.onPrimary,
+
+                        )
+                    )
+                Spacer(modifier = Modifier.padding(top = 8.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -181,7 +196,7 @@ fun AddChallengeScreen(
                             viewModel.onEvent(AddChallengeEvent.EnteredName(it))
                         },
                         label = {
-                            Text("Name")
+                            Text("Task")
                         },
 
                         )
@@ -237,6 +252,7 @@ fun AddChallengeScreen(
                         )
                     }
                 }
+                Spacer(modifier = Modifier.padding(top = 16.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -254,7 +270,7 @@ fun AddChallengeScreen(
                         modifier = Modifier.size(
                             width = 240.dp, height = 56.dp
                         ),
-                        value = if (viewModel.frequency.value.frequency.selectedDays.size==7) {
+                        value = if (viewModel.frequency.value.frequency.selectedDays.size==7||viewModel.frequency.value.frequency.selectedDays.isEmpty()) {
                            "Daily"
                         } else {
                             "$noOfDays days weekly"
@@ -302,6 +318,7 @@ fun AddChallengeScreen(
                         },
                     )
                 }
+                Spacer(modifier = Modifier.padding(top = 16.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -353,6 +370,18 @@ fun AddChallengeScreen(
                         },
                     )
                 }
+                Spacer(modifier = Modifier.padding(top = 16.dp))
+                TransparentHintTextField(
+                    text = viewModel.description.value.description,
+                    hint = "Add details",
+                    onValueChange = {
+                        viewModel.onEvent(AddChallengeEvent.EnteredDescription(it))
+                    },
+                    onFocusChange = {
+
+                    },
+                    isHintVisible = false
+                )
 
             }
 

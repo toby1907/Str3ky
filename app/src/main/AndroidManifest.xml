@@ -4,6 +4,9 @@
 
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+
+
 
     <application
         android:name=".GoalApplication"
@@ -27,7 +30,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <intent-filter>
-                <data android:host="www.incentivetimer.com" android:scheme="https"/>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="myapp"
+                    android:host="donescreen" />
             </intent-filter>
 
         </activity>
@@ -42,6 +50,8 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
             </intent-filter>
         </receiver>-->
+        <receiver android:name=".core.alarm.AlarmReceiver"
+            android:exported="false"/>
     </application>
 
 </manifest>

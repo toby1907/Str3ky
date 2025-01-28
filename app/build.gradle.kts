@@ -53,6 +53,7 @@ android {
 
 dependencies {
 
+    implementation("com.google.android.gms:play-services-games:23.2.0")
     val  compose_version = "1.6.4"
     val  lottieVersion = "6.4.1"
     // Lottie-compose
@@ -119,6 +120,22 @@ dependencies {
 
     //gson
     implementation ("com.google.code.gson:gson:2.10.1")
+
+
+    //Test
+    // ... other dependencies ...
+
+    // Mockito (core)
+    testImplementation("org.mockito:mockito-core:5.10.0") // Use the latest version
+
+    // Mockito-Kotlin (extension for Kotlin)
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1") // Use the latest version
+
+    // Coroutines Test
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.0") // Use the latest version
+
+    // Turbine
+    testImplementation("app.cash.turbine:turbine:1.0.0") // Use the latest version
 
 }
 // Allow references to generated code
