@@ -33,9 +33,9 @@ A  productivity and time management app designed to help users build positive ha
 - **[Gson](https://github.com/google/gson)**: For converting Java Objects into their JSON representation and back to Java Objects.
 
 ## Screenshots
-|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|
-|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
-|![Splash](./screenshots/splash.png)|![Sign up](./screenshots/signup.png)|![Login](./screenshots/login.png)|![Onboarding](./screenshots/onboarding.png)|![Home](./screenshots/homescreen.png)|![Canvas](./screenshots/drawingcanvas.png)|![Chat-in-collab](./screenshots/chat_in_collab.png)|![Color picker](./screenshots/colorpicker.png)|![Brush](./screenshots/bursh.png)|![Profile](./screenshots/profile.png)|![Update Profile](./screenshots/updateprofile.png)|
+|   ::::::::::::::::::::::::::::::::::::::::    |     ::::::::::::::::::::::::::::::::::::::::      |    ::::::::::::::::::::::::::::::::::::::::     |     ::::::::::::::::::::::::::::::::::::::::      |::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|
+|:---------------------------------------------:|:-------------------------------------------------:|:-----------------------------------------------:|:-------------------------------------------------:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| ![Home Screen](./screenshots/home screen.jpg) | ![Progress screen](./screenshots/home screen.jpg) | ![focus setting](./screenshots/home screen.jpg) | ![focus session](./screenshots/focus session.jpg) |![Home](./screenshots/homescreen.png)|![Canvas](./screenshots/drawingcanvas.png)|![Chat-in-collab](./screenshots/chat_in_collab.png)|![Color picker](./screenshots/colorpicker.png)|![Brush](./screenshots/bursh.png)|![Profile](./screenshots/profile.png)|![Update Profile](./screenshots/updateprofile.png)|
 
 ## Setup Instructions
 
