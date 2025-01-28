@@ -22,6 +22,7 @@ data class GoalScreenState(
     val noOfDays: Int = 30,
     val userId: Int = 0,
     val totalTime: Long = 30,
+    val description: String = ""
 )
 
 data class GoalState(

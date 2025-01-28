@@ -9,6 +9,7 @@ import com.example.str3ky.data.OccurrenceSelection
 
 sealed class AddChallengeEvent {
     data class EnteredName(val value: String): AddChallengeEvent()
+    data class EnteredDescription(val value: String): AddChallengeEvent()
     data class EnteredDate(val value: Long): AddChallengeEvent()
     data class ChangeColor(val color: Int) : AddChallengeEvent()
     data class DeleteGoal(val goal: Goal?) : AddChallengeEvent()
@@ -22,6 +23,5 @@ sealed class AddChallengeEvent {
 sealed class UiEvent {
     data class ShowSnackbar(val message: String) : UiEvent()
     object SaveNote : UiEvent()
-
 
 }
