@@ -67,30 +67,23 @@ fun MyAppNavHost(
             )
         }
         composable(
-            route = ADD_CHALLENGE_SCREEN +
-                    "?noteId={noteId}&noteColor={noteColor}",
+            route ="$ADD_CHALLENGE_SCREEN?goalId={goalId}&goalColor={goalColor}",
             arguments = listOf(
                 navArgument(
-                    name = "noteId"
+                    name = "goalId"
                 ) {
                     type = NavType.IntType
                     defaultValue = -1
                 },
                 navArgument(
-                    name = "noteColor"
+                    name = "goalColor"
                 ) {
                     type = NavType.IntType
                     defaultValue = -1
-                },
-                navArgument(
-                    name = "note"
-                ) {
-                    type = NavType.StringType
-                    defaultValue = ""
                 },
             )
         ) { entry ->
-            val color = entry.arguments?.getInt("noteColor") ?: -1
+            val color = entry.arguments?.getInt("goalColor") ?: -1
 
             AddChallengeScreen(
                 onNavigateToAddVoice = {

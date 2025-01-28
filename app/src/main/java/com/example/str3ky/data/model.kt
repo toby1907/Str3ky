@@ -19,6 +19,7 @@ data class Goal(
     @ColumnInfo(name = "goal_id")
     var id: Int? = null,
     @ColumnInfo(name = "title") val title: String,
+    @ColumnInfo(name = "Description") val description: String,
     @ColumnInfo(name = "duration") val durationInfo: Duration,
     @ColumnInfo(name = "occurrence") val occurrence: OccurrenceSelection,
     @ColumnInfo(name = "alarm_time") val alarmTime: Long?,
