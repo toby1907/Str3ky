@@ -45,6 +45,4 @@ cd Str3ky/
 - Ensure your Android device or emulator is set up.
 - Click on the `Run` button or use `Shift + F10`.
 
-## License
-This project is licensed under the Apache-2.0 License. See the [LICENSE](./LICENSE) file for more details.
-https://appetize.io/app/b_rrkqtlmwbh43asyppb7hi32boy
+
