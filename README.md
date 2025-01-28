@@ -13,24 +13,16 @@ A  productivity and time management app designed to help users build positive ha
 - User Data: The app stores user data such as total hours spent, achievements unlocked and longest streak
 
 
-## Demo
-***Explore the virtualized demonstration of the release apk version [here](https://appetize.io/app/b_iztxobblihyfqohggeteabz4bi)***
-
-  ***Or you can install the apk from below 👇🏽***
-
-  [![Artio App](https://img.shields.io/badge/Str3ky-APK-green.svg?style=for-the-badge&logo=android)](https://github.com/slowburn-404/SketchPad/releases/tag/v3.0.0)
-
 
 ## Technology Stack
 - **[Kotlin](https://kotlinlang.org/)**: The official programming language for developing Android applications.
 - **[Jetpack Compose](https://developer.android.com/develop/ui/compose)**: A modern UI toolkit for building Android applications in Kotlin.
-- **[Coil](https://coil-kt.github.io/coil/)**: A lightweight image loading library.
-- **[Koin](https://insert-koin.io/)**: Dependency Injection Framework.
-- **[Firebase](https://firebase.google.com/)**: Backend service for authentication and photo storage.
+- **[Lottie](https://github.com/LottieFiles/dotlottie-android)**: A lightweight image loading library.
+- **[Dagger Hilt](https://dagger.dev/hilt/)**: Dependency Injection Framework.
 - **[ViewModel](https://developer.android.com/topic/libraries/architecture/viewmodel)**: A lifecycle-aware Android Architecture Component for holding state.
 - **[Room Persistence Library](https://developer.android.com/training/data-storage/room)**: Android Jetpack Library for local data caching.
 - **[Datastore](https://developer.android.com/topic/libraries/architecture/datastore)**: Jetpack DataStore is a data storage solution that allows you store key-value pairs asynchronously.
-- **[Gson](https://github.com/google/gson)**: For converting Java Objects into their JSON representation and back to Java Objects.
+
 
 ## Screenshots
 | ::::::::::::::::::::::::::::::::::::::::  |    ::::::::::::::::::::::::::::::::::::::::    |  ::::::::::::::::::::::::::::::::::::::::   |     ::::::::::::::::::::::::::::::::::::::::      |        ::::::::::::::::::::::::::::::::::::::::         |             ::::::::::::::::::::::::::::::::::::::::              |
@@ -41,9 +33,9 @@ A  productivity and time management app designed to help users build positive ha
 
 1. **Clone the repository to your local machine.**
 ```bash
-git clone https://github.com/slowburn-404/Artio.git
+git clone  https://github.com/toby1907/Str3ky.git
 
-cd Artio/
+cd Str3ky/
 ```
 2. **Open in Android Studio**
 - Open Android Studio
@@ -53,6 +45,4 @@ cd Artio/
 - Ensure your Android device or emulator is set up.
 - Click on the `Run` button or use `Shift + F10`.
 
-## License
-This project is licensed under the Apache-2.0 License. See the [LICENSE](./LICENSE) file for more details.
-https://appetize.io/app/b_rrkqtlmwbh43asyppb7hi32boy
+
