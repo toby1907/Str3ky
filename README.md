@@ -33,9 +33,9 @@ A  productivity and time management app designed to help users build positive ha
 - **[Gson](https://github.com/google/gson)**: For converting Java Objects into their JSON representation and back to Java Objects.
 
 ## Screenshots
-|   ::::::::::::::::::::::::::::::::::::::::    |    ::::::::::::::::::::::::::::::::::::::::    |  ::::::::::::::::::::::::::::::::::::::::   |     ::::::::::::::::::::::::::::::::::::::::      |        ::::::::::::::::::::::::::::::::::::::::         |             ::::::::::::::::::::::::::::::::::::::::              |::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|::::::::::::::::::::::::::::::::::::::::|
-|:---------------------------------------------:|:----------------------------------------------:|:-------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------------:|:-----------------------------------------------------------------:|:--:|:--:|:--:|:--:|:--:|
-| ![Home Screen](./screenshots/home.jpg) | ![Progress screen](./screenshots/progress.jpg) | ![focus setting](./screenshots/setting.jpg) | ![focus session](./screenshots/focus_session.jpg) | ![Complete Screen](./screenshots/completion_screen.jpg) | ![Congratulation Screen](./screenshots/congratulation_screen.jpg) |
+| ::::::::::::::::::::::::::::::::::::::::  |    ::::::::::::::::::::::::::::::::::::::::    |  ::::::::::::::::::::::::::::::::::::::::   |     ::::::::::::::::::::::::::::::::::::::::      |        ::::::::::::::::::::::::::::::::::::::::         |             ::::::::::::::::::::::::::::::::::::::::              |
+|:-----------------------------------------:|:----------------------------------------------:|:-------------------------------------------:|:-------------------------------------------------:|:-------------------------------------------------------:|:-----------------------------------------------------------------:|
+| ![Home Screen](./screenshots/home2.1.jpg) | ![Progress screen](./screenshots/progress.jpg) | ![focus setting](./screenshots/setting.jpg) | ![focus session](./screenshots/focus_session.jpg) | ![Complete Screen](./screenshots/completion_screen.jpg) | ![Congratulation Screen](./screenshots/congratulation_screen.jpg) |
 
 ## Setup Instructions
 
