@@ -22,6 +22,8 @@ A  productivity and time management app designed to help users build positive ha
 - **[ViewModel](https://developer.android.com/topic/libraries/architecture/viewmodel)**: A lifecycle-aware Android Architecture Component for holding state.
 - **[Room Persistence Library](https://developer.android.com/training/data-storage/room)**: Android Jetpack Library for local data caching.
 - **[Datastore](https://developer.android.com/topic/libraries/architecture/datastore)**: Jetpack DataStore is a data storage solution that allows you store key-value pairs asynchronously.
+- **[BroadcastReceiver](https://developer.android.com/reference/android/content/BroadcastReceiver)**:  a component that allows your application to listen for and respond to system-wide or application-specific broadcast announcements
+- **[NotificationCompat](https://developer.android.com/reference/androidx/core/app/NotificationCompat)**: NotificationCompat is a class in the AndroidX Core library that helps you build notifications in a way that's compatible across different versions of Android
 
 
 ## Screenshots
