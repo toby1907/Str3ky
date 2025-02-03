@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Str3ky</string>
+    <string name="timer_service_channel_name">Timer service channel</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="paused">Paused</string>
+    <string name="pomodoro_length">Pomodoro length</string>
+    <string name="short_break_length">Short break length</string>
+    <string name="long_break_length">Long break length</string>
+    <string name="pomodoro_completed_title">Pomodoro completed!</string>
+    <string name="pomodoro_completed_message">Time for a break</string>
+    <string name="break_over_title">Break is over!</string>
+    <string name="break_over_message">Time to get back to work!</string>
+    <string name="timer_service_channel_description">Shows a persistent notification when the pomodoro timer is running</string>
+    <string name="timer_completed_channel_name">Timer completed notifications</string>
+    <string name="timer_completed_channel_description">Shows a notification when a countdown timer finishes</string>
+    <string name="ok">OK</string>
+</resources>
