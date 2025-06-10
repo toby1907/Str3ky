@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,7 +43,7 @@ import com.example.str3ky.toMinutes
 import kotlin.text.count
 import kotlin.text.toFloat
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun CompletedScreen(
     viewModel: DoneScreenViewModel = hiltViewModel(),
@@ -72,7 +73,7 @@ fun CompletedScreen(
                     style = TextStyle(
                         fontSize = 24.sp,
                         fontWeight = FontWeight(700),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = colorScheme.onPrimaryContainer,
                     )
                 )
 
@@ -179,7 +180,7 @@ private fun Timer(
                     .width(203.dp)
                     .height(76.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = colorScheme.onPrimary,
                         shape = RoundedCornerShape(size = 8.dp)
                     )
             ) {
@@ -187,27 +188,32 @@ private fun Timer(
                         ?: 0) <= 0 ){
                     "You've met your daily goal!"
                 }
-                else "${viewModel.goal.value.goal?.focusSet?.toMinutes()?.minus(viewModel.dayHourSpent.value)?:0} remaining to  meet your daily\n goal"
+                else "${viewModel.goal.value.goal?.focusSet?.toMinutes()?.minus(viewModel.dayHourSpent.value)?:0} remaining to meet your daily goal"
                 Text(
                     text = textValue,
                     style = TextStyle(
                         fontSize = 16.sp,
                         fontWeight = FontWeight(500),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = colorScheme.primary,
                         textAlign = TextAlign.Center,
-                    )
+                    ),
+                    maxLines = 3,
                 )
             }
         }
         Button(modifier = Modifier
-            .width(97.dp)
-            .height(40.dp)
             .background(
                 color = MaterialTheme.colorScheme.primary,
-                shape = RoundedCornerShape(size = 10.dp)
+                shape = RoundedCornerShape(size = 4.dp)
             ),
             onClick = { /*TODO*/ }) {
-            Text(text = "Continue")
+            Text(text = "Continue",
+                style = TextStyle(
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    textAlign = TextAlign.Center,
+                )
+                )
         }
 
     }

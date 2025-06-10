@@ -16,6 +16,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -79,9 +80,9 @@ fun SessionScreen(
                 actions = {
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    actionIconContentColor = MaterialTheme.colorScheme.onSurface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                    containerColor = colorScheme.primaryContainer,
+                    actionIconContentColor = colorScheme.onSurface,
+                    titleContentColor = colorScheme.onSurface
                 ),
                 navigationIcon = {
                     IconButton(onClick = { /*TODO*/ }) {
@@ -153,7 +154,7 @@ private fun Timer(
             text = displayText, style = TextStyle(
                 fontSize = 16.sp,
                 fontWeight = FontWeight(400),
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = colorScheme.onPrimaryContainer,
                 textAlign = TextAlign.Center,
             )
         )
@@ -186,7 +187,7 @@ private fun Timer(
                         .scale(scaleX = -1f, scaleY = 1f),
                     strokeWidth = 16.dp,
                     strokeCap = StrokeCap.Round,
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = .25f)
+                    color = colorScheme.primary.copy(alpha = .25f)
                 )
             }
             val i =
@@ -199,7 +200,7 @@ private fun Timer(
                 style = TextStyle(
                     fontSize = 48.sp,
                     fontWeight = FontWeight(400),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = colorScheme.onPrimaryContainer,
                     textAlign = TextAlign.Center,
                 )
             )
@@ -223,7 +224,7 @@ private fun TimerStartStopButton(
         .padding(1.dp)
         .width(50.dp)
         .height(50.dp)
-        .background(color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape),
+        .background(color = colorScheme.primaryContainer, shape = CircleShape),
         onClick = {
             buttonState.value = !buttonState.value
             // viewModel.startSession()
@@ -239,7 +240,7 @@ private fun TimerStartStopButton(
                 painterResource(id = R.drawable.pause_24)
             },
             contentDescription = "",
-            tint = MaterialTheme.colorScheme.onPrimaryContainer
+            tint = colorScheme.onPrimaryContainer
         )
 
 
@@ -253,7 +254,7 @@ private fun TimerRestartButton(timerRunning: Boolean, viewModel: SessionScreenVi
         .width(50.dp)
         .height(50.dp)
         .background(
-            color = MaterialTheme.colorScheme.primaryContainer, shape = CircleShape
+            color = colorScheme.primaryContainer, shape = CircleShape
         ),
         onClick = {
             viewModel.cancelCountdown()
@@ -263,7 +264,7 @@ private fun TimerRestartButton(timerRunning: Boolean, viewModel: SessionScreenVi
         Icon(
             painter = painterResource(id = R.drawable.refresh_icon),
             contentDescription = "",
-            tint = MaterialTheme.colorScheme.onPrimaryContainer
+            tint = colorScheme.onPrimaryContainer
         )
 
 
