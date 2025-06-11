@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
@@ -27,6 +28,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -58,6 +60,8 @@ import com.example.str3ky.toMinutes
 fun AchievementScreen() {
 
     AchievementScreenContent()
+
+
 }
 
 @Composable
@@ -70,73 +74,73 @@ fun AchievementScreenContent(viewModel: AchievementViewModel = hiltViewModel()) 
     }
     var showDialog by remember { mutableStateOf(false) }
     var selectedAchievement by remember { mutableStateOf<Achievement?>(null) }
-    Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.Top),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (user != null) {
 
-            ProgressDisplayComponent(
-                title = "Total Hour Spent",
-                innertext = (user!!.totalHoursSpent.toMinutes() / 60).toString()
-            )
-            Spacer(modifier = Modifier.size(16.dp))
-            ProgressDisplayComponent(
-                title = "Highest Streak",
-                innertext = user!!.longestStreak.toString()
-            )
-           if (achievementsFiltered.isNotEmpty()) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    horizontalAlignment = Alignment.Start,
-                ) {
-                    Text(
-                        text = "Achievements Unlocked",
-                        style = TextStyle(
-                            fontSize = 18.sp,
-                            lineHeight = 28.sp,
-                            color = colorScheme.onPrimary,
-                        )
-                    )
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(4),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp),
-
-                        ) {
-                        items(
-                            achievementsFiltered.size,
-                        ) { user ->
-                            RewardItems(achievementsFiltered[user],
-                                onClick = {
-                                    selectedAchievement = achievementsFiltered[user]
-                                    showDialog = true
-                                }
-                            )
-                        }
-
-                    }
-                }
+    if(user!=null) {
+        when (user!!.achievementsUnlocked.isEmpty()) {
+            true ->
+            {
+              LazyVerticalGrid(
+                  columns = GridCells.Fixed(4),
+              ) {
+                  item(span = {
+                      GridItemSpan(maxLineSpan)
+                  }){
+                     Column  {
+                          ProgressDisplayComponent(
+                              title = "Total Hour Spent",
+                              innertext = (user!!.totalHoursSpent.toMinutes() / 60).toString()
+                          )
+                          Spacer(modifier = Modifier.size(16.dp))
+                          ProgressDisplayComponent(
+                              title = "Highest Streak",
+                              innertext = user!!.longestStreak.toString()
+                          )
+                      }
+                  }
+                  items(
+                      achievementsFiltered.size,
+                  ) { user ->
+                      RewardItems(achievementsFiltered[user],
+                          onClick = {
+                              selectedAchievement = achievementsFiltered[user]
+                              showDialog = true
+                          }
+                      )
+                  }
+              }
             }
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalAlignment = Alignment.Start,
-            ) {
-                Text(
-                    text = "Achievements Locked",
-                    style = TextStyle(
-                        fontSize = 18.sp,
-                        lineHeight = 28.sp,
-                        color = colorScheme.onPrimary,
-                    )
-                )
+            false -> {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(4),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
 
                     ) {
+                    item(span = {
+                        GridItemSpan(maxLineSpan)
+                    }){
+                      Column  {
+                            ProgressDisplayComponent(
+                                title = "Total Hour Spent",
+                                innertext = (user!!.totalHoursSpent.toMinutes() / 60).toString()
+                            )
+                            Spacer(modifier = Modifier.size(16.dp))
+                            ProgressDisplayComponent(
+                                title = "Highest Streak",
+                                innertext = user!!.longestStreak.toString()
+                            )
+                        }
+                    }
+                    item(span = {
+                        GridItemSpan(maxLineSpan)
+                    }){
+                        Text(
+                            text = "Achievements Locked",
+                            style = TextStyle(
+                                fontSize = 18.sp,
+                                lineHeight = 28.sp,
+                                color = colorScheme.onPrimary,
+                            )
+                        )
+                    }
                     items(
                         achievements.size,
                     ) { user ->
@@ -150,12 +154,12 @@ fun AchievementScreenContent(viewModel: AchievementViewModel = hiltViewModel()) 
 
                 }
             }
-
-        } else {
-            Text(text = "Loading...")
         }
-
     }
+    else{
+        Text(text = "Loading...")
+    }
+
     if (showDialog && selectedAchievement != null) {
         RewardsDialog(
             onDismissRequest = { showDialog = false },

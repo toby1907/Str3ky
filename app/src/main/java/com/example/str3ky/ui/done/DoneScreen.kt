@@ -58,7 +58,6 @@ fun CompletedScreen(
     Scaffold(
         content = {
 
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
