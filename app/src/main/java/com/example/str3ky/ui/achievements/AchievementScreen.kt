@@ -69,23 +69,23 @@ fun AchievementScreenContent(viewModel: AchievementViewModel = hiltViewModel()) 
 
     val user by viewModel.user.collectAsState()
     val achievements by viewModel.achievements.collectAsState()
-    val achievementsFiltered = achievements.filter {
-        it.isUnlocked
-    }
+
+
     var showDialog by remember { mutableStateOf(false) }
     var selectedAchievement by remember { mutableStateOf<Achievement?>(null) }
 
     if(user!=null) {
-        when (user!!.achievementsUnlocked.isEmpty()) {
-            true ->
-            {
+
               LazyVerticalGrid(
-                  columns = GridCells.Fixed(4),
+                  columns = GridCells.Fixed(3),
+                  modifier = Modifier
+                      .padding(top = 8.dp, start = 4.dp)
               ) {
                   item(span = {
                       GridItemSpan(maxLineSpan)
                   }){
-                     Column  {
+                     Column(horizontalAlignment = Alignment.CenterHorizontally,
+                         verticalArrangement = Arrangement.Center)  {
                           ProgressDisplayComponent(
                               title = "Total Hour Spent",
                               innertext = (user!!.totalHoursSpent.toMinutes() / 60).toString()
@@ -97,64 +97,54 @@ fun AchievementScreenContent(viewModel: AchievementViewModel = hiltViewModel()) 
                           )
                       }
                   }
+                  item(span = {
+                      GridItemSpan(maxLineSpan)
+                  }){
+                      Text(
+                          text = "Achievements UnLocked",
+                          style = TextStyle(
+                              fontSize = 18.sp,
+                              lineHeight = 28.sp,
+                              color = colorScheme.onPrimary,
+                          )
+                      )
+                  }
                   items(
-                      achievementsFiltered.size,
+                      achievements.size,
                   ) { user ->
-                      RewardItems(achievementsFiltered[user],
+                      RewardItems(achievements[user],
                           onClick = {
-                              selectedAchievement = achievementsFiltered[user]
+                              selectedAchievement = achievements[user]
+                              showDialog = true
+                          }
+                      )
+                  }
+                  item(span = {
+                      GridItemSpan(maxLineSpan)
+                  }){
+                      Text(
+                          text = "Achievements Locked",
+                          style = TextStyle(
+                              fontSize = 18.sp,
+                              lineHeight = 28.sp,
+                              color = colorScheme.onPrimary,
+                          )
+                      )
+                  }
+                  items(
+                      achievements.size,
+                  ) { user ->
+                      RewardItems(achievements[user],
+                          onClick = {
+                              selectedAchievement = achievements[user]
                               showDialog = true
                           }
                       )
                   }
               }
-            }
-            false -> {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
 
-                    ) {
-                    item(span = {
-                        GridItemSpan(maxLineSpan)
-                    }){
-                      Column  {
-                            ProgressDisplayComponent(
-                                title = "Total Hour Spent",
-                                innertext = (user!!.totalHoursSpent.toMinutes() / 60).toString()
-                            )
-                            Spacer(modifier = Modifier.size(16.dp))
-                            ProgressDisplayComponent(
-                                title = "Highest Streak",
-                                innertext = user!!.longestStreak.toString()
-                            )
-                        }
-                    }
-                    item(span = {
-                        GridItemSpan(maxLineSpan)
-                    }){
-                        Text(
-                            text = "Achievements Locked",
-                            style = TextStyle(
-                                fontSize = 18.sp,
-                                lineHeight = 28.sp,
-                                color = colorScheme.onPrimary,
-                            )
-                        )
-                    }
-                    items(
-                        achievements.size,
-                    ) { user ->
-                        RewardItems(achievements[user],
-                            onClick = {
-                                selectedAchievement = achievements[user]
-                                showDialog = true
-                            }
-                        )
-                    }
 
-                }
-            }
-        }
+
     }
     else{
         Text(text = "Loading...")
@@ -258,16 +248,16 @@ fun RewardItems(reward: Achievement = DEFAULT, onClick: () -> Unit) {
         Text(
             text = reward.name,
             style = TextStyle(
-                fontSize = 18.sp,
-                lineHeight = 28.sp,
+                fontSize = 16.sp,
+
                 color = colorScheme.secondaryContainer,
             )
         )
         Text(
             text = reward.chanceInPercent.toString(),
             style = TextStyle(
-                fontSize = 18.sp,
-                lineHeight = 28.sp,
+                fontSize = 16.sp,
+
                 color = colorScheme.secondaryContainer,
 
             )
