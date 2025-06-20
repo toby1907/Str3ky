@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import com.example.str3ky.core.notification.TimerServiceManager
+import com.example.str3ky.minutesToHours
 import com.example.str3ky.repository.GoalRepositoryImpl
 import com.example.str3ky.repository.UserRepositoryImpl
 import com.example.str3ky.ui.achievements.checkAchievements
@@ -373,17 +374,21 @@ class CountdownTimerManager @Inject constructor(
                     val goalWithId = goal.copy(id = goalId)
 
                 }
-                Log.d("DayHourSpentFromSession", "${sessionDurationMinutes}")
+                Log.d("DayHourSpentFromSession", "$sessionDurationMinutes")
             }
 
 
             val user = userRepository.getUser().first()
-            val updatedTotalHours = user[0].totalHoursSpent + (sessionDurationMinutes / 60) // Add to total hours
-            val updatedUser = user[0].copy(totalHoursSpent = updatedTotalHours) // Create a new user with updated data
-            userRepository.save(updatedUser) // Update the user in the database
+            val previousTotalHours = user[0].totalHoursSpent
+            val sessionDurationInHours = minutesToHours(sessionDurationMinutes)
+            val currentTotalHours = previousTotalHours + sessionDurationInHours
+          //  val updatedTotalHours = user[0].totalHoursSpent.plus(sessionDurationMinutes/60) // Add to total hours
+            val updatedUser = user[0].copy(totalHoursSpent = currentTotalHours) // Create a new user with updated data
+            userRepository.update(updatedUser) // Update the user in the database
             checkAndUnlockAchievements(updatedUser) // Check for new achievements
             timerServiceManager.stopTimerService()
-            Log.d("updateduser","$updatedUser")
+            Log.d("UserINCountdown,", "${user[0]}")
+            Log.d("updatedUser","${updatedUser.totalHoursSpent}")
         }
     }
 

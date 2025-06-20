@@ -2,23 +2,19 @@ package com.example.str3ky.ui.done
 
 import android.util.Log
 import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.graphics.toArgb
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.str3ky.data.DayProgress
-import com.example.str3ky.data.Goal
 import com.example.str3ky.repository.GoalRepositoryImpl
+import com.example.str3ky.repository.UserRepositoryImpl
 import com.example.str3ky.ui.add_challenge_screen.GoalScreenState
 import com.example.str3ky.ui.add_challenge_screen.GoalState
-import com.example.str3ky.ui.add_challenge_screen.UiEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -26,6 +22,7 @@ import javax.inject.Inject
 class DoneScreenViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val goalRepository: GoalRepositoryImpl,
+    private val userRepository: UserRepositoryImpl
 ) : ViewModel() {
 
     private var currentGoalIdFlow = MutableStateFlow(-1)
@@ -40,15 +37,9 @@ class DoneScreenViewModel @Inject constructor(
         GoalScreenState()
     )
 
-    private val _frequency = mutableStateOf(
-        GoalScreenState()
-    )
-    private val _focusTime = mutableStateOf(
-        GoalScreenState()
-    )
-    var sessionDurationState = mutableStateOf(
-        0L
-    )
+    private val _frequency = mutableStateOf(GoalScreenState())
+    private val _focusTime = mutableStateOf(GoalScreenState())
+    var sessionDurationState = mutableStateOf(0L)
         private set
 
     private val _goalCompleted = mutableStateOf(false)
@@ -68,8 +59,15 @@ class DoneScreenViewModel @Inject constructor(
         private set
     var dayHourSpent = mutableStateOf(0L)
         private set
+    private var currentUserId: Int? = null
 
     init {
+
+        viewModelScope.launch {
+            userRepository.getUser().collect{ user ->
+                currentUserId = user.first().id
+
+            }}
         savedStateHandle.get<Int>("goalId")?.let { goalId ->
 
             if (goalId != -1) {
@@ -102,6 +100,13 @@ class DoneScreenViewModel @Inject constructor(
                           goalState.value = goalState.value.copy(
                               goal = goal
                           )
+                        }
+
+
+                      if(goal != null)  {
+                            currentUserId?.let { userId ->
+                                updateUserLongestStreakIfNeeded(userId, goal.progress)
+                            }
                         }
 
 
@@ -159,6 +164,53 @@ sessionDurationState.value = sessionDuration
         }
 
         return maxStreak
+    }
+
+
+    private fun updateUserLongestStreakIfNeeded(userId: Int, allUserGoalsProgress: List<DayProgress>) {
+        viewModelScope.launch {
+            try {
+                // 1. Get the current User object
+                // Assuming userRepository.getUserById() returns a Flow<User?>
+                val currentUser = userRepository.getUser().first().firstOrNull()
+
+                if (currentUser == null) {
+                    Log.e("StreakUpdate", "User not found with ID: $userId")
+                    return@launch
+                }
+
+                // 2. Call your streakCalculator function
+                // This assumes your streakCalculator should operate on the combined progress
+                // of all goals if the longestStreak is a global user property.
+                // If longestStreak is per-goal, then you'd pass the specific goal's progress.
+                val calculatedMaxStreak = streakCalculator(allUserGoalsProgress)
+                Log.d("StreakUpdate", "Calculated max streak for user $userId: $calculatedMaxStreak")
+
+                // 3. Compare and update if the new streak is longer
+                if (calculatedMaxStreak > currentUser.longestStreak) {
+                    val updatedUser = currentUser.copy(longestStreak = calculatedMaxStreak)
+                    Log.d(
+                        "StreakUpdate",
+                        "Updating user $userId longest streak from ${currentUser.longestStreak} to $calculatedMaxStreak"
+                    )
+
+                    // 4. Save the updated User object
+                    userRepository.update(updatedUser) // Assumes updateUser is a suspend function
+                    Log.d("StreakUpdate", "User $userId longest streak persisted.")
+
+                    // Optionally, you might want to trigger achievement checks here
+                    // checkAndUnlockAchievements(updatedUser)
+                } else {
+                    Log.d(
+                        "StreakUpdate",
+                        "No update needed for user $userId longest streak. Current: ${currentUser.longestStreak}, Calculated: $calculatedMaxStreak"
+                    )
+                }
+
+            }catch (e: Exception) {
+                Log.e("StreakUpdate", "Error updating longest streak for user $userId: ${e.message}", e)
+            }
+        }
     }
 
 }

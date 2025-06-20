@@ -79,7 +79,8 @@ fun AchievementScreenContent(viewModel: AchievementViewModel = hiltViewModel()) 
               LazyVerticalGrid(
                   columns = GridCells.Fixed(3),
                   modifier = Modifier
-                      .padding(top = 8.dp, start = 4.dp)
+                      .padding(top = 8.dp, start = 4.dp, bottom = 8.dp),
+                  verticalArrangement = Arrangement.spacedBy(8.dp)
               ) {
                   item(span = {
                       GridItemSpan(maxLineSpan)
@@ -88,26 +89,30 @@ fun AchievementScreenContent(viewModel: AchievementViewModel = hiltViewModel()) 
                          verticalArrangement = Arrangement.Center)  {
                           ProgressDisplayComponent(
                               title = "Total Hour Spent",
-                              innertext = (user!!.totalHoursSpent.toMinutes() / 60).toString()
+                              innertext = (user!!.totalHoursSpent).toString()
                           )
                           Spacer(modifier = Modifier.size(16.dp))
                           ProgressDisplayComponent(
                               title = "Highest Streak",
                               innertext = user!!.longestStreak.toString()
                           )
+                         Spacer(modifier = Modifier.size(16.dp))
                       }
                   }
                   item(span = {
                       GridItemSpan(maxLineSpan)
                   }){
-                      Text(
-                          text = "Achievements UnLocked",
-                          style = TextStyle(
-                              fontSize = 18.sp,
-                              lineHeight = 28.sp,
-                              color = colorScheme.onPrimary,
+
+                          Text(
+                              text = "Achievements UnLocked",
+                              style = TextStyle(
+                                  fontSize = 16.sp,
+                                  lineHeight = 24.sp,
+                                  color = colorScheme.onPrimary,
+                              )
                           )
-                      )
+
+
                   }
                   items(
                       achievements.size,
@@ -118,19 +123,32 @@ fun AchievementScreenContent(viewModel: AchievementViewModel = hiltViewModel()) 
                               showDialog = true
                           }
                       )
+
                   }
                   item(span = {
                       GridItemSpan(maxLineSpan)
                   }){
-                      Text(
-                          text = "Achievements Locked",
-                          style = TextStyle(
-                              fontSize = 18.sp,
-                              lineHeight = 28.sp,
-                              color = colorScheme.onPrimary,
-                          )
-                      )
+
+                    Spacer(modifier = Modifier.size(16.dp))
+
+
                   }
+                  item(span = {
+                      GridItemSpan(maxLineSpan)
+                  }){
+
+                          Text(
+                              text = "Achievements Locked",
+                              style = TextStyle(
+                                  fontSize = 16.sp,
+                                  lineHeight = 24.sp,
+                                  color = colorScheme.onPrimary,
+                              )
+                          )
+
+
+                  }
+
                   items(
                       achievements.size,
                   ) { user ->
@@ -181,8 +199,8 @@ private fun ProgressDisplayComponent(title: String, innertext: String) {
         Text(
             text = title,
             style = TextStyle(
-                fontSize = 18.sp,
-                lineHeight = 28.sp,
+                fontSize = 16.sp,
+                lineHeight = 24.sp,
                 color = colorScheme.onPrimary,
             )
         )
@@ -204,8 +222,8 @@ private fun ProgressDisplayComponent(title: String, innertext: String) {
                     modifier = Modifier.align(Alignment.Center),
                     text = innertext,
                     style = TextStyle(
-                        fontSize = 20.sp,
-                        lineHeight = 28.sp,
+                        fontSize = 16.sp,
+                        lineHeight = 24.sp,
                         color = colorScheme.onPrimary,
                     )
                 )
@@ -218,7 +236,8 @@ private fun ProgressDisplayComponent(title: String, innertext: String) {
 @Composable
 fun RewardItems(reward: Achievement = DEFAULT, onClick: () -> Unit) {
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+        horizontalAlignment = Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier.clickable { onClick() }
     ) {
 
@@ -226,7 +245,7 @@ fun RewardItems(reward: Achievement = DEFAULT, onClick: () -> Unit) {
         Box(
             Modifier
                 .border(width = 2.dp, color = colorScheme.secondaryContainer)
-                .padding(2.dp)
+                .padding(4.dp)
                 .width(81.dp)
                 .height(81.dp)
         ) {
@@ -248,15 +267,15 @@ fun RewardItems(reward: Achievement = DEFAULT, onClick: () -> Unit) {
         Text(
             text = reward.name,
             style = TextStyle(
-                fontSize = 16.sp,
+                fontSize = 12.sp,
 
                 color = colorScheme.secondaryContainer,
             )
         )
         Text(
-            text = reward.chanceInPercent.toString(),
+            text = reward.chanceInPercent.toString()+"/100",
             style = TextStyle(
-                fontSize = 16.sp,
+                fontSize = 12.sp,
 
                 color = colorScheme.secondaryContainer,
 

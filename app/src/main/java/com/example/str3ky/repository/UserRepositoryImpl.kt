@@ -19,5 +19,7 @@ class UserRepositoryImpl(private val userDao: UserDao) : UserRepository {
         userDao.deleteUsers(*users)
     }
 
-
+    override suspend fun update(user: User) {
+        userDao.updateUser(user)
+    }
 }

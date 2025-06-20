@@ -11,6 +11,10 @@ fun millisecondsToMinutes(milliseconds: Long): Int {
     return TimeUnit.MILLISECONDS.toMinutes(milliseconds).toInt()
 }
 
+fun minutesToHours(minutes: Long): Long{
+    return minutes / 60L
+}
+
 
 fun getDayOfWeek(abbreviation: String): com.example.str3ky.data.DayOfWeek {
     return when (abbreviation) {
