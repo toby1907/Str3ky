@@ -17,6 +17,7 @@ import com.example.str3ky.ui.add_challenge_screen.AddChallengeScreen
 import com.example.str3ky.ui.add_challenge_screen.AddScreenViewModel
 import com.example.str3ky.ui.done.CompletedScreen
 import com.example.str3ky.ui.main.HomeScreen
+import com.example.str3ky.ui.main.components.Menu
 import com.example.str3ky.ui.progress.ProgressScreen
 import com.example.str3ky.ui.session.SessionScreen
 import com.example.str3ky.ui.session.SessionSettingsScreen
@@ -211,7 +212,8 @@ fun MyAppNavHost(
            route = ACHIEVEMENTS_SCREEN ,
 
         ){
-            AchievementScreen()
+          AchievementScreen()
+
         }
     }
 
