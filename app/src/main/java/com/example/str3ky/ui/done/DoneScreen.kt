@@ -37,9 +37,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.example.str3ky.R
 import com.example.str3ky.theme.Str3kyTheme
 import com.example.str3ky.toMinutes
+import com.example.str3ky.ui.nav.PROGRESS_SCREEN
+import com.example.str3ky.ui.nav.SESSION_SCREEN
 import kotlin.text.count
 import kotlin.text.toFloat
 
@@ -48,6 +51,7 @@ import kotlin.text.toFloat
 fun CompletedScreen(
     viewModel: DoneScreenViewModel = hiltViewModel(),
     sessionDuration:Long,
+    nav: NavHostController
 ) {
     val nameText = remember {
         mutableStateOf("30")
@@ -78,7 +82,7 @@ fun CompletedScreen(
 
                 Spacer(modifier = Modifier.padding(24.dp))
 
-                Timer(viewModel = viewModel,sessionDuration = sessionDuration)
+                Timer(viewModel = viewModel,sessionDuration = sessionDuration,nav = nav)
             }
 
 
@@ -90,7 +94,8 @@ fun CompletedScreen(
 private fun Timer(
     modifier: Modifier = Modifier,
     viewModel: DoneScreenViewModel,
-    sessionDuration: Long
+    sessionDuration: Long,
+    nav: NavHostController
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(48.dp),
@@ -205,11 +210,11 @@ private fun Timer(
                 color = MaterialTheme.colorScheme.primary,
                 shape = RoundedCornerShape(size = 4.dp)
             ),
-            onClick = { /*TODO*/ }) {
+            onClick = { nav.navigate(PROGRESS_SCREEN+"?goalId=${viewModel.currentGoalId.value}") }) {
             Text(text = "Continue",
                 style = TextStyle(
                     fontSize = 16.sp,
-                    color = MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     textAlign = TextAlign.Center,
                 )
                 )
@@ -218,12 +223,3 @@ private fun Timer(
     }
 }
 
-
-@Preview(showBackground = true)
-@Composable
-fun CompletePreview() {
-
-    Str3kyTheme {
-        CompletedScreen(sessionDuration = 10000L)
-    }
-}

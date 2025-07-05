@@ -5,10 +5,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -59,7 +62,7 @@ fun SessionSettingsScreen(nav: NavHostController) {
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 navigationIcon = {
-                    IconButton(onClick = { /*TODO*/ }) {
+                    IconButton(onClick = { nav.popBackStack()  }) {
                         Icon(
                             painter = painterResource(id = R.drawable.arrow_back_icon),
                             contentDescription = ""
@@ -158,7 +161,7 @@ fun SessionSettingsScreen(nav: NavHostController) {
                     Checkbox(
                         checked = viewModel.skipBreak.value,
                         onCheckedChange = { viewModel.toggleSkipBreak()},
-                        enabled = viewModel.numBreaks.intValue != 0
+                        enabled = viewModel.timerValue.value >= 30,
                     )
 
                     Text(
@@ -174,10 +177,11 @@ fun SessionSettingsScreen(nav: NavHostController) {
                         )
                     )
                 }
-Spacer(modifier = Modifier.padding(32.dp))
+Spacer(modifier = Modifier.padding(16.dp))
              Button(modifier = Modifier
-                 .width(190.dp)
-                 .height(40.dp)
+                 .fillMaxWidth()
+                 .padding(horizontal = 48.dp)
+                 .defaultMinSize(minHeight =48.dp)
                  .background(
                      color = MaterialTheme.colorScheme.primary,
                      shape = RoundedCornerShape(size = 10.dp)
@@ -193,6 +197,7 @@ Spacer(modifier = Modifier.padding(32.dp))
                  ) {
                      Icon(painter = painterResource(id = R.drawable.add_icon),
                          contentDescription ="add button" ,
+                         modifier = Modifier.size(32.dp),
                          tint = MaterialTheme.colorScheme.onPrimary,)
                      Text(text = "Start focus session",style = TextStyle(
                          fontSize = 14.sp,

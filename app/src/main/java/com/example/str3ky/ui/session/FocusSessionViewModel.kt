@@ -150,19 +150,6 @@ class FocusSessionViewModel @Inject constructor(
         sessionDuration.value = adjustedTimerValue / numSessions.intValue
     }
 
-  /*  fun initializeCountdownTimerManger(){
-
-        viewModelScope.launch {
-            // Update the value
-            countdownTimerManager.currentTimeTargetInMillisFlow.value = (sessionDuration.value * 60000).toLong()
-            countdownTimerManager.timeLeftInMillisFlow.value = (sessionDuration.value * 60000).toLong()
-            countdownTimerManager._sessionTotalDurationMillis.value = (sessionDuration.value * 60000).toLong()
-            Log.d("sessionInVMScope", "${(sessionDuration.value * 60000).toLong()}")
-            Log.d("sessionDuration", "${(sessionDuration.value * 60000).toLong()}")
-            countdownTimerManager.sessionDuration.value = sessionDuration.value
-        }
-    }
-    */
 
 
 }

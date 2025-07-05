@@ -206,13 +206,13 @@ fun MyAppNavHost(
 
             ){entry ->
             val sessionDuration = entry.arguments?.getLong("sessionDuration") ?: 0L
-            CompletedScreen(sessionDuration = sessionDuration)
+            CompletedScreen(sessionDuration = sessionDuration, nav = appState.navController)
         }
         composable(
            route = ACHIEVEMENTS_SCREEN ,
 
         ){
-          AchievementScreen()
+          AchievementScreen(navController = appState.navController)
 
         }
     }

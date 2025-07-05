@@ -30,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -46,6 +47,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
@@ -55,17 +57,50 @@ import com.example.str3ky.R
 import com.example.str3ky.data.Achievement
 import com.example.str3ky.data.User.Companion.DEFAULT
 import com.example.str3ky.toMinutes
+import com.example.str3ky.ui.nav.MAIN_SCREEN
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AchievementScreen() {
+fun AchievementScreen(navController: NavHostController,) {
 
-    AchievementScreenContent()
+    Scaffold (
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Achievements",
+                        style = TextStyle(
+                            fontSize = 24.sp,
+                            color = colorScheme.onPrimary,
+                        )
+                    )
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = { navController.navigate(MAIN_SCREEN) }
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.arrow_back_icon),
+                            contentDescription = "Back arrow"
+                            )
+
+                        }
+                }
+            )
+        }
+
+    ){ padding ->
+        AchievementScreenContent( modifier = Modifier.padding(padding))
+    }
+
+
 
 
 }
 
 @Composable
-fun AchievementScreenContent(viewModel: AchievementViewModel = hiltViewModel()) {
+fun AchievementScreenContent(modifier: Modifier = Modifier,
+    viewModel: AchievementViewModel = hiltViewModel()) {
 
     val user by viewModel.user.collectAsState()
     val achievements by viewModel.achievements.collectAsState()
@@ -78,7 +113,7 @@ fun AchievementScreenContent(viewModel: AchievementViewModel = hiltViewModel()) 
 
               LazyVerticalGrid(
                   columns = GridCells.Fixed(3),
-                  modifier = Modifier
+                  modifier = modifier
                       .padding(top = 8.dp, start = 4.dp, bottom = 8.dp),
                   verticalArrangement = Arrangement.spacedBy(8.dp)
               ) {

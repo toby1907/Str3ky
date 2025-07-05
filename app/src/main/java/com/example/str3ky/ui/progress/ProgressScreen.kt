@@ -47,6 +47,7 @@ import com.example.str3ky.R
 import com.example.str3ky.convertCalendarDayOfWeekToStrings
 import com.example.str3ky.data.DayProgress
 import com.example.str3ky.ui.nav.ADD_CHALLENGE_SCREEN
+import com.example.str3ky.ui.nav.MAIN_SCREEN
 import com.example.str3ky.ui.nav.SESSION_SETTINGS_SCREEN
 import java.util.Calendar
 
@@ -59,12 +60,20 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
         topBar = {
             TopAppBar(title = { Text(text = viewModel.goalName.value.goalName) },
                 navigationIcon = {
-                    Icon(modifier = Modifier.padding(8.dp),
-                        painter = painterResource(id = R.drawable.arrow_back_icon),
-                        contentDescription = "",)
+                    IconButton(
+                        onClick = {
+                            nav.navigate(MAIN_SCREEN)
+                        }
+                    ) {
+                        Icon(modifier = Modifier.padding(8.dp),
+                            painter = painterResource(id = R.drawable.arrow_back_icon),
+                            contentDescription = "",)
+                    }
+
                 },
                 actions = {
-                    IconButton(onClick = {
+                    // Deactivated the Edit functionality cause its causing bug
+                  /*  IconButton(onClick = {
 
                         nav.navigate(
                             "$ADD_CHALLENGE_SCREEN?goalId=${viewModel.goalId.value}&goalColor=${viewModel.goalColor.value}"
@@ -72,7 +81,7 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
                         Log.d("ProgressScreen", "ProgressScreen: ${viewModel.goalId.value}")
                     }) {
                         Text("Edit")
-                    }
+                    }*/
 
                 }
 
