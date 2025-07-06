@@ -210,7 +210,7 @@ private fun Timer(
                 color = MaterialTheme.colorScheme.primary,
                 shape = RoundedCornerShape(size = 4.dp)
             ),
-            onClick = { nav.navigate(PROGRESS_SCREEN+"?goalId=${viewModel.currentGoalId.value}") }) {
+            onClick = { nav.navigate(PROGRESS_SCREEN+"?goalId=${viewModel.currentGoalId.value}&progressDate=${viewModel.progressDate.value}") }) {
             Text(text = "Continue",
                 style = TextStyle(
                     fontSize = 16.sp,

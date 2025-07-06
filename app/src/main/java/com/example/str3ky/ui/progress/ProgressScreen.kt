@@ -1,14 +1,22 @@
 package com.example.str3ky.ui.progress
 
 import android.util.Log
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -89,38 +97,66 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
         },
         content = {
             val currentDate = System.currentTimeMillis()
-
-            val dummyProgress = listOf(
-                DayProgress(currentDate, false,30), // Today (completed)
-                DayProgress(
-                    System.currentTimeMillis() - 2 * 24 * 60 * 60 * 1000,
-                    true,
-                    30
-                ), // Two days ago (completed)
-                DayProgress(
-                    System.currentTimeMillis() - 4 * 24 * 60 * 60 * 1000,
-                    false,
-                    30
-                ), // Four days ago (not completed)
-                // ... add more dummy entries as needed
-            ).sortedBy { dayProgres ->
-                dayProgres.date
-            }
             val progress = viewModel.progress.value.sortedBy { dayProgres ->
                 dayProgres.date
             }
+            val showMessage = viewModel.showAttemptedNotCompletedMessage.value
+            val remainingTime = viewModel.remainingTimeToCompleteDailyGoal.value
 
-            TableProgress(
-                progress = progress,
-                modifier = Modifier.padding(it),
-                currentDate = currentDate,
-                nav = nav,
-                viewModel = viewModel
-            )
+
+            Column(
+              modifier = Modifier.padding(it),
+              horizontalAlignment = Alignment.CenterHorizontally
+          )  {
+              AttemptedNotCompletedMessage(
+                  isVisible = showMessage,
+                  remainingTimeMinutes = remainingTime // Pass the remaining time
+              )
+              Spacer(modifier = Modifier.height(16.dp))
+                TableProgress(
+                    progress = progress,
+                    modifier = Modifier,
+                    currentDate = currentDate,
+                    nav = nav,
+                    viewModel = viewModel
+                )
+            }
         }
     )
 }
 
+@Composable
+fun AttemptedNotCompletedMessage(
+    isVisible: Boolean,
+    remainingTimeMinutes: Long
+) {
+    // Animation 1: Simple Fade In/Out using AnimatedVisibility
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = fadeIn(animationSpec = tween(durationMillis = 500, delayMillis = 200)) +
+                slideInVertically(
+                    initialOffsetY = { fullHeight -> fullHeight / 4 },
+                    animationSpec = tween(durationMillis = 500, delayMillis = 200)
+                ),
+        exit = fadeOut(animationSpec = tween(durationMillis = 300)) +
+                slideOutVertically(
+                    targetOffsetY = { fullHeight -> fullHeight / 4 },
+                    animationSpec = tween(durationMillis = 300)
+                )
+    ) {
+        Text(
+            text = "Keep going! Just $remainingTimeMinutes min more to complete today's goal.",
+            color = MaterialTheme.colorScheme.onPrimary, // Or a distinct color
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 14.sp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp, horizontal = 16.dp)
+            // .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f), RoundedCornerShape(8.dp)) // Optional background
+            // .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp)) // Optional border
+        )
+    }
+}
 @Composable
 fun TableProgress(
     progress: List<DayProgress>,
@@ -190,7 +226,7 @@ fun TableProgress(
                         .padding(bottom = 8.dp)
                         .clickable {
                             if (isActive && !dayProgress.completed) {
-                                nav.navigate(SESSION_SETTINGS_SCREEN+"?goalId=${viewModel.goalId.value}&focusTime=${viewModel.focusTime.value.totalTime}&progressDate=${dayProgress.date}")
+                                nav.navigate(SESSION_SETTINGS_SCREEN + "?goalId=${viewModel.goalId.value}&focusTime=${viewModel.focusTime.value.totalTime}&progressDate=${dayProgress.date}")
                             }
                         }
                 ) {

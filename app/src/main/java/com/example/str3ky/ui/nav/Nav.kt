@@ -95,14 +95,19 @@ fun MyAppNavHost(
                 noteColor = color
             ) { route, popUp -> appState.navigateAndPopUp(route, popUp) }
         }
-        composable(route = "$PROGRESS_SCREEN?goalId={goalId}",
+        composable(route = "$PROGRESS_SCREEN?goalId={goalId}&progressDate={progressDate}",
             arguments = listOf(
                 navArgument(
                     name = "goalId"
                 ) {
                     type = NavType.IntType
                     defaultValue = -1
-                }
+                }, navArgument(
+                        name = "progressDate"
+                        ) {
+                    type = NavType.LongType
+                    defaultValue = 0L
+                },
                 ),
             deepLinks = listOf(
                 navDeepLink {
