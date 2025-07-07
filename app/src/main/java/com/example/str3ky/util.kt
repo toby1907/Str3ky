@@ -1,6 +1,7 @@
 package com.example.str3ky
 
 import com.example.str3ky.data.DayOfWeek.*
+import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 fun minutesToMilliseconds(minutes: Int): Long {
@@ -11,10 +12,19 @@ fun millisecondsToMinutes(milliseconds: Long): Int {
     return TimeUnit.MILLISECONDS.toMinutes(milliseconds).toInt()
 }
 
-fun minutesToHours(minutes: Long): Long{
-    return minutes / 60L
+fun minutesToHours(minutes: Long): Double {
+    return minutes.toDouble() / 60
 }
+fun Long.toStartOfDayMillis(): Long {
+    val calendar = Calendar.getInstance()
+    calendar.timeInMillis = this // Set the calendar to the given timestamp
+    calendar.set(Calendar.HOUR_OF_DAY, 0)
+    calendar.set(Calendar.MINUTE, 0)
+    calendar.set(Calendar.SECOND, 0)
+    calendar.set(Calendar.MILLISECOND, 0)
+    return calendar.timeInMillis
 
+}
 
 fun getDayOfWeek(abbreviation: String): com.example.str3ky.data.DayOfWeek {
     return when (abbreviation) {

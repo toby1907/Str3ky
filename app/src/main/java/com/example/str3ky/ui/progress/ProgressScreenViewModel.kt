@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.str3ky.data.DayProgress
 import com.example.str3ky.data.Goal
 import com.example.str3ky.repository.GoalRepositoryImpl
+import com.example.str3ky.toStartOfDayMillis
 import com.example.str3ky.ui.add_challenge_screen.GoalScreenState
 import com.example.str3ky.ui.add_challenge_screen.GoalState
 import com.example.str3ky.ui.add_challenge_screen.UiEvent
@@ -74,10 +75,18 @@ class ProgressScreenViewModel @Inject constructor(
 
 
     init {
+        val passedProgressDate = savedStateHandle.get<Long>("progressDate")
+        if (passedProgressDate != null && passedProgressDate != 0L) {
+            _activeProgressDate.value = passedProgressDate
+        } else {
+            _activeProgressDate.value = getStartOfDayInMillis()
+        }
+
         savedStateHandle.get<Int>("goalId")?.let { goalId ->
 
             if (goalId != -1) {
                 _goalId.value = goalId
+                this.currentGoalId = goalId
                 viewModelScope.launch {
                     goalRepository.getGoal(goalId).collect { goal ->
                         _goalState.value = _goalState.value.copy(goal = goal)
@@ -101,19 +110,15 @@ class ProgressScreenViewModel @Inject constructor(
                     }
                 }
 
+            } else{
+
+                _showAttemptedNotCompletedMessage.value = false
+                _remainingTimeToCompleteDailyGoal.value = 0L
             }
         }
 
-        val passedProgressDate = savedStateHandle.get<Long>("progressDate")
-        if (passedProgressDate != null && passedProgressDate != 0L) {
-            _activeProgressDate.value = passedProgressDate
-        } else {
-            _activeProgressDate.value = getStartOfDayInMillis()
-        }
 
-        if (_goalState.value.goal != null && _activeProgressDate.value != null) {
-            checkAttemptedNotCompletedStatus()
-        }
+
     }
 
     private fun getStartOfDayInMillis(): Long {
@@ -126,14 +131,20 @@ class ProgressScreenViewModel @Inject constructor(
     }
 
     private fun checkAttemptedNotCompletedStatus() {
-        val currentGoal = _goalState.value.goal
-        val dateToCheck = _activeProgressDate.value
+        val currentActualGoal = _goalState.value.goal
+        // Ensure dateToCheck is also normalized to the start of the day if it isn't already.
+        // _activeProgressDate should ideally already store the start of the day from getStartOfDayInMillis()
+        // or from a DatePicker that gives you a normalized date.
+        val dateToCheckNormalized = _activeProgressDate.value?.toStartOfDayMillis() // Normalize it to be safe
 
-        if (currentGoal != null && dateToCheck != null) {
-            val dayProgressEntry = currentGoal.progress.find { it.date == dateToCheck }
+        if (currentActualGoal != null && dateToCheckNormalized != null) {
+            // Normalize the date in each DayProgress entry before comparing
+            val dayProgressEntry = currentActualGoal.progress.find {
+                it.date.toStartOfDayMillis() == dateToCheckNormalized
+            }
 
             if (dayProgressEntry != null) {
-                val dailyTargetMinutes = currentGoal.focusSet.toMinutes()
+                val dailyTargetMinutes = currentActualGoal.focusSet.toMinutes()
                 val hoursSpentMinutes = dayProgressEntry.hoursSpent.toMinutes()
 
                 if (hoursSpentMinutes > 0 && !dayProgressEntry.completed && hoursSpentMinutes < dailyTargetMinutes) {
@@ -149,7 +160,7 @@ class ProgressScreenViewModel @Inject constructor(
             }
         } else {
             _showAttemptedNotCompletedMessage.value = false
-            _remainingTimeToCompleteDailyGoal.value = 0L // Ensure it's reset if no goal/date
+            _remainingTimeToCompleteDailyGoal.value = 0L
         }
     }
 

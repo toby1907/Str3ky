@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import com.example.str3ky.core.notification.TimerServiceManager
+import com.example.str3ky.millisecondsToMinutes
 import com.example.str3ky.minutesToHours
 import com.example.str3ky.repository.GoalRepositoryImpl
 import com.example.str3ky.repository.UserRepositoryImpl
@@ -343,17 +344,21 @@ class CountdownTimerManager @Inject constructor(
     fun onDayChallengeCompleted(change: Boolean) {
         _timerState.value = TimerState.Initial
         val sessionDurationMinutes = sessionDuration.value.toLong()
-
+Log.d("sessionDurationMinutes","${minutesToHours(sessionDuration.value.toLong())}")
         scope.launch {
             val progressList = dayProgressFlow.value.map { dayProgress ->
+                val hoursSpent = dayProgress.hoursSpent + minutesToHours(sessionDurationMinutes).toLong()
                 if (dayProgress.date == progressDate.value) {
+
                     dayProgress.copy(
                         date = progressDate.value,
-                        completed = if (dayProgress.hoursSpent >= sessionDurationMinutes) change else false,
-                        hoursSpent = dayProgress.hoursSpent + sessionDurationMinutes
+                        completed = if (dayProgress.hoursSpent >= minutesToHours(sessionDurationMinutes) ) change else false,
+                        hoursSpent = hoursSpent
                     )
+
                 } else dayProgress
             }
+
             // Check if the last DayProgress is completed
             val lastDayProgress = progressList.lastOrNull()
             if (lastDayProgress?.completed == true) {
@@ -367,7 +372,7 @@ class CountdownTimerManager @Inject constructor(
                         progress = progressList,
                         durationInfo = Duration(
                             countdownTime = goal.durationInfo.countdownTime + sessionDurationMinutes,
-                            isCompleted = sessionDurationMinutes == goal.focusSet
+                            isCompleted = sessionDurationMinutes == millisecondsToMinutes(goal.focusSet).toLong()
                         )
                     )
                 ){goalId ->
@@ -383,7 +388,7 @@ class CountdownTimerManager @Inject constructor(
             val sessionDurationInHours = minutesToHours(sessionDurationMinutes)
             val currentTotalHours = previousTotalHours + sessionDurationInHours
           //  val updatedTotalHours = user[0].totalHoursSpent.plus(sessionDurationMinutes/60) // Add to total hours
-            val updatedUser = user[0].copy(totalHoursSpent = currentTotalHours) // Create a new user with updated data
+            val updatedUser = user[0].copy(totalHoursSpent = currentTotalHours.toLong()) // Create a new user with updated data
             userRepository.update(updatedUser) // Update the user in the database
             checkAndUnlockAchievements(updatedUser) // Check for new achievements
             timerServiceManager.stopTimerService()

@@ -157,22 +157,6 @@ class SessionScreenViewModel
             }
         }
 
-       /* // Listen to timerFinishedEvent
-        viewModelScope.launch {
-            countdownTimerManager.timerFinishedEvent.collectLatest { isSessionCompleted ->
-                Log.d("SessionScreenViewModel", "timerFinishedEvent received. isSessionCompleted: $isSessionCompleted")
-                if (isSessionCompleted) {
-
-                    countdownTimerManager.popUpLambda?.invoke(
-                        DONE_SCREEN + "?goalId=${countdownTimerManager.goalId}&sessionDuration=${countdownTimerManager._sessionTotalDurationMillis.value}&progressDate=${countdownTimerManager.progressDate.value}",
-                        SESSION_SCREEN
-                    )
-                } else {
-
-                    Log.d("SessionScreenViewModel", "Phase completed")
-                }
-            }
-        }*/
     }
 
     fun startSession(openAndPopUp: (String, String) -> Unit) {
@@ -205,36 +189,7 @@ class SessionScreenViewModel
         }
     }
 
-    /*private fun onDayChallengeCompleted(change: Boolean) {
-        dayHourSpent.value = sessionDuration.value.toLong()
-        viewModelScope.launch {
-            val progressList = dayProgressFlow.value.map {
-                if (it.date == progressDate.value) {
-                    it.copy(
-                        date = progressDate.value,
-                        completed = if(it.hoursSpent>=sessionDuration.value.toLong()) change else false,
-                        hoursSpent = it.hoursSpent + dayHourSpent.value
-                    )
-                } else it
 
-            }
-            _goalState.value.goal?.let {
-
-                goalRepository.save(
-                    it.copy(
-                        progress = progressList,
-                        durationInfo = Duration(
-                            countdownTime = it.durationInfo.countdownTime + sessionDuration.value.toLong(),
-                            isCompleted = sessionDuration.value.toLong() == it.focusSet
-                        ) )
-                )
-                Log.d("DayHourSpentFromSession","${dayHourSpent.value}")
-            }
-
-        }
-
-
-    }*/
 
 
 }
