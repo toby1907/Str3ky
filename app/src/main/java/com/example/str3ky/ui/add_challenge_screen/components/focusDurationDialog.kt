@@ -86,7 +86,7 @@ fun FocusDurationDialog(
                                 letterSpacing = 0.1.sp,
                             ),
                             singleLine = true,
-                            value = millisecondsToMinutes(viewModel.focusTime.value.focusTime.countdownTime).toString(),
+                            value = millisecondsToMinutes(viewModel.focusTime.value.focusTime).toString(),
                             onValueChange = {
                             },
                             readOnly = true
@@ -124,7 +124,7 @@ fun DialogTrailingIcon(viewModel: AddScreenViewModel) {
             IconButton(
                 modifier = Modifier.background(MaterialTheme.colorScheme.primary, shape = RoundedCornerShape(topEnd = 4.dp, topStart = 0.dp, bottomEnd = 4.dp, bottomStart = 0.dp)),
                 onClick = {
-                    if (millisecondsToMinutes(viewModel.focusTime.value.focusTime.countdownTime) <240) {
+                    if (millisecondsToMinutes(viewModel.focusTime.value.focusTime) <240) {
                          viewModel.timerIncrement()
                     }
                 },
@@ -145,7 +145,7 @@ fun DialogTrailingIcon(viewModel: AddScreenViewModel) {
                 modifier = Modifier.background(MaterialTheme.colorScheme.primary,
                     shape = RoundedCornerShape(topEnd = 4.dp, topStart = 0.dp, bottomEnd = 4.dp, bottomStart = 0.dp)),
                 onClick = {
-                    if (millisecondsToMinutes(viewModel.focusTime.value.focusTime.countdownTime) >10) {
+                    if (millisecondsToMinutes(viewModel.focusTime.value.focusTime) >10) {
                         viewModel.timerDecrement()
                     }
                           },

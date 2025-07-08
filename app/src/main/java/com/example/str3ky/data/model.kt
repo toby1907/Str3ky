@@ -75,7 +75,7 @@ data class Duration(
 data class User(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "user_id") var id: Int? = null,
-    @ColumnInfo(name = "total_hours_spent") val totalHoursSpent: Long,
+    @ColumnInfo(name = "total_hours_spent") val totalHoursSpent: Double,
     @ColumnInfo(name = "achievements_unlocked") val achievementsUnlocked: List<Achievement>,
     @ColumnInfo(name = "longest_streak") val longestStreak:Int,
     // Other user-specific fields

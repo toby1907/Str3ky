@@ -111,7 +111,7 @@ fun calculateStreakAchievementProgress(user: User, achievement: Achievement): Ac
 
 fun calculateTimeAchievementProgress(user: User, achievement: Achievement): Achievement {
     val hoursNeeded = achievement.hoursRemaining ?: 0
-    val hoursRemaining = (hoursNeeded - user.totalHoursSpent).coerceAtLeast(0)
+    val hoursRemaining = (hoursNeeded - user.totalHoursSpent).coerceAtLeast(0.0)
     return achievement.copy(hoursRemaining = hoursRemaining.toInt())
 }
 fun getUpdatedAchievements(user: User): List<Achievement> {

@@ -343,16 +343,16 @@ class CountdownTimerManager @Inject constructor(
 
     fun onDayChallengeCompleted(change: Boolean) {
         _timerState.value = TimerState.Initial
-        val sessionDurationMinutes = sessionDuration.value.toLong()
+        val sessionDurationMinutes = sessionDuration.value * _totalNoOfSessions.value.toLong()
 Log.d("sessionDurationMinutes","${minutesToHours(sessionDuration.value.toLong())}")
         scope.launch {
             val progressList = dayProgressFlow.value.map { dayProgress ->
-                val hoursSpent = dayProgress.hoursSpent + minutesToHours(sessionDurationMinutes).toLong()
+                val hoursSpent = dayProgress.hoursSpent + minutesToHours(sessionDurationMinutes * _totalNoOfSessions.value ).toLong()
                 if (dayProgress.date == progressDate.value) {
 
                     dayProgress.copy(
                         date = progressDate.value,
-                        completed = if (dayProgress.hoursSpent >= minutesToHours(sessionDurationMinutes) ) change else false,
+                        completed = if (dayProgress.hoursSpent >= minutesToHours(sessionDurationMinutes * _totalNoOfSessions.value.toLong()) ) change else false,
                         hoursSpent = hoursSpent
                     )
 
@@ -371,8 +371,8 @@ Log.d("sessionDurationMinutes","${minutesToHours(sessionDuration.value.toLong())
                     goal.copy(
                         progress = progressList,
                         durationInfo = Duration(
-                            countdownTime = goal.durationInfo.countdownTime + sessionDurationMinutes,
-                            isCompleted = sessionDurationMinutes == millisecondsToMinutes(goal.focusSet).toLong()
+                            countdownTime = sessionDurationMinutes * _totalNoOfSessions.value ,
+                            isCompleted = sessionDurationMinutes * _totalNoOfSessions.value == millisecondsToMinutes(goal.focusSet).toLong()
                         )
                     )
                 ){goalId ->
@@ -385,15 +385,16 @@ Log.d("sessionDurationMinutes","${minutesToHours(sessionDuration.value.toLong())
 
             val user = userRepository.getUser().first()
             val previousTotalHours = user[0].totalHoursSpent
-            val sessionDurationInHours = minutesToHours(sessionDurationMinutes)
+            val sessionDurationInHours = minutesToHours(sessionDurationMinutes * _totalNoOfSessions.value )
             val currentTotalHours = previousTotalHours + sessionDurationInHours
           //  val updatedTotalHours = user[0].totalHoursSpent.plus(sessionDurationMinutes/60) // Add to total hours
-            val updatedUser = user[0].copy(totalHoursSpent = currentTotalHours.toLong()) // Create a new user with updated data
+            val updatedUser = user[0].copy(totalHoursSpent = currentTotalHours) // Create a new user with updated data
             userRepository.update(updatedUser) // Update the user in the database
             checkAndUnlockAchievements(updatedUser) // Check for new achievements
             timerServiceManager.stopTimerService()
-            Log.d("UserINCountdown,", "${user[0]}")
+            Log.d("UserInCountdown", "$sessionDurationInHours")
             Log.d("updatedUser","${updatedUser.totalHoursSpent}")
+
         }
     }
 

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "b90f7f0eb97fd83bfe9b129dbf9ce0cc",
+    "identityHash": "eca409003e6bb8fe8566fd7adcb066b9",
     "entities": [
       {
         "tableName": "goal",
@@ -98,7 +98,7 @@
       },
       {
         "tableName": "user_table",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id` INTEGER PRIMARY KEY AUTOINCREMENT, `total_hours_spent` INTEGER NOT NULL, `achievements_unlocked` TEXT NOT NULL, `longest_streak` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`user_id` INTEGER PRIMARY KEY AUTOINCREMENT, `total_hours_spent` REAL NOT NULL, `achievements_unlocked` TEXT NOT NULL, `longest_streak` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -109,7 +109,7 @@
           {
             "fieldPath": "totalHoursSpent",
             "columnName": "total_hours_spent",
-            "affinity": "INTEGER",
+            "affinity": "REAL",
             "notNull": true
           },
           {
@@ -138,7 +138,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b90f7f0eb97fd83bfe9b129dbf9ce0cc')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eca409003e6bb8fe8566fd7adcb066b9')"
     ]
   }
 }

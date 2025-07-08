@@ -61,7 +61,7 @@ val status = dataStore.checkFirstEntryStatus()
             if (status == false) {
                 dataStore.updateEntryStatus()
                 val user = User(
-                    totalHoursSpent = 0L,
+                    totalHoursSpent = 0.0,
                     achievementsUnlocked = emptyList(),
                     longestStreak = 0
                 )

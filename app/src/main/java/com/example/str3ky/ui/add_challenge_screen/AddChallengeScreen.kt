@@ -328,7 +328,7 @@ fun AddChallengeScreen(
                         modifier = Modifier.size(
                             width = 240.dp, height = 56.dp
                         ),
-                        value = millisecondsToMinutes(viewModel.focusTime.value.focusTime.countdownTime).toString() + " mins",
+                        value = millisecondsToMinutes(viewModel.focusTime.value.focusTime).toString() + " mins",
                         onValueChange = {
 
                         },

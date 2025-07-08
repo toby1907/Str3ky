@@ -3,7 +3,6 @@ package com.example.str3ky.ui.add_challenge_screen
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.animation.core.copy
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -14,7 +13,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.str3ky.convertToDayOfWeekSet
 import com.example.str3ky.data.DayOfWeek
 import com.example.str3ky.data.DayProgress
-import com.example.str3ky.data.Duration
 import com.example.str3ky.data.Goal
 import com.example.str3ky.data.InvalidGoalException
 import com.example.str3ky.data.Occurrence
@@ -47,6 +45,7 @@ class AddScreenViewModel @Inject constructor(
     private val _goalName = mutableStateOf(GoalScreenState())
     private val _frequency = mutableStateOf(GoalScreenState())
     private val _focusTime = mutableStateOf(GoalScreenState())
+    private val _durationInfo = mutableStateOf(GoalScreenState())
     private val _alarmTime = mutableStateOf(GoalScreenState())
     private val _startDate = mutableStateOf(GoalScreenState())
     private val _goalState = mutableStateOf(GoalState())
@@ -76,6 +75,7 @@ class AddScreenViewModel @Inject constructor(
     val eventFlow = _eventFlow.asSharedFlow()
     val selectedDays: State<List<String>> = _selectedDays
     val description: State<GoalScreenState> = _description
+    val durationInfo: State<GoalScreenState> = _durationInfo
 
 
     private var recentlyGoal: Goal? = null
@@ -99,7 +99,7 @@ class AddScreenViewModel @Inject constructor(
                             _frequency.value = _frequency.value.copy(frequency = goal.occurrence)
                         }
                         if (goal != null) {
-                            _focusTime.value = _focusTime.value.copy(focusTime = goal.durationInfo)
+                            _focusTime.value = _focusTime.value.copy(focusTime = goal.focusSet)
                         }
                         if (goal != null) {
                             _alarmTime.value = _alarmTime.value.copy(alarmTime = goal.alarmTime)
@@ -213,7 +213,7 @@ class AddScreenViewModel @Inject constructor(
                         val goal = Goal(
                             id = currentGoalId,
                             title = goalName.value.goalName,
-                            durationInfo = focusTime.value.focusTime,
+                            durationInfo = durationInfo.value.durationInfo,
                             occurrence = frequency.value.frequency,
                             alarmTime = alarmTime.value.alarmTime,
                             startDate = startDate.value.startDate,
@@ -222,7 +222,7 @@ class AddScreenViewModel @Inject constructor(
                             completed = goalCompleted.value,
                             noOfDays = noOfDays.value.noOfDays,
                             userId = userId.value,
-                            focusSet = focusTime.value.focusTime.countdownTime,
+                            focusSet = focusTime.value.focusTime,
                             description = description.value.description,
                         )
                          goalRepository.save(goal){goalId ->
@@ -315,19 +315,15 @@ class AddScreenViewModel @Inject constructor(
 
     fun timerIncrement() {
         _focusTime.value = _focusTime.value.copy(
-            focusTime = Duration(
-                isCompleted = false,
-                countdownTime = focusTime.value.focusTime.countdownTime + minutesToMilliseconds(10)
-            )
+            focusTime = focusTime.value.focusTime + minutesToMilliseconds(10)
+
         )
     }
 
     fun timerDecrement() {
         _focusTime.value = _focusTime.value.copy(
-            focusTime = Duration(
-                isCompleted = false,
-                countdownTime = focusTime.value.focusTime.countdownTime - minutesToMilliseconds(10)
-            )
+            focusTime = focusTime.value.focusTime - minutesToMilliseconds(10)
+
         )
     }
 

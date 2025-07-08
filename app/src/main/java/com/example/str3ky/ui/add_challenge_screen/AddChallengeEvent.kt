@@ -14,7 +14,7 @@ sealed class AddChallengeEvent {
     data class ChangeColor(val color: Int) : AddChallengeEvent()
     data class DeleteGoal(val goal: Goal?) : AddChallengeEvent()
     data class Error(val message:String) : AddChallengeEvent()
-    data class FocusTime(val focusDuration:Duration) : AddChallengeEvent()
+    data class FocusTime(val focusDuration:Long) : AddChallengeEvent()
     data class AlarmTime(val time:Long) : AddChallengeEvent()
     data class Frequency(val frequency: OccurrenceSelection) : AddChallengeEvent()
     data class Completed(val completed: Boolean) : AddChallengeEvent()

@@ -15,14 +15,15 @@ data class GoalScreenState(
         DayOfWeek.THURSDAY, DayOfWeek.FRIDAY,
         DayOfWeek.SATURDAY,
         DayOfWeek.SUNDAY,)),
-    val focusTime: Duration = Duration(isCompleted = false, countdownTime = 0L),
+    val durationInfo: Duration = Duration(isCompleted = false, countdownTime = 0L),
     val alarmTime: Long? = null,
     val startDate: Long = System.currentTimeMillis(),
     val progress: List<DayProgress> = emptyList(),
     val noOfDays: Int = 30,
     val userId: Int = 0,
     val totalTime: Long = 30,
-    val description: String = ""
+    val description: String = "",
+    val focusTime: Long = 0L
 )
 
 data class GoalState(

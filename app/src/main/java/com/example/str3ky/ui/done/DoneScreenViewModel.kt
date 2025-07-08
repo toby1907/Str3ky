@@ -84,7 +84,7 @@ class DoneScreenViewModel @Inject constructor(
                             _frequency.value = _frequency.value.copy(frequency = goal.occurrence)
                         }
                         if (goal!=null){
-                            _focusTime.value = _focusTime.value.copy(focusTime = goal.durationInfo)
+                            _focusTime.value = _focusTime.value.copy(focusTime = goal.focusSet)
                         }
 
                         if (goal!=null){
