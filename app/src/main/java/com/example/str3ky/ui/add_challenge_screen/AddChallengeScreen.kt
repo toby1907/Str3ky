@@ -2,19 +2,25 @@ package com.example.str3ky.ui.add_challenge_screen
 
 import android.app.TimePickerDialog
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonColors
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -136,10 +142,11 @@ fun AddChallengeScreen(
                         modifier = Modifier.padding(start = 4.dp)
                     )
                     {
-                        IconButton(
+                        OutlinedButton(
                             onClick = {
                                 viewModel.onEvent(AddChallengeEvent.SaveNote)
                                       },
+                            shape = RoundedCornerShape(4.dp)
                         ) {
                             Text(text = "Save",
                                 color = MaterialTheme.colorScheme.onPrimary,)
@@ -188,9 +195,8 @@ fun AddChallengeScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedTextField(
-                        modifier = Modifier.size(
-                            width = 240.dp, height = 56.dp
-                        ),
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
                         value = viewModel.goalName.value.goalName,
                         onValueChange = {
                             viewModel.onEvent(AddChallengeEvent.EnteredName(it))
@@ -201,9 +207,8 @@ fun AddChallengeScreen(
 
                         )
                     Box {
-                        OutlinedTextField(modifier = Modifier.size(
-                            width = 240.dp, height = 56.dp
-                        ),
+                        OutlinedTextField(
+                            modifier = Modifier.width(72.dp),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.Transparent,
                                 unfocusedTextColor = Color.Transparent
@@ -267,9 +272,7 @@ fun AddChallengeScreen(
 
                     val noOfDays = viewModel.frequency.value.frequency.selectedDays.size
                     OutlinedTextField(
-                        modifier = Modifier.size(
-                            width = 240.dp, height = 56.dp
-                        ),
+                        modifier = Modifier.weight(1f),
                         value = if (viewModel.frequency.value.frequency.selectedDays.size==7||viewModel.frequency.value.frequency.selectedDays.isEmpty()) {
                            "Daily"
                         } else {
@@ -293,9 +296,7 @@ fun AddChallengeScreen(
                         },
                     )
                     OutlinedTextField(
-                        modifier = Modifier.size(
-                            width = 240.dp, height = 56.dp
-                        ),
+                        modifier = Modifier.width(126.dp),
                         value = if(viewModel.alarmTime.value.alarmTime!=null){
                             val selectedDate = Date(viewModel.alarmTime.value.alarmTime!!)
                             formatter.format(selectedDate) }else "Not Set",
@@ -325,9 +326,7 @@ fun AddChallengeScreen(
 
                 ) {
                     OutlinedTextField(
-                        modifier = Modifier.size(
-                            width = 240.dp, height = 56.dp
-                        ),
+                        modifier = Modifier.weight(1f),
                         value = millisecondsToMinutes(viewModel.focusTime.value.focusTime).toString() + " mins",
                         onValueChange = {
 
@@ -348,9 +347,7 @@ fun AddChallengeScreen(
 
                         )
                     OutlinedTextField(
-                        modifier = Modifier.size(
-                            width = 240.dp, height = 56.dp
-                        ),
+                        modifier = Modifier.width(126.dp),
                         value = viewModel.noOfDays.value.noOfDays.toString(),
                         onValueChange = {
                         },
@@ -372,6 +369,7 @@ fun AddChallengeScreen(
                 }
                 Spacer(modifier = Modifier.padding(top = 16.dp))
                 TransparentHintTextField(
+                    modifier = Modifier.height(144.dp),
                     text = viewModel.description.value.description,
                     hint = "Add details",
                     onValueChange = {
