@@ -63,12 +63,12 @@ data class OccurrenceSelection(
 data class DayProgress(
     var date: Long, // date in milliseconds
     var completed: Boolean, // whether the goal was completed on this day
-    var hoursSpent: Long,
+    var hoursSpent: Double,
 )
 
 data class Duration(
     val isCompleted: Boolean,
-    var countdownTime: Long
+    var countdownTime: Double
 )
 
 @Entity(tableName = "user_table")

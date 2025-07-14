@@ -10,6 +10,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.str3ky.data.DayProgress
 import com.example.str3ky.data.Goal
 import com.example.str3ky.repository.GoalRepositoryImpl
+import com.example.str3ky.toMinutes
 import com.example.str3ky.toStartOfDayMillis
 import com.example.str3ky.ui.add_challenge_screen.GoalScreenState
 import com.example.str3ky.ui.add_challenge_screen.GoalState
@@ -167,6 +168,7 @@ class ProgressScreenViewModel @Inject constructor(
     // You might want a public method to manually refresh this if underlying data can change
     // from an external source or another part of the app not directly tied to init.
     fun refreshDailyAttemptStatus() {
+        //todo: this function should be call on onresume()
         // Could re-fetch activeProgressDate or assume it's correctly set
         // For simplicity, just re-run the check with current values:
         checkAttemptedNotCompletedStatus()

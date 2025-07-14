@@ -188,11 +188,15 @@ private fun Timer(
                         shape = RoundedCornerShape(size = 8.dp)
                     )
             ) {
-                val textValue = if ((viewModel.goal.value.goal?.focusSet?.toMinutes()?.minus(viewModel.dayHourSpent.value)
-                        ?: 0) <= 0 ){
+
+
+                val dayHourSpent = viewModel.dayHourSpent.collectAsState().value.toMinutes()
+                val textValue = if (((viewModel.goal.value.goal?.focusSet?.toMinutes()
+                        ?.minus(dayHourSpent)) ?: 0) <= 5
+                ){
                     "You've met your daily goal!"
                 }
-                else "${viewModel.goal.value.goal?.focusSet?.toMinutes()?.minus(viewModel.dayHourSpent.value)?:0} remaining to meet your daily goal"
+                else "${viewModel.goal.value.goal?.focusSet?.toMinutes()?.minus(dayHourSpent)?:0} remaining to meet your daily goal"
                 Text(
                     text = textValue,
                     style = TextStyle(

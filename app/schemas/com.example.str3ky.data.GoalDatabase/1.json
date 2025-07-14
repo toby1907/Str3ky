@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "eca409003e6bb8fe8566fd7adcb066b9",
+    "identityHash": "0e3f374e23d82e57dfb1a627a6aa7fc2",
     "entities": [
       {
         "tableName": "goal",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`goal_id` INTEGER PRIMARY KEY AUTOINCREMENT, `title` TEXT NOT NULL, `Description` TEXT NOT NULL, `duration` INTEGER NOT NULL, `occurrence` TEXT NOT NULL, `alarm_time` INTEGER, `start_date` INTEGER NOT NULL, `progress` TEXT NOT NULL, `color` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `focus_time` INTEGER NOT NULL, `no_of_days` INTEGER NOT NULL, `user_id` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`goal_id` INTEGER PRIMARY KEY AUTOINCREMENT, `title` TEXT NOT NULL, `Description` TEXT NOT NULL, `duration` REAL NOT NULL, `occurrence` TEXT NOT NULL, `alarm_time` INTEGER, `start_date` INTEGER NOT NULL, `progress` TEXT NOT NULL, `color` INTEGER NOT NULL, `completed` INTEGER NOT NULL, `focus_time` INTEGER NOT NULL, `no_of_days` INTEGER NOT NULL, `user_id` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -29,7 +29,7 @@
           {
             "fieldPath": "durationInfo",
             "columnName": "duration",
-            "affinity": "INTEGER",
+            "affinity": "REAL",
             "notNull": true
           },
           {
@@ -138,7 +138,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eca409003e6bb8fe8566fd7adcb066b9')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0e3f374e23d82e57dfb1a627a6aa7fc2')"
     ]
   }
 }

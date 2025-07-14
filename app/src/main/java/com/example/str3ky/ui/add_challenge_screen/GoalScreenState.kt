@@ -15,7 +15,7 @@ data class GoalScreenState(
         DayOfWeek.THURSDAY, DayOfWeek.FRIDAY,
         DayOfWeek.SATURDAY,
         DayOfWeek.SUNDAY,)),
-    val durationInfo: Duration = Duration(isCompleted = false, countdownTime = 0L),
+    val durationInfo: Duration = Duration(isCompleted = false, countdownTime = 0.0),
     val alarmTime: Long? = null,
     val startDate: Long = System.currentTimeMillis(),
     val progress: List<DayProgress> = emptyList(),

@@ -54,14 +54,14 @@ class ProgressConverter {
 
 class DurationTypeConverter {
     @TypeConverter
-    fun fromDuration(duration: Duration): Long {
-        // Convert Duration to Long (e.g., using countdownTime)
+    fun fromDuration(duration: Duration): Double {
+        // Convert Duration to Double (e.g., using countdownTime)
         return duration.countdownTime
     }
 
     @TypeConverter
-    fun toDuration(countdownTime: Long): Duration {
-        // Convert Long to Duration
+    fun toDuration(countdownTime: Double): Duration {
+        // Convert Double to Duration
         return Duration(isCompleted = false, countdownTime = countdownTime)
     }
 }

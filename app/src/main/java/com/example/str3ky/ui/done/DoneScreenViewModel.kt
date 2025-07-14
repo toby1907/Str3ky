@@ -2,6 +2,8 @@ package com.example.str3ky.ui.done
 
 import android.util.Log
 import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -55,10 +57,12 @@ class DoneScreenViewModel @Inject constructor(
    val progress: State<List<DayProgress>> = _progress
     val goalCompleted: State<Boolean> = _goalCompleted
     val goal: State<GoalState> = goalState
-    var progressDate = mutableStateOf(0L)
-        private set
-    var dayHourSpent = mutableStateOf(0L)
-        private set
+    private var progressDateFlow = MutableStateFlow(0L)
+    val progressDate = progressDateFlow
+    private val dayHourSpentFlow = MutableStateFlow(
+        0.0
+    )
+    val dayHourSpent: StateFlow<Double> = dayHourSpentFlow
     private var currentUserId: Int? = null
 
     init {
@@ -128,9 +132,7 @@ sessionDurationState.value = sessionDuration
                     viewModelScope.launch {
                         goalRepository.getGoal(currentGoalId.value).collect { goal ->
                             if (goal != null) {
-                                dayHourSpent.value =
-                                    goal.progress.find { it.date == progressDate.value }?.hoursSpent
-                                        ?: 0L
+                                dayHourSpentFlow.value = goal.progress.find { it.date == progressDate.value }?.hoursSpent ?: 0.0
 
 
                             }
