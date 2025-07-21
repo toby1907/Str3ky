@@ -23,9 +23,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material3.DividerDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
@@ -34,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -203,14 +206,16 @@ fun HomeScreen(
                     content = {
                         items(state.goals) { goal ->
 
-                            ChallengListItem(goal,
-                                navController,
-                                onDeleteClick = {
-                                    viewModel.onEvent(GoalsEvent.DeleteGoal(goal))
-                                    scope.launch {
-                                     viewModel.showDeleteSnackbar()
+
+                                ChallengListItem(
+                                    goal,
+                                    navController,
+                                    onDeleteClick = {
+                                        viewModel.onEvent(GoalsEvent.DeleteGoal(goal))
+                                        scope.launch {
+                                            viewModel.showDeleteSnackbar()
+                                        }
                                     }
-                                }
                                 )
 
                         }
@@ -225,107 +230,119 @@ fun HomeScreen(
 @Composable
 fun ChallengListItem(item: Goal, navController: NavHostController, onDeleteClick: () -> Unit) {
     val formatter = SimpleDateFormat("hh:mm a", Locale.getDefault())
-    ListItem(modifier = Modifier.clickable {
+ Column (verticalArrangement = Arrangement.spacedBy(4.dp),
+     horizontalAlignment = Alignment.CenterHorizontally)   {
+        ListItem(
+            modifier = Modifier.clickable {
 
-        navController.navigate(PROGRESS_SCREEN+"?goalId=${item.id}")
+                navController.navigate(PROGRESS_SCREEN + "?goalId=${item.id}")
 
 
-                                           },
-        headlineContent = {
+            },
+            headlineContent = {
 
-        Text(
-            text = item.title?:"",
-            color = MaterialTheme.colorScheme.primary
-        )
-
-    },
-        leadingContent = {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .background(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = CircleShape
-                    )
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .border(
-                        width = 3.dp,
-                        color = Color.Transparent,
-                        shape = CircleShape
-                    )
-
-            ) {
                 Text(
-                    text = if(item.title!="") "${item.title[0].uppercaseChar()}" else ""
+                    text = item.title ?: "",
+                    color = MaterialTheme.colorScheme.primary
                 )
-            }
-        },
-        supportingContent = {
-            Row (horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                verticalAlignment = Alignment.CenterVertically,){
-              Row(
-                 horizontalArrangement = Arrangement.spacedBy(8.dp,Alignment.Start),
-                  verticalAlignment = Alignment.CenterVertically
-              )  {
 
-                    Icon(
-                        painter = painterResource(id = R.drawable.arrow_up_circle_icon),
-                        contentDescription = ""
-                    )
+            },
+            leadingContent = {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = CircleShape
+                        )
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .border(
+                            width = 3.dp,
+                            color = Color.Transparent,
+                            shape = CircleShape
+                        )
+
+                ) {
                     Text(
-                        text = millisecondsToMinutes(item.focusSet).toString()+" mins",
-                        style = TextStyle(fontSize = 8.sp),
-                        color = MaterialTheme.colorScheme.onPrimary
+                        text = if (item.title != "") "${item.title[0].uppercaseChar()}" else ""
                     )
                 }
-                Row( horizontalArrangement = Arrangement.spacedBy(8.dp,Alignment.Start),
-                    verticalAlignment = Alignment.CenterVertically)  {
-                    Icon(
-                        painter = painterResource(id = R.drawable.calendar_icon),
-                        contentDescription = ""
-                    )
-                    val text = when(item.occurrence.dayOption.name){
-                        Occurrence.DAILY.name -> "Daily"
-                        Occurrence.DAILY_WITHOUT_WEEKEND.name -> ""
-                        Occurrence.CUSTOM.name ->  "${item.occurrence.selectedDays.size} days weekly"
-                        else -> ""
+            },
+            supportingContent = {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+
+                        Icon(
+                            painter = painterResource(id = R.drawable.arrow_up_circle_icon),
+                            contentDescription = ""
+                        )
+                        Text(
+                            text = millisecondsToMinutes(item.focusSet).toString() + " mins",
+                            style = TextStyle(fontSize = 8.sp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
                     }
-                    Text(
-                        text = text ,
-                        style = TextStyle(fontSize = 8.sp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.calendar_icon),
+                            contentDescription = ""
+                        )
+                        val text = when (item.occurrence.dayOption.name) {
+                            Occurrence.DAILY.name -> "Daily"
+                            Occurrence.DAILY_WITHOUT_WEEKEND.name -> ""
+                            Occurrence.CUSTOM.name -> "${item.occurrence.selectedDays.size} days weekly"
+                            else -> ""
+                        }
+                        Text(
+                            text = text,
+                            style = TextStyle(fontSize = 8.sp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.alert_icon),
+                            contentDescription = ""
+                        )
+
+                        Text(
+                            text = if (item.alarmTime != null) {
+                                val selectedDate = Date(item.alarmTime)
+                                formatter.format(selectedDate)
+                            } else "Not Set",
+                            style = TextStyle(fontSize = 8.sp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                 }
-                Row( horizontalArrangement = Arrangement.spacedBy(8.dp,Alignment.Start),
-                    verticalAlignment = Alignment.CenterVertically)  {
+            },
+            colors = ListItemDefaults.colors(
+                containerColor = Color.Transparent
+            ),
+            trailingContent = {
+                IconButton(onClick = onDeleteClick) {
                     Icon(
-                        painter = painterResource(id = R.drawable.alert_icon),
+                        imageVector = Icons.Default.Delete,
                         contentDescription = ""
                     )
-
-                    Text(
-                        text =  if(item.alarmTime!=null){
-                            val selectedDate = Date(item.alarmTime)
-                            formatter.format(selectedDate) }else "Not Set",
-                        style = TextStyle(fontSize = 8.sp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
                 }
             }
-        },
-        colors = ListItemDefaults.colors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        trailingContent = {
-            IconButton(onClick = onDeleteClick) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = ""
-                )
-            }
-        }
         )
+     HorizontalDivider(color = MaterialTheme.colorScheme.onSurface, thickness = 0.25.dp)
+    }
 }
 
 
