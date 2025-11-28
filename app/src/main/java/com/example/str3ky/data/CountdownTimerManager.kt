@@ -401,18 +401,21 @@ Log.d("sessionDurationMinutes","${minutesToHours(sessionDuration.value.toLong())
     }
 
     private fun checkAndUnlockAchievements(user: User) {
-
         val newAchievements = checkAchievements(user)
         if (newAchievements.isNotEmpty()) {
-            // Update the user's achievements list
-            val updatedUser = user.copy(achievementsUnlocked = user.achievementsUnlocked.plus(newAchievements).filter{
-                it.isUnlocked
-            } )
-            scope.launch {
-                userRepository.save(updatedUser)
+            // Combine existing achievements with newly unlocked ones, avoiding duplicates
+            val existingNames = user.achievementsUnlocked.map { it.name }.toSet()
+            val uniqueNewAchievements = newAchievements.filter { !existingNames.contains(it.name) }
+            
+            if (uniqueNewAchievements.isNotEmpty()) {
+                val updatedUser = user.copy(
+                    achievementsUnlocked = user.achievementsUnlocked + uniqueNewAchievements
+                )
+                scope.launch {
+                    userRepository.update(updatedUser)
+                }
+                Log.d("Achievements", "New achievements unlocked: $uniqueNewAchievements")
             }
-            // Optionally, notify the user about the new achievements
-            Log.d("Achievements", "New achievements unlocked: $newAchievements")
         }
     }
 
