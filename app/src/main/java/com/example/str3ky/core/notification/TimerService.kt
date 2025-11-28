@@ -21,9 +21,6 @@ import javax.inject.Inject
 class TimerService : Service() {
 
     @Inject
-    lateinit var serviceScope: CoroutineScope
-
-    @Inject
     lateinit var notificationHelper: DefaultNotificationHelper
 
     @Inject
