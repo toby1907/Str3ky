@@ -66,7 +66,6 @@ class DefaultNotificationHelper @Inject constructor(
         sessionDuration:Int,
         progressDate: Long
     ) {
-     //   val deepLink2 = Uri.parse("myapp://sessionscreen")
         val deepLink = Uri.parse("myapp://sessionscreen?goalId=${goalId}&totalSessions=${totalSessions}&sessionDuration=${sessionDuration}&progressDate=${progressDate}")
         val openTimerIntent = Intent(
             Intent.ACTION_VIEW,
@@ -82,9 +81,16 @@ class DefaultNotificationHelper @Inject constructor(
             currentPhase, timeLeftInMillis, timerRunning
         )
 
+        // Better display name for the phase
+        val phaseDisplayName = when (currentPhase) {
+            CountdownTimerManager.Phase.FOCUS_SESSION -> applicationContext.getString(R.string.focus_session)
+            CountdownTimerManager.Phase.BREAK -> applicationContext.getString(R.string.break_time)
+            CountdownTimerManager.Phase.COMPLETED -> applicationContext.getString(R.string.completed)
+        }
+
         val notificationUpdate = getBaseTimerServiceNotification()
             .setContentIntent(openTimerPendingIntent)
-            .setContentTitle(currentPhase.name)
+            .setContentTitle(phaseDisplayName)
             .setContentText(formatMillisecondsToTimeString(timeLeftInMillis))
             .addAction(
                 R.drawable.pause_24,
@@ -98,13 +104,6 @@ class DefaultNotificationHelper @Inject constructor(
                 Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             return
         }
         notificationManager.notify(TIMER_SERVICE_NOTIFICATION_ID, notificationUpdate)
@@ -118,7 +117,14 @@ class DefaultNotificationHelper @Inject constructor(
             currentPhase, timeLeftInMillis, timerRunning = false
         )
 
-        val title = currentPhase.name +
+        // Better display name for the phase
+        val phaseDisplayName = when (currentPhase) {
+            CountdownTimerManager.Phase.FOCUS_SESSION -> applicationContext.getString(R.string.focus_session)
+            CountdownTimerManager.Phase.BREAK -> applicationContext.getString(R.string.break_time)
+            CountdownTimerManager.Phase.COMPLETED -> applicationContext.getString(R.string.completed)
+        }
+
+        val title = phaseDisplayName +
                 " (" + applicationContext.getString(R.string.paused) + ")"
 
         val notificationUpdate = getBaseTimerServiceNotification()
@@ -136,13 +142,6 @@ class DefaultNotificationHelper @Inject constructor(
                 Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
             return
         }
         notificationManager.notify(RESUME_TIMER_NOTIFICATION_ID, notificationUpdate)

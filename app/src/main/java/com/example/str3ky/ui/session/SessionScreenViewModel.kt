@@ -111,21 +111,15 @@ class SessionScreenViewModel
 
                   if(countdownTimerManager.timerState.value==TimerState.Initial)  {
                         viewModelScope.launch {
-                            // Update the value
-                            countdownTimerManager.currentTimeTargetInMillisFlow.value =10000L
-                           //     (it * 60000).toLong()
-                            countdownTimerManager.timeLeftInMillisFlow.value = 10000L
-                           //     (it * 60000).toLong()
-                            countdownTimerManager._sessionTotalDurationMillis.value = 10000L
-                           //     (it * 60000).toLong()
+                            // Update the value - convert minutes to milliseconds
+                            val durationInMillis = (it * 60000).toLong()
+                            countdownTimerManager.currentTimeTargetInMillisFlow.value = durationInMillis
+                            countdownTimerManager.timeLeftInMillisFlow.value = durationInMillis
+                            countdownTimerManager._sessionTotalDurationMillis.value = durationInMillis
                             Log.d("sessionInVMScope", "$it")
                             Log.d("sessionDuration", "$it")
                             countdownTimerManager.sessionDuration.value = it
                         }
-
-                        /*    _countdownTimeMillis.value = _countdownTimeMillis.value.copy(
-                                countdownTimeMillis = (it * 60000).toLong()
-                            )*/
 
                         Log.d("sessionDuration", "$it")
                     }

@@ -110,6 +110,9 @@ fun AchievementScreenContent(modifier: Modifier = Modifier,
     var selectedAchievement by remember { mutableStateOf<Achievement?>(null) }
 
     if(user!=null) {
+        // Filter achievements into unlocked and locked lists
+        val unlockedAchievements = achievements.filter { it.isUnlocked }
+        val lockedAchievements = achievements.filter { !it.isUnlocked }
 
               LazyVerticalGrid(
                   columns = GridCells.Fixed(3),
@@ -124,7 +127,7 @@ fun AchievementScreenContent(modifier: Modifier = Modifier,
                          verticalArrangement = Arrangement.Center)  {
                           ProgressDisplayComponent(
                               title = "Total Hour Spent",
-                              innertext = (user!!.totalHoursSpent).toString()
+                              innertext = String.format("%.1f", user!!.totalHoursSpent)
                           )
                           Spacer(modifier = Modifier.size(16.dp))
                           ProgressDisplayComponent(
@@ -139,7 +142,7 @@ fun AchievementScreenContent(modifier: Modifier = Modifier,
                   }){
 
                           Text(
-                              text = "Achievements UnLocked",
+                              text = "Achievements Unlocked (${unlockedAchievements.size})",
                               style = TextStyle(
                                   fontSize = 16.sp,
                                   lineHeight = 24.sp,
@@ -149,16 +152,29 @@ fun AchievementScreenContent(modifier: Modifier = Modifier,
 
 
                   }
-                  items(
-                      achievements.size,
-                  ) { user ->
-                      RewardItems(achievements[user],
-                          onClick = {
-                              selectedAchievement = achievements[user]
-                              showDialog = true
-                          }
-                      )
-
+                  if (unlockedAchievements.isEmpty()) {
+                      item(span = {
+                          GridItemSpan(maxLineSpan)
+                      }) {
+                          Text(
+                              text = "No achievements unlocked yet. Keep going!",
+                              style = TextStyle(
+                                  fontSize = 14.sp,
+                                  lineHeight = 20.sp,
+                                  color = colorScheme.onPrimary.copy(alpha = 0.6f),
+                              ),
+                              modifier = Modifier.padding(vertical = 8.dp)
+                          )
+                      }
+                  } else {
+                      items(unlockedAchievements.size) { index ->
+                          RewardItems(unlockedAchievements[index],
+                              onClick = {
+                                  selectedAchievement = unlockedAchievements[index]
+                                  showDialog = true
+                              }
+                          )
+                      }
                   }
                   item(span = {
                       GridItemSpan(maxLineSpan)
@@ -173,7 +189,7 @@ fun AchievementScreenContent(modifier: Modifier = Modifier,
                   }){
 
                           Text(
-                              text = "Achievements Locked",
+                              text = "Achievements Locked (${lockedAchievements.size})",
                               style = TextStyle(
                                   fontSize = 16.sp,
                                   lineHeight = 24.sp,
@@ -184,12 +200,10 @@ fun AchievementScreenContent(modifier: Modifier = Modifier,
 
                   }
 
-                  items(
-                      achievements.size,
-                  ) { user ->
-                      RewardItems(achievements[user],
+                  items(lockedAchievements.size) { index ->
+                      RewardItems(lockedAchievements[index],
                           onClick = {
-                              selectedAchievement = achievements[user]
+                              selectedAchievement = lockedAchievements[index]
                               showDialog = true
                           }
                       )

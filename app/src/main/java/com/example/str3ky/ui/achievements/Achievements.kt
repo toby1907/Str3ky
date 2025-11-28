@@ -16,37 +16,37 @@ object Achievements {
         name = "Beginner Streak",
         chanceInPercent = 100,
         iconKey = IconKey.STAR,
-        daysRemaining = 3 // Initial days remaining
+        daysRemaining = 3 // Initial days remaining - 3 day streak needed
     )
     val NOVICE_STREAK = Achievement(
         name = "Novice Streak",
         chanceInPercent = 100,
         iconKey = IconKey.TV,
-        daysRemaining = 7 // Initial days remaining
+        daysRemaining = 7 // Initial days remaining - 7 day streak needed
     )
     val MASTER_STREAK = Achievement(
         name = "Master Streak",
         chanceInPercent = 100,
         iconKey = IconKey.PETS,
-        daysRemaining = 30 // Initial days remaining
+        daysRemaining = 30 // Initial days remaining - 30 day streak needed
     )
     val TIME_TRAVELER = Achievement(
         name = "Time Traveler",
         chanceInPercent = 100,
         iconKey = IconKey.GROUP,
-        hoursRemaining = 10 // Initial hours remaining
+        hoursRemaining = 10 // Initial hours remaining - 10 hours needed
     )
     val TIME_MASTER = Achievement(
         name = "Time Master",
         chanceInPercent = 100,
         iconKey = IconKey.CAKE,
-        hoursRemaining = 50 // Initial hours remaining
+        hoursRemaining = 50 // Initial hours remaining - 50 hours needed
     )
     val TIME_LORD = Achievement(
         name = "Time Lord",
         chanceInPercent = 100,
         iconKey = IconKey.BEVERAGE,
-        hoursRemaining = 100 // Initial hours remaining
+        hoursRemaining = 100 // Initial hours remaining - 100 hours needed
     )
 
     val allAchievements = listOf(
@@ -59,48 +59,43 @@ object Achievements {
     )
 }
 
+/**
+ * Checks for newly unlocked achievements based on user progress.
+ * Returns a list of newly unlocked achievements.
+ */
 fun checkAchievements(user: User): List<Achievement> {
-    val unlockedAchievements = mutableListOf<Achievement>()
-    val currentAchievements = user.achievementsUnlocked.toMutableList()
-    val updatedAchievements = mutableListOf<Achievement>()
+    val newlyUnlockedAchievements = mutableListOf<Achievement>()
+    val alreadyUnlockedNames = user.achievementsUnlocked.map { it.name }.toSet()
 
     // Streak-Based Achievements
-    val beginnerStreak = calculateStreakAchievementProgress(user, BEGINNER_STREAK)
-    val noviceStreak = calculateStreakAchievementProgress(user, NOVICE_STREAK)
-    val masterStreak = calculateStreakAchievementProgress(user, MASTER_STREAK)
-
-    if (user.longestStreak >= 3 && !currentAchievements.contains(BEGINNER_STREAK)) {
-        unlockedAchievements.add(beginnerStreak.copy(isUnlocked = true))
+    if (user.longestStreak >= 3 && !alreadyUnlockedNames.contains(BEGINNER_STREAK.name)) {
+        val achievement = calculateStreakAchievementProgress(user, BEGINNER_STREAK)
+        newlyUnlockedAchievements.add(achievement.copy(isUnlocked = true, daysRemaining = 0))
     }
-    if (user.longestStreak >= 7 && !currentAchievements.contains(NOVICE_STREAK)) {
-        unlockedAchievements.add(noviceStreak.copy(isUnlocked = true))
+    if (user.longestStreak >= 7 && !alreadyUnlockedNames.contains(NOVICE_STREAK.name)) {
+        val achievement = calculateStreakAchievementProgress(user, NOVICE_STREAK)
+        newlyUnlockedAchievements.add(achievement.copy(isUnlocked = true, daysRemaining = 0))
     }
-    if (user.longestStreak >= 30 && !currentAchievements.contains(MASTER_STREAK)) {
-        unlockedAchievements.add(masterStreak.copy(isUnlocked = true))
+    if (user.longestStreak >= 30 && !alreadyUnlockedNames.contains(MASTER_STREAK.name)) {
+        val achievement = calculateStreakAchievementProgress(user, MASTER_STREAK)
+        newlyUnlockedAchievements.add(achievement.copy(isUnlocked = true, daysRemaining = 0))
     }
 
     // Hours-Based Achievements
-    val timeTraveler = calculateTimeAchievementProgress(user, TIME_TRAVELER)
-    val timeMaster = calculateTimeAchievementProgress(user, TIME_MASTER)
-    val timeLord = calculateTimeAchievementProgress(user, TIME_LORD)
+    if (user.totalHoursSpent >= 10 && !alreadyUnlockedNames.contains(TIME_TRAVELER.name)) {
+        val achievement = calculateTimeAchievementProgress(user, TIME_TRAVELER)
+        newlyUnlockedAchievements.add(achievement.copy(isUnlocked = true, hoursRemaining = 0))
+    }
+    if (user.totalHoursSpent >= 50 && !alreadyUnlockedNames.contains(TIME_MASTER.name)) {
+        val achievement = calculateTimeAchievementProgress(user, TIME_MASTER)
+        newlyUnlockedAchievements.add(achievement.copy(isUnlocked = true, hoursRemaining = 0))
+    }
+    if (user.totalHoursSpent >= 100 && !alreadyUnlockedNames.contains(TIME_LORD.name)) {
+        val achievement = calculateTimeAchievementProgress(user, TIME_LORD)
+        newlyUnlockedAchievements.add(achievement.copy(isUnlocked = true, hoursRemaining = 0))
+    }
 
-    if (user.totalHoursSpent >= 10 && !currentAchievements.contains(TIME_TRAVELER)) {
-        unlockedAchievements.add(timeTraveler.copy(isUnlocked = true))
-    }
-    if (user.totalHoursSpent >= 50 && !currentAchievements.contains(TIME_MASTER)) {
-        unlockedAchievements.add(timeMaster.copy(isUnlocked = true))
-    }
-    if (user.totalHoursSpent >= 100 && !currentAchievements.contains(TIME_LORD)) {
-        unlockedAchievements.add(timeLord.copy(isUnlocked = true))
-    }
-    updatedAchievements.add(beginnerStreak)
-    updatedAchievements.add(noviceStreak)
-    updatedAchievements.add(masterStreak)
-    updatedAchievements.add(timeTraveler)
-    updatedAchievements.add(timeMaster)
-    updatedAchievements.add(timeLord)
-
-    return unlockedAchievements + updatedAchievements
+    return newlyUnlockedAchievements
 }
 
 fun calculateStreakAchievementProgress(user: User, achievement: Achievement): Achievement {
@@ -114,20 +109,30 @@ fun calculateTimeAchievementProgress(user: User, achievement: Achievement): Achi
     val hoursRemaining = (hoursNeeded - user.totalHoursSpent).coerceAtLeast(0.0)
     return achievement.copy(hoursRemaining = hoursRemaining.toInt())
 }
+
+/**
+ * Gets the full list of achievements with updated progress for display.
+ * Returns all achievements with current progress and unlock status.
+ */
 fun getUpdatedAchievements(user: User): List<Achievement> {
+    val alreadyUnlockedNames = user.achievementsUnlocked.map { it.name }.toSet()
     val updatedAchievements = mutableListOf<Achievement>()
 
     for (achievement in Achievements.allAchievements) {
         val updatedAchievement = when {
             achievement.daysRemaining != null -> {
                 val progress = calculateStreakAchievementProgress(user, achievement)
-                progress.copy(isUnlocked = user.longestStreak >= (achievement.daysRemaining ?: 0))
+                val isUnlocked = alreadyUnlockedNames.contains(achievement.name) || 
+                                 user.longestStreak >= (achievement.daysRemaining ?: 0)
+                progress.copy(isUnlocked = isUnlocked)
             }
             achievement.hoursRemaining != null -> {
                 val progress = calculateTimeAchievementProgress(user, achievement)
-                progress.copy(isUnlocked = user.totalHoursSpent >= (achievement.hoursRemaining ?: 0))
+                val isUnlocked = alreadyUnlockedNames.contains(achievement.name) || 
+                                 user.totalHoursSpent >= (achievement.hoursRemaining ?: 0)
+                progress.copy(isUnlocked = isUnlocked)
             }
-            else -> achievement // Should not happen, but just in case
+            else -> achievement
         }
         updatedAchievements.add(updatedAchievement)
     }
