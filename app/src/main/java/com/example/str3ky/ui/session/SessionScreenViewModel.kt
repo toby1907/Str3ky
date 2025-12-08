@@ -18,8 +18,11 @@ import com.example.str3ky.ui.nav.DONE_SCREEN
 import com.example.str3ky.ui.nav.SESSION_SCREEN
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -31,6 +34,10 @@ class SessionScreenViewModel
     private val goalRepository: GoalRepositoryImpl,
     val countdownTimerManager: CountdownTimerManager
 ) : ViewModel() {
+
+    private val _sessionCompleted = MutableSharedFlow<Boolean>(replay = 0)
+    val sessionCompleted: SharedFlow<Boolean> = _sessionCompleted.asSharedFlow()
+
     val timerState: StateFlow<TimerState> = countdownTimerManager.timerState
     private var currentGoalId: Int? = null
 
@@ -63,97 +70,77 @@ class SessionScreenViewModel
 */
     init {
 
+        // Listen for combinedFlow transitions to COMPLETED and emit a single-shot event
+        viewModelScope.launch {
+            var previousPhase = countdownTimerManager.currentPhase.value
+            countdownTimerManager.combinedFlow.collectLatest { combined ->
+                val currentPhase = combined.currentPhase
+                if (previousPhase != CountdownTimerManager.Phase.COMPLETED && currentPhase == CountdownTimerManager.Phase.COMPLETED) {
+                    Log.d("SessionScreenVM", "session completed detected - emitting sessionCompleted event")
+                    _sessionCompleted.emit(true)
+                }
+                previousPhase = currentPhase
+            }
+        }
+
         savedStateHandle.get<Int>("goalId")?.let { goalId ->
             if (goalId != -1) {
-                if(countdownTimerManager.timerState.value==TimerState.Initial)   {
-                    currentGoalId = goalId
-                    countdownTimerManager.goalId.value = goalId
-                    viewModelScope.launch {
-                        goalRepository.getGoal(goalId).collect { goal ->
-                            countdownTimerManager._goalState.value =
-                                countdownTimerManager._goalState.value.copy(goal = goal)
-                            if (goal != null) {
-                                countdownTimerManager.dayProgressFlow.value = goal.progress
-
-
-                            }
+                // Always update manager goalId and load the goal state so UI doesn't show stale completed state
+                // If we're switching to a different goal than the manager currently has, reset manager state
+                val previousGoal = countdownTimerManager.goalId.value
+                if (previousGoal != goalId) {
+                    // Reset manager state for the new goal to avoid showing stale COMPLETED UI
+                    // resetCountdown is synchronous (stops service, clears timers) so call it directly
+                    try {
+                        countdownTimerManager.resetCountdown()
+                    } catch (e: Exception) {
+                        // Fallback: if something goes wrong, schedule a reset asynchronously
+                        viewModelScope.launch { countdownTimerManager.resetCountdown() }
+                    }
+                }
+                currentGoalId = goalId
+                countdownTimerManager.goalId.value = goalId
+                viewModelScope.launch {
+                    goalRepository.getGoal(goalId).collect { goal ->
+                        countdownTimerManager._goalState.value =
+                            countdownTimerManager._goalState.value.copy(goal = goal)
+                        if (goal != null) {
+                            countdownTimerManager.dayProgressFlow.value = goal.progress
                         }
                     }
                 }
             }
 
         }
-        savedStateHandle.get<Int>("totalSessions").let {
-            if (it != -1) {
-                if (it != null) {
-                    viewModelScope.launch {
-                        if(countdownTimerManager.timerState.value==TimerState.Initial)  {
-                            countdownTimerManager._totalNoOfSessions.value = it
-                            countdownTimerManager.totalFocusSetFlow.value = it
-                            countdownTimerManager.totalBreakSetFlow.value =
-                                if (it > 1) it - 1 else 0
-                            countdownTimerManager._totalNoOfBreaks.value = if (it > 1) it - 1 else 0
-                        }
-                        /*_totalNoOfSessions.value = _totalNoOfSessions.value.copy(
-                            totalSessions = it
-                        )
-                        _totalNoOfBreaks.value = _totalNoOfBreaks.value.copy(
-                            totalBreaks = it - 1
-                        )
-                        Log.d("totalSessions", "${totalNoOfSessions.value} , ${totalNoOfBreaks.value}")*/
-                    }
+        savedStateHandle.get<Int>("totalSessions")?.let { totalSessions ->
+            if (totalSessions != -1) {
+                viewModelScope.launch {
+                    // Always update totals so UI and manager are in sync when entering the screen
+                    countdownTimerManager._totalNoOfSessions.value = totalSessions
+                    countdownTimerManager.totalFocusSetFlow.value = totalSessions
+                    countdownTimerManager.totalBreakSetFlow.value = if (totalSessions > 1) totalSessions - 1 else 0
+                    countdownTimerManager._totalNoOfBreaks.value = if (totalSessions > 1) totalSessions - 1 else 0
                 }
             }
         }
-        savedStateHandle.get<Int>("sessionDuration").let {
-            if (it != -1) {
-                if (it != null) {
-
-                  if(countdownTimerManager.timerState.value==TimerState.Initial)  {
-                        viewModelScope.launch {
-                            // Update the value
-                            countdownTimerManager.currentTimeTargetInMillisFlow.value =10000L
-                           //     (it * 60000).toLong()
-                            countdownTimerManager.timeLeftInMillisFlow.value = 10000L
-                           //     (it * 60000).toLong()
-                            countdownTimerManager._sessionTotalDurationMillis.value = 10000L
-                           //     (it * 60000).toLong()
-                            Log.d("sessionInVMScope", "$it")
-                            Log.d("sessionDuration", "$it")
-                            countdownTimerManager.sessionDuration.value = it
-                        }
-
-                        /*    _countdownTimeMillis.value = _countdownTimeMillis.value.copy(
-                                countdownTimeMillis = (it * 60000).toLong()
-                            )*/
-
-                        Log.d("sessionDuration", "$it")
-                    }
-
+        savedStateHandle.get<Int>("sessionDuration")?.let { durationVal ->
+            if (durationVal != -1) {
+                viewModelScope.launch {
+                    // Always set session values; use 10000L for quick/dev runs (previous behaviour). Replace with durationVal * 60000 for production.
+                    countdownTimerManager.currentTimeTargetInMillisFlow.value = 10000L
+                    countdownTimerManager.timeLeftInMillisFlow.value = 10000L
+                    countdownTimerManager._sessionTotalDurationMillis.value = 10000L
+                    countdownTimerManager.sessionDuration.value = durationVal
+                    Log.d("sessionInVMScope", "$durationVal")
+                    Log.d("sessionDuration", "$durationVal")
                 }
             }
-
         }
         savedStateHandle.get<Long>("progressDate")?.let { date ->
             if (date != 0L) {
-
-                if(countdownTimerManager.timerState.value==TimerState.Initial)  {
-                    countdownTimerManager.progressDate.value = date
-               // countdownTimerManager.setProgressDate(date)
-                countdownTimerManager.work = {
-                    it-> countdownTimerManager.onDayChallengeCompleted(it)
-
-                }
-                }
-                /*viewModelScope.launch {
-                    goalRepository.getGoal(currentGoalId!!).collect { goal ->
-                        if (goal != null) {
-                            countdownTimerManager.dayHourSpent.value =
-                                goal.progress.find { it.date == countdownTimerManager.progressDate.value }?.hoursSpent ?: 0L
-                        }
-                    }
-                }*/
-
+                // Always set progress date so per-goal state is populated when entering the screen
+                countdownTimerManager.progressDate.value = date
+                countdownTimerManager.work = { it -> countdownTimerManager.onDayChallengeCompleted(it) }
             }
         }
 
@@ -162,6 +149,11 @@ class SessionScreenViewModel
     fun startSession(openAndPopUp: (String, String) -> Unit) {
 
         viewModelScope.launch {
+            // If we are resuming from a completed run, reset first to avoid immediate completed notification
+            if (countdownTimerManager.timerState.value == TimerState.Initial || countdownTimerManager.isCompleted.value) {
+                countdownTimerManager.resetCountdown()
+                kotlinx.coroutines.delay(400)
+            }
             countdownTimerManager.startSession(openAndPopUp)
         }
     }
@@ -173,7 +165,7 @@ class SessionScreenViewModel
         }
     }
 
-    fun pauseResumeCountdown(state: Boolean, openAndPopUp: (String, String) -> Unit) {
+    fun pauseResumeCountdown(openAndPopUp: (String, String) -> Unit) {
 
         if (timerState.value==TimerState.Running) {
 
@@ -182,9 +174,19 @@ class SessionScreenViewModel
             }
         }
         else {
-
             viewModelScope.launch {
-                countdownTimerManager.resumeCountdown(openAndPopUp)
+                // If the timer is in Initial state or the manager previously marked isCompleted,
+                // starting a fresh session is safer than trying to resume — avoids racing with completion handling.
+                if (countdownTimerManager.timerState.value == TimerState.Initial || countdownTimerManager.isCompleted.value) {
+                    // Reset any stale state first to prevent immediate completed notifications
+                    countdownTimerManager.resetCountdown()
+                    // Small delay to ensure reset has taken effect and service stopped
+                    kotlinx.coroutines.delay(400)
+                    // Start a new session (this clears isCompleted inside startSession if needed)
+                    countdownTimerManager.startSession(openAndPopUp)
+                } else {
+                    countdownTimerManager.resumeCountdown(openAndPopUp)
+                }
             }
         }
     }

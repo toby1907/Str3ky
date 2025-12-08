@@ -1,6 +1,12 @@
 package com.example.str3ky.ui.session
 
+import android.Manifest
+import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,16 +17,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -38,6 +45,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
@@ -47,6 +56,7 @@ import com.example.str3ky.data.TimerState
 import com.example.str3ky.ui.nav.DONE_SCREEN
 import com.example.str3ky.ui.nav.SESSION_SCREEN
 import kotlinx.coroutines.flow.collectLatest
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,14 +68,44 @@ fun SessionScreen(
 
     val timerState by viewModel.timerState.collectAsState()
     val context = LocalContext.current
-    LaunchedEffect(key1 = Unit) {
-        if (timerState is TimerState.Initial) {
-            viewModel.startSession(openAndPopUp)
+    val activity = context as? Activity
+
+    // Notification permission request (Android 13+)
+    val showPermissionDialog = remember { mutableStateOf(false) }
+    val notificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.POST_NOTIFICATIONS else null
+
+    val hasNotificationPermission = if (notificationPermission != null) {
+        ContextCompat.checkSelfPermission(context, notificationPermission) == PackageManager.PERMISSION_GRANTED
+    } else true
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { granted ->
+            if (!granted) {
+                // If user denied and we should NOT show rationale, it means "Don't ask again" -> navigate to in-app help
+                val shouldShow = activity?.let { ActivityCompat.shouldShowRequestPermissionRationale(it, notificationPermission ?: "") } ?: true
+                if (!shouldShow) {
+                    // navigate to in-app help screen
+                    nav.navigate(com.example.str3ky.ui.nav.NOTIFICATIONS_HELP_SCREEN)
+                }
+            }
+            showPermissionDialog.value = false
         }
-        viewModel.countdownTimerManager.timerFinishedEvent.collectLatest { isSessionCompleted ->
-            if (isSessionCompleted) {
+    )
+
+    LaunchedEffect(key1 = Unit) {
+        // Removed automatic start on entering the screen. User must press play to start.
+        // Prompt for notification permission once when entering the screen if not granted
+        if (!hasNotificationPermission && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            showPermissionDialog.value = true
+        }
+
+        viewModel.sessionCompleted.collectLatest { completed ->
+            if (completed) {
+                // Stop the service and navigate to done screen
                 val intent = Intent(context, TimerService::class.java)
                 context.stopService(intent)
+                // Navigate/pop with same deep link args as before
                 openAndPopUp(
                     DONE_SCREEN + "?goalId=${viewModel.countdownTimerManager.goalId.value}&sessionDuration=${viewModel.countdownTimerManager._sessionTotalDurationMillis.value}&progressDate=${viewModel.countdownTimerManager.progressDate.value}",
                     SESSION_SCREEN
@@ -73,6 +113,27 @@ fun SessionScreen(
             }
         }
     }
+
+    if (showPermissionDialog.value && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        AlertDialog(
+            onDismissRequest = { showPermissionDialog.value = false },
+            title = { Text(text = context.getString(R.string.notifications_permission_title)) },
+            text = { Text(text = context.getString(R.string.notifications_permission_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    notificationPermission?.let { permissionLauncher.launch(it) }
+                }) {
+                    Text(text = context.getString(R.string.allow))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPermissionDialog.value = false }) {
+                    Text(text = context.getString(R.string.later))
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -85,10 +146,10 @@ fun SessionScreen(
                     titleContentColor = colorScheme.onSurface
                 ),
                 navigationIcon = {
-                    IconButton(onClick = { /*TODO*/ }) {
+                    IconButton(onClick = { nav.navigateUp() }) {
                         Icon(
                             painter = painterResource(id = R.drawable.arrow_back_icon),
-                            contentDescription = ""
+                            contentDescription = "Back"
                         )
                     }
                 }
@@ -103,7 +164,7 @@ fun SessionScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Timer(nav = nav,
+                Timer(
                     viewModel = viewModel,
                     openAndPopUp = openAndPopUp,
                     timerState = timerState
@@ -117,7 +178,7 @@ fun SessionScreen(
 
 @Composable
 private fun Timer(
-    modifier: Modifier = Modifier, nav: NavHostController,
+    modifier: Modifier = Modifier,
     viewModel: SessionScreenViewModel,
     openAndPopUp: (String,String) -> Unit,
     timerState: TimerState
@@ -128,7 +189,21 @@ private fun Timer(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        val pomoName = viewModel.countdownTimerManager.currentPhase.collectAsState().value.name
+        val currentPhaseEnum = viewModel.countdownTimerManager.currentPhase.collectAsState().value
+        // Only show COMPLETED when the manager explicitly reports completion, the timer state is Finished,
+        // and we have a non-zero finished timestamp. This avoids showing a stale 'Completed' label during navigation/reset races.
+        val isManagerCompleted = viewModel.countdownTimerManager.isCompleted.value
+        val isTimerFinishedState = viewModel.timerState.value == TimerState.Finished
+        val lastFinishedAt = viewModel.countdownTimerManager.lastFinishedAt.collectAsState(initial = 0L).value
+        val lastFinishedPhase = viewModel.countdownTimerManager.lastFinishedPhase.collectAsState(initial = null).value
+        val isFinishedConfirmed = isManagerCompleted && isTimerFinishedState && lastFinishedAt != 0L && lastFinishedPhase != null
+
+        val effectivePhaseEnum = when {
+            currentPhaseEnum == CountdownTimerManager.Phase.COMPLETED && isFinishedConfirmed -> CountdownTimerManager.Phase.COMPLETED
+            currentPhaseEnum == CountdownTimerManager.Phase.COMPLETED -> CountdownTimerManager.Phase.FOCUS_SESSION
+            else -> currentPhaseEnum
+        }
+        val pomoName = effectivePhaseEnum.name
         val focusSet = viewModel.countdownTimerManager.focusSet.collectAsState(initial = 0)
         val totalFocusSet =
             viewModel.countdownTimerManager.totalFocusSet.collectAsState(initial = 0)
@@ -136,13 +211,31 @@ private fun Timer(
         val totalBreakSet =
             viewModel.countdownTimerManager.totalBreakSet.collectAsState(initial = 0)
 
+        // Use timerState as the primary source of truth for whether a session/break is active to
+        // avoid a small race where the manager's isSessionInProgress flow may update slightly later.
+        val isActiveByTimerState = timerState is TimerState.Running || timerState is TimerState.Paused
+
+        // Compute displayed current index: if the phase is active (by timerState) treat it as current (completed+1)
+        val currentFocusIndex = if (effectivePhaseEnum == CountdownTimerManager.Phase.FOCUS_SESSION && isActiveByTimerState) {
+            focusSet.value + 1
+        } else {
+            focusSet.value
+        }
+
+        val currentBreakIndex = if (effectivePhaseEnum == CountdownTimerManager.Phase.BREAK && isActiveByTimerState) {
+            breakSet.value + 1
+        } else {
+            breakSet.value
+        }
+
         val displayText = when (pomoName) {
             CountdownTimerManager.Phase.FOCUS_SESSION.name -> {
-                "$pomoName Period (${focusSet.value} of ${totalFocusSet.value})"
+                // Shorter label: "Focus X/Y"
+                "Focus $currentFocusIndex/${totalFocusSet.value}"
             }
 
             CountdownTimerManager.Phase.BREAK.name -> {
-                "$pomoName Period (${breakSet.value} of ${totalBreakSet.value})"
+                "Break $currentBreakIndex/${totalBreakSet.value}"
             }
 
             else -> {
@@ -172,7 +265,7 @@ private fun Timer(
                 (viewModel.countdownTimerManager.timeLeftInMillis.collectAsState(initial = 0L).value.toFloat() / myFlow.value.toFloat())
             Box() {
                 CircularProgressIndicator(
-                    progress = progress,
+                    progress = { progress },
                     modifier = modifier
                         .fillMaxSize()
                         .scale(scaleX = -1f, scaleY = 1f),
@@ -181,7 +274,7 @@ private fun Timer(
                 )
                 //background
                 CircularProgressIndicator(
-                    progress = 1f,
+                    progress = { 1f },
                     modifier = modifier
                         .fillMaxSize()
                         .scale(scaleX = -1f, scaleY = 1f),
@@ -194,7 +287,7 @@ private fun Timer(
                 viewModel.countdownTimerManager.timeLeftInMillis.collectAsState(initial = 0L).value
             val minutes = i / 1000 / 60
             val seconds = i / 1000 % 60
-            val formattedTime = String.format("%02d:%02d", minutes, seconds)
+            val formattedTime = String.format(Locale.US, "%02d:%02d", minutes, seconds)
             Text(
                 text = formattedTime,
                 style = TextStyle(
@@ -205,39 +298,33 @@ private fun Timer(
                 )
             )
         }
-        TimerButton(nav = nav, viewModel = viewModel,openAndPopUp,timerState is TimerState.Running)
+        // Pass a boolean to indicate whether the timer is running so the button shows correct icon
+        TimerButton(viewModel = viewModel, openAndPopUp = openAndPopUp, timerRunning = (timerState is TimerState.Running))
     }
 }
 
 @Composable
 private fun TimerStartStopButton(
     timerRunning: Boolean,
-    nav: NavHostController,
     viewModel: SessionScreenViewModel,
     openAndPopUp: (String, String) -> Unit
 ) {
-    val timerState = viewModel.countdownTimerManager.isSessionInProgress.collectAsState()
-    val buttonState = remember {
-        mutableStateOf(true)
-    }
+    // Button visual and behaviour derive from the actual running state passed in
     IconButton(modifier = Modifier
         .padding(1.dp)
         .width(50.dp)
         .height(50.dp)
         .background(color = colorScheme.primaryContainer, shape = CircleShape),
         onClick = {
-            buttonState.value = !buttonState.value
-            // viewModel.startSession()
-            viewModel.pauseResumeCountdown(buttonState.value, openAndPopUp)
-
+            // Use viewmodel's single API to toggle based on current running state
+            viewModel.pauseResumeCountdown(openAndPopUp)
         }) {
 
         Icon(
-            painter =
-            if (!buttonState.value) {
-                painterResource(id = R.drawable.play_arrow_fill1_wght400_grad0_opsz24)
-            } else {
+            painter = if (timerRunning) {
                 painterResource(id = R.drawable.pause_24)
+            } else {
+                painterResource(id = R.drawable.play_arrow_fill1_wght400_grad0_opsz24)
             },
             contentDescription = "",
             tint = colorScheme.onPrimaryContainer
@@ -248,7 +335,7 @@ private fun TimerStartStopButton(
 }
 
 @Composable
-private fun TimerRestartButton(timerRunning: Boolean, viewModel: SessionScreenViewModel) {
+private fun TimerRestartButton(viewModel: SessionScreenViewModel) {
     IconButton(modifier = Modifier
         .padding(1.dp)
         .width(50.dp)
@@ -273,7 +360,6 @@ private fun TimerRestartButton(timerRunning: Boolean, viewModel: SessionScreenVi
 
 @Composable
 private fun TimerButton(
-    nav: NavHostController,
     viewModel: SessionScreenViewModel,
     openAndPopUp: (String, String) -> Unit,
     timerRunning: Boolean
@@ -282,9 +368,7 @@ private fun TimerButton(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        TimerStartStopButton(timerRunning, nav = nav, viewModel = viewModel, openAndPopUp)
-        TimerRestartButton(timerRunning = true, viewModel = viewModel)
+        TimerStartStopButton(timerRunning = timerRunning, viewModel = viewModel, openAndPopUp = openAndPopUp)
+        TimerRestartButton(viewModel = viewModel)
     }
 }
-
-

@@ -9,7 +9,6 @@ import com.example.str3ky.ui.achievements.Achievements.TIME_LORD
 import com.example.str3ky.ui.achievements.Achievements.TIME_MASTER
 import com.example.str3ky.ui.achievements.Achievements.TIME_TRAVELER
 import com.florianwalther.incentivetimer.core.ui.IconKey
-import com.florianwalther.incentivetimer.core.ui.defaultRewardIconKey
 
 object Achievements {
     val BEGINNER_STREAK = Achievement(
@@ -121,11 +120,11 @@ fun getUpdatedAchievements(user: User): List<Achievement> {
         val updatedAchievement = when {
             achievement.daysRemaining != null -> {
                 val progress = calculateStreakAchievementProgress(user, achievement)
-                progress.copy(isUnlocked = user.longestStreak >= (achievement.daysRemaining ?: 0))
+                progress.copy(isUnlocked = user.longestStreak >= achievement.daysRemaining)
             }
             achievement.hoursRemaining != null -> {
                 val progress = calculateTimeAchievementProgress(user, achievement)
-                progress.copy(isUnlocked = user.totalHoursSpent >= (achievement.hoursRemaining ?: 0))
+                progress.copy(isUnlocked = user.totalHoursSpent >= achievement.hoursRemaining)
             }
             else -> achievement // Should not happen, but just in case
         }
@@ -133,4 +132,33 @@ fun getUpdatedAchievements(user: User): List<Achievement> {
     }
 
     return updatedAchievements
+}
+
+fun getNewlyUnlockedAchievements(user: User): List<Achievement> {
+    val currentNames = user.achievementsUnlocked.map { it.name }.toSet()
+    val newlyUnlocked = mutableListOf<Achievement>()
+
+    // Streak based
+    if (user.longestStreak >= (BEGINNER_STREAK.daysRemaining ?: Int.MAX_VALUE) && !currentNames.contains(BEGINNER_STREAK.name)) {
+        newlyUnlocked.add(BEGINNER_STREAK.copy(isUnlocked = true))
+    }
+    if (user.longestStreak >= (NOVICE_STREAK.daysRemaining ?: Int.MAX_VALUE) && !currentNames.contains(NOVICE_STREAK.name)) {
+        newlyUnlocked.add(NOVICE_STREAK.copy(isUnlocked = true))
+    }
+    if (user.longestStreak >= (MASTER_STREAK.daysRemaining ?: Int.MAX_VALUE) && !currentNames.contains(MASTER_STREAK.name)) {
+        newlyUnlocked.add(MASTER_STREAK.copy(isUnlocked = true))
+    }
+
+    // Hours based
+    if (user.totalHoursSpent >= (TIME_TRAVELER.hoursRemaining?.toDouble() ?: Double.MAX_VALUE) && !currentNames.contains(TIME_TRAVELER.name)) {
+        newlyUnlocked.add(TIME_TRAVELER.copy(isUnlocked = true))
+    }
+    if (user.totalHoursSpent >= (TIME_MASTER.hoursRemaining?.toDouble() ?: Double.MAX_VALUE) && !currentNames.contains(TIME_MASTER.name)) {
+        newlyUnlocked.add(TIME_MASTER.copy(isUnlocked = true))
+    }
+    if (user.totalHoursSpent >= (TIME_LORD.hoursRemaining?.toDouble() ?: Double.MAX_VALUE) && !currentNames.contains(TIME_LORD.name)) {
+        newlyUnlocked.add(TIME_LORD.copy(isUnlocked = true))
+    }
+
+    return newlyUnlocked
 }

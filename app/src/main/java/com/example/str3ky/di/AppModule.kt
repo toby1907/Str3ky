@@ -2,11 +2,14 @@ package com.example.str3ky.di
 
 import android.app.Application
 import android.content.Context
+import android.content.SharedPreferences
+import android.preference.PreferenceManager
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.room.Room
 import com.example.str3ky.core.notification.TimerServiceManager
 import com.example.str3ky.data.GoalDatabase
+import com.example.str3ky.data.TimerServiceStateCache
 import com.example.str3ky.dataStore
 import com.example.str3ky.repository.GoalRepositoryImpl
 import com.example.str3ky.repository.SettingsRepository
@@ -33,6 +36,7 @@ class AppModule {
 
     @Singleton
     @Provides
+    @ApplicationScope
     fun provideApplicationScope(): CoroutineScope {
         return CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
@@ -85,6 +89,17 @@ class AppModule {
         )
     }
 
+    @Provides
+    @Singleton
+    fun provideSharedPreferences(app: Application): SharedPreferences {
+        return PreferenceManager.getDefaultSharedPreferences(app.applicationContext)
+    }
+
+    @Provides
+    @Singleton
+    fun provideTimerServiceStateCache(sharedPreferences: SharedPreferences): TimerServiceStateCache {
+        return TimerServiceStateCache(sharedPreferences)
+    }
 }
 
 @Retention(AnnotationRetention.RUNTIME)

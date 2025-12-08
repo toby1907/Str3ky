@@ -31,6 +31,8 @@ interface GoalDao {
     fun getAllLetters(): Flow<List<Goal>>
     @Query("SELECT * FROM goal WHERE user_id = :userId")
      fun getGoalsForUser(userId: Int): Flow<List<Goal>>
+    @Query("SELECT * FROM goal")
+    fun getAllGoalsBlocking(): List<Goal>
 }
 @Dao
 interface UserDao {

@@ -55,6 +55,7 @@ import com.example.str3ky.R
 import com.example.str3ky.convertCalendarDayOfWeekToStrings
 import com.example.str3ky.data.DayProgress
 import com.example.str3ky.ui.nav.ADD_CHALLENGE_SCREEN
+import com.example.str3ky.ui.nav.DONE_SCREEN
 import com.example.str3ky.ui.nav.MAIN_SCREEN
 import com.example.str3ky.ui.nav.SESSION_SETTINGS_SCREEN
 import java.util.Calendar
@@ -70,6 +71,7 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
                 navigationIcon = {
                     IconButton(
                         onClick = {
+                            // Always navigate back to the main screen when the back icon is pressed.
                             nav.navigate(MAIN_SCREEN)
                         }
                     ) {
@@ -260,8 +262,3 @@ fun TableProgress(
         }
     }
 }
-
-
-
-
-

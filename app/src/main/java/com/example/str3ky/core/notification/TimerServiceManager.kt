@@ -10,46 +10,12 @@ import javax.inject.Inject
 class TimerServiceManager @Inject constructor(
     @ApplicationContext private val applicationContext: Context,
 ){
-/*fun startTimerService() {
-    val serviceIntent = Intent(applicationContext,TimerService::class.java).
-        also {
-           it.action = TimerActions.START.name
-        }
-    ContextCompat.startForegroundService(applicationContext,serviceIntent)
-}
-    fun stopTimerService() {
-       *//* val serviceIntent = Intent(applicationContext,TimerService::class.java).also {
-            it.action = TimerActions.STOP.name
-        }
-        applicationContext.stopService(serviceIntent)*//*
-        val serviceIntent = Intent(applicationContext,TimerService::class.java)
-            .also {
-                it.action = TimerActions.STOP.name
-            }
-        ContextCompat.startForegroundService(applicationContext,serviceIntent)
-    }
-    fun onSessionCompleted() {
-        *//* val serviceIntent = Intent(applicationContext,TimerService::class.java).also {
-             it.action = TimerActions.STOP.name
-         }
-         applicationContext.stopService(serviceIntent)*//*
-        val serviceIntent = Intent(applicationContext,TimerService::class.java)
-            .also {
-                it.action = TimerActions.COMPLETED.name
-            }
-        ContextCompat.startForegroundService(applicationContext,serviceIntent)
-    }
-    fun sessionCompletedNotificationCancel() {
 
-        val serviceIntent = Intent(applicationContext,TimerService::class.java)
-            .also {
-                it.action = TimerActions.CANCEL.name
-            }
-        ContextCompat.startForegroundService(applicationContext,serviceIntent)
-    }*/
-
-     fun startTimerService() {
+     fun startTimerService(suppressNextFinished: Boolean = false) {
         val serviceIntent = Intent(applicationContext, TimerService::class.java)
+        if (suppressNextFinished) {
+            serviceIntent.action = TimerService.ACTION_SUPPRESS_NEXT_FINISHED
+        }
         ContextCompat.startForegroundService(applicationContext, serviceIntent)
     }
 
@@ -59,4 +25,3 @@ class TimerServiceManager @Inject constructor(
     }
 
 }
-

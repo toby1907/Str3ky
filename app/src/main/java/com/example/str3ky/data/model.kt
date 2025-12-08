@@ -94,8 +94,8 @@ data class Achievement(
     val chanceInPercent: Int,
     val iconKey: IconKey,
     val isUnlocked: Boolean = false,
-    val daysRemaining: Int? = null, // Nullable for time-based achievements
-    val hoursRemaining: Int? = null // Nullable for streak-based achievements
+    val daysRemaining: Int? = null, // Nullable for streak-based achievements
+    val hoursRemaining: Int? = null // Nullable for time-based achievements
     )
 
 data class CombinedData(
@@ -103,10 +103,24 @@ data class CombinedData(
     val currentPhase: Phase, // Assuming Phase is an enum
    val timeLeftInMillis: Long,
     val goalId: Int ,
-  val  progressDate:Long
-)
+  val  progressDate:Long,
+    val focusCompleted: Int = 0,
+    val breakCompleted: Int = 0
+) {
+    companion object {
+        val EMPTY = CombinedData(
+            totalFocusSet = 0,
+            // Default to FOCUS_SESSION so empty state won't immediately trigger COMPLETED notifications
+            currentPhase = Phase.FOCUS_SESSION,
+            timeLeftInMillis = 0L,
+            goalId = -1,
+            progressDate = 0L,
+            focusCompleted = 0,
+            breakCompleted = 0
+        )
+    }
+}
 
 enum class TimerActions{
     START,STOP,PAUSE,CANCEL,COMPLETED
 }
-

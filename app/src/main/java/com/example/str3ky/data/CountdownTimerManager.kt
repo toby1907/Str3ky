@@ -41,6 +41,10 @@ class CountdownTimerManager @Inject constructor(
     ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    // New: emit newly unlocked achievements for UI display
+    private val _unlockedAchievementsEvent = MutableSharedFlow<List<Achievement>>(replay = 0)
+    val unlockedAchievementsEvent = _unlockedAchievementsEvent.asSharedFlow()
+
     enum class Phase {
         FOCUS_SESSION, BREAK, COMPLETED
     }
@@ -50,8 +54,8 @@ class CountdownTimerManager @Inject constructor(
 
 
     // Event to signal timer completion
-    private val _timerFinishedEvent = MutableSharedFlow<Boolean>()
-    val timerFinishedEvent: SharedFlow<Boolean> = _timerFinishedEvent.asSharedFlow()
+    private val _timerFinishedEvent = MutableSharedFlow<Long>()
+    val timerFinishedEvent: SharedFlow<Long> = _timerFinishedEvent.asSharedFlow()
 
     var popUpLambda: ((String, String) -> Unit)? = null
     var work: ((Boolean) -> Unit)? = null
@@ -74,8 +78,7 @@ class CountdownTimerManager @Inject constructor(
     val timeLeftInMillisFlow = MutableStateFlow(_sessionTotalDurationMillis.value)
     private val timeLeftInMillisForCombine: Flow<Long> = timeLeftInMillisFlow.asStateFlow()
     val timeLeftInMillis: Flow<Long> = timeLeftInMillisFlow
-    //propeties for completion function
-    var dayHourSpent = MutableStateFlow(0L)
+    // properties for completion function
     var sessionDuration = MutableStateFlow(-1)
     var progressDate =  MutableStateFlow(0L)
     var progressFlowCombine: Flow<Long> = progressDate.asStateFlow()
@@ -115,28 +118,39 @@ class CountdownTimerManager @Inject constructor(
     val totalBreakSet: Flow<Int> = totalBreakSetFlow
 
     val combinedFlow: Flow<CombinedData> = combine(
-        //focusSetFlow,
+        // focus/break totals and ids
         totalFocusSetFlow,
         goalId,
-      //  totalBreakSetFlow,
         currentPhaseFlow,
         timeLeftInMillisForCombine,
-        progressFlowCombine
-
+        progressFlowCombine,
+        focusSetFlow,
+        breakSetFlow
 
         // Include currentphase as a flow
-    ) { totalFocusSet,goalIdFlow, currentPhaseFlow, timeLeftInMillis,progressDateFlow ->
+    ) { values ->
+        // values is an Array of Any? corresponding to the flows in order
+        val totalFocusSet = values[0] as Int
+        val goalIdFlow = values[1] as Int
+        val currentPhaseFlow = values[2] as Phase
+        val timeLeftInMillis = values[3] as Long
+        val progressDateFlow = values[4] as Long
+        val focusCompleted = values[5] as Int
+        val breakCompleted = values[6] as Int
+
         CombinedData(
             totalFocusSet = totalFocusSet,
             currentPhase = currentPhaseFlow,
             timeLeftInMillis = timeLeftInMillis,
-           goalId = goalIdFlow,
-            progressDate = progressDateFlow
+            goalId = goalIdFlow,
+            progressDate = progressDateFlow,
+            focusCompleted = focusCompleted,
+            breakCompleted = breakCompleted
         )
     }.stateIn(
         scope = scope,
         started = SharingStarted.WhileSubscribed(300),
-        initialValue = CombinedData( 0,   Phase.COMPLETED, 0,-1,0)
+        initialValue = CombinedData.EMPTY
     )
     private var isSessionInProgressFlow =MutableStateFlow(false)
     private var _isBreakInProgress = mutableStateOf(
@@ -145,6 +159,12 @@ class CountdownTimerManager @Inject constructor(
     var isCompleted = mutableStateOf(
         false
     )
+    // timestamp of the last finished event emitted (ms since epoch). Used to verify freshness.
+    val lastFinishedAt = MutableStateFlow(0L)
+
+    // The phase that just finished (FOCUS_SESSION or BREAK) — set before transitioning to COMPLETED
+    val lastFinishedPhase = MutableStateFlow<Phase?>(null)
+
     val currentTimeTargetInMillisFlow = MutableStateFlow(_sessionTotalDurationMillis.value)
     val currentTimeTargetInMillis: Flow<Long> = currentTimeTargetInMillisFlow
 
@@ -165,29 +185,78 @@ class CountdownTimerManager @Inject constructor(
         _breakDurationMillis.value = _breakDurationMillis.value.copy(
             breakDurationMillis = 5000L
         )
+
+        // Reset per-goal state when goalId changes so switching goals doesn't inherit previous run state
+        scope.launch {
+            var lastObservedGoalId = goalId.value
+            goalId.collect { newGoalId ->
+                if (newGoalId != lastObservedGoalId) {
+                    // Clear session-specific counters and flags for the new goal
+                    isCompleted.value = false
+                    currentphase.value = Phase.FOCUS_SESSION
+                    focusSetFlow.value = 0
+                    breakSetFlow.value = 0
+                    timeLeftInMillisFlow.value = _sessionTotalDurationMillis.value
+                    currentTimeTargetInMillisFlow.value = _sessionTotalDurationMillis.value
+                    _timerState.value = TimerState.Initial
+                    lastFinishedAt.value = 0L
+                }
+                lastObservedGoalId = newGoalId
+            }
+        }
     }
 
     private fun startCountDown(countDownTimeMillis: Long) {
+        // Guard: don't start timers with non-positive duration (prevents immediate onFinish)
+        if (countDownTimeMillis <= 0L) {
+            return
+        }
 
-        if (_sessionTotalDurationMillis.value == countDownTimeMillis) {
-            focusSetFlow.value = focusSetFlow.value + 1
-        }
-        if (breakDurationMillis.value.breakDurationMillis == countDownTimeMillis) {
-            breakSetFlow.value = breakSetFlow.value + 1
-        }
+        // Cancel any existing timer to avoid overlapping timers
+        countDownTimer?.cancel()
+        countDownTimer = null
+
+        // Ensure remainingTimeMillis is initialized
+        remainingTimeMillis = countDownTimeMillis
+
         countDownTimer = object : CountDownTimer(countDownTimeMillis, 1000) {
 
             override fun onTick(millisUntilFinished: Long) {
                 timeLeftInMillisFlow.value = millisUntilFinished
+                // keep the remaining time updated so resume uses a fresh value
+                remainingTimeMillis = millisUntilFinished
 
             }
 
             override fun onFinish() {
+                // DEBUG: log finish and current phase
+                Log.d("CountdownTimerManager", "onFinish - currentPhase=${currentphase.value} timeTarget=${currentTimeTargetInMillisFlow.value}")
 
+                // Increment the appropriate completed counter based on which phase finished
+                when (currentphase.value) {
+                    Phase.FOCUS_SESSION -> {
+                        focusSetFlow.value = focusSetFlow.value + 1
+                        Log.d("CountdownTimerManager", "Focus session completed. focusSet=${focusSetFlow.value}")
+                    }
+                    Phase.BREAK -> {
+                        breakSetFlow.value = breakSetFlow.value + 1
+                        Log.d("CountdownTimerManager", "Break completed. breakSet=${breakSetFlow.value}")
+                    }
+                    else -> {
+                        // no-op for COMPLETED
+                        Log.d("CountdownTimerManager", "onFinish - phase was COMPLETED (no increment)")
+                    }
+                }
 
+                // Cancel countdown and mark not in progress BEFORE invoking next phase to avoid races
                 cancelCountdown()
 
-                popUpLambda?.let { startNextPhase(it) }
+                // Only attempt to start the next phase if we are not already in COMPLETED
+                if (currentphase.value != Phase.COMPLETED) {
+                    popUpLambda?.let { startNextPhase(it) }
+                } else {
+                    Log.d("CountdownTimerManager", "onFinish - current phase is COMPLETED, skipping startNextPhase")
+                }
 
 
                 // Timer finished (e.g., perform some action)
@@ -199,21 +268,35 @@ class CountdownTimerManager @Inject constructor(
     }
 
     fun startSession(openAndPopUp: (String, String) -> Unit) {
-        _timerState.value = TimerState.Running
+        val durationToStart = currentTimeTargetInMillisFlow.value.takeIf { it > 0L } ?: _sessionTotalDurationMillis.value
+        if (durationToStart <= 0L) return
 
-        notificationHelper.removeTimerCompletedNotification()
-    scope.launch    {
-        timerServiceManager.startTimerService()
-    }
-        popUpLambda = openAndPopUp
-        /*if (isCompleted.value) {
-            currentphase.value = Phase.FOCUS_SESSION
+        Log.d("CountdownTimerManager", "startSession - duration=$durationToStart totalSessions=${totalFocusSetFlow.value} goalId=${goalId.value}")
+
+        // If previous run reached COMPLETED, clear that state so a fresh session can start cleanly
+        val wasCompleted = isCompleted.value
+        if (wasCompleted) {
+            // Clear completed state to start a fresh session
             isCompleted.value = false
-        }*/
+            currentphase.value = Phase.FOCUS_SESSION
+            focusSetFlow.value = 0
+            breakSetFlow.value = 0
+            timeLeftInMillisFlow.value = _sessionTotalDurationMillis.value
+            currentTimeTargetInMillisFlow.value = _sessionTotalDurationMillis.value
+            // Also clear the last finished timestamp so TimerService won't treat an old finished token as current
+            lastFinishedAt.value = 0L
+        }
 
-        Log.d("TimeTarget", "${currentTimeTargetInMillisFlow.value}")
-        startCountDown(currentTimeTargetInMillisFlow.value)
-
+        _timerState.value = TimerState.Running
+        notificationHelper.removeTimerCompletedNotification()
+        // ensure state updated before starting the service
+        popUpLambda = openAndPopUp
+        // ensure remainingTimeMillis reflects the active countdown
+        remainingTimeMillis = durationToStart
+        // start the service after internal state is ready
+        // If we just cleared a completed run, ask the service to suppress any next finished event to avoid race
+        timerServiceManager.startTimerService(suppressNextFinished = wasCompleted)
+        startCountDown(durationToStart)
     }
 
     fun startNextPhase(openAndPopUp: (String, String) -> Unit) {
@@ -221,9 +304,11 @@ class CountdownTimerManager @Inject constructor(
         val sessionsCompleted = focusSetFlow.value
         val totalNoOfSessions = totalFocusSetFlow.value
 
+        Log.d("CountdownTimerManager", "startNextPhase - currentPhase=$currentPhase sessionsCompleted=$sessionsCompleted totalNoOfSessions=$totalNoOfSessions")
+
         val nextPhase: Phase = when (currentPhase) {
             Phase.FOCUS_SESSION -> {
-                if (sessionsCompleted >= totalNoOfSessions) {
+                if (totalNoOfSessions > 0 && sessionsCompleted >= totalNoOfSessions) {
                     Phase.COMPLETED
                 } else if (onSkipClicked.value) {
                     Phase.FOCUS_SESSION
@@ -242,6 +327,7 @@ class CountdownTimerManager @Inject constructor(
             }
         }
         currentphase.value = nextPhase
+        Log.d("CountdownTimerManager", "startNextPhase - decided nextPhase=$nextPhase")
         val nextTimeTarget = when (nextPhase) {
             Phase.FOCUS_SESSION -> {
 
@@ -258,41 +344,86 @@ class CountdownTimerManager @Inject constructor(
 
             }
         }
-        currentTimeTargetInMillisFlow.value = nextTimeTarget
-        timeLeftInMillisFlow.value = nextTimeTarget
-        if (sessionsCompleted >= totalNoOfSessions) {
-            // Reset the timer and do not start the next session
+
+        // If we determined the next phase is COMPLETED, handle completion now and do not start a new timer
+        if (nextPhase == Phase.COMPLETED) {
+            Log.d("CountdownTimerManager", "startNextPhase - handling COMPLETED state")
             timeLeftInMillisFlow.value = _sessionTotalDurationMillis.value
             focusSetFlow.value = 0
             breakSetFlow.value = 0
-            currentphase.value = Phase.FOCUS_SESSION
+            // Set to COMPLETED and keep it so observers can react
+            // Record which phase just finished so notifications can reflect it correctly
+            lastFinishedPhase.value = currentPhase
+            currentphase.value = Phase.COMPLETED
             isCompleted.value = true
+            _timerState.value = TimerState.Finished
             notificationHelper.removeTimerServiceNotification()
-            notificationHelper.showTimerCompletedNotification(currentPhase,goalId.value,progressDate.value,sessionDuration.value.toLong())
 
             work?.invoke(true)
-          //  onDayChallengeCompleted(true)
 
-
-
-            /*popUpLambda?.invoke(
-                DONE_SCREEN + "?goalId=${goalId}&sessionDuration=${_sessionTotalDurationMillis.value}&progressDate=${_progressDate.value}",
-                SESSION_SCREEN
-            )*/
             scope.launch {
-                _timerFinishedEvent.emit(true)
+                val ts = System.currentTimeMillis()
+                Log.d("CountdownTimerManager", "EMIT_TIMER_FINISHED at $ts")
+                lastFinishedAt.value = ts
+                _timerFinishedEvent.emit(ts)
             }
 
-            return // Exit the function
+            return
+        }
+
+        currentTimeTargetInMillisFlow.value = nextTimeTarget
+        timeLeftInMillisFlow.value = nextTimeTarget
+        // Additional completion guard: if session counts reached, treat as completion
+        if (totalNoOfSessions > 0 && sessionsCompleted >= totalNoOfSessions) {
+            Log.d("CountdownTimerManager", "startNextPhase - session count reached, handling COMPLETED state")
+            timeLeftInMillisFlow.value = _sessionTotalDurationMillis.value
+            focusSetFlow.value = 0
+            breakSetFlow.value = 0
+            currentphase.value = Phase.COMPLETED
+            isCompleted.value = true
+            _timerState.value = TimerState.Finished
+            notificationHelper.removeTimerServiceNotification()
+            // Record which phase just finished so notifications can reflect it correctly
+            lastFinishedPhase.value = currentPhase
+            work?.invoke(true)
+            scope.launch {
+                val ts = System.currentTimeMillis()
+                Log.d("CountdownTimerManager", "EMIT_TIMER_FINISHED at $ts")
+                lastFinishedAt.value = ts
+                _timerFinishedEvent.emit(ts)
+            }
+            return
         }
         startSession(openAndPopUp)
     }
 
+    fun pauseCountdown() {
+        _timerState.value = TimerState.Paused
+        remainingTimeMillis = timeLeftInMillisFlow.value
+        countDownTimer?.cancel()
+        isSessionInProgressFlow.value = false
+    }
+
+    fun resumeCountdown(openAndPopUp: (String, String) -> Unit) {
+        // Use the freshest available remaining time: prefer remainingTimeMillis (set on pause / ticks),
+        // otherwise fallback to flow's current value
+        val toStart = if (remainingTimeMillis > 0L) remainingTimeMillis else timeLeftInMillisFlow.value
+        if (toStart <= 0L) return
+        _timerState.value = TimerState.Running
+        popUpLambda = openAndPopUp
+        // ensure service is running when resuming
+        timerServiceManager.startTimerService()
+        remainingTimeMillis = toStart
+        startCountDown(toStart)
+    }
+
+    // Removed duplicate parameterless resumeCountdown() overload to avoid ambiguity/conflicts
+
     fun cancelCountdown() {
         timerServiceManager.stopTimerService()
         countDownTimer?.cancel()
+        countDownTimer = null
         isSessionInProgressFlow.value = false
-
 
     }
 
@@ -302,30 +433,19 @@ class CountdownTimerManager @Inject constructor(
         timeLeftInMillisFlow.value = _sessionTotalDurationMillis.value
         focusSetFlow.value = 0
         breakSetFlow.value = 0
-        isCompleted.value = true
+        // Reset state to initial so UI and resume logic behave correctly
+        isCompleted.value = false
         currentphase.value = Phase.FOCUS_SESSION
+        remainingTimeMillis = _sessionTotalDurationMillis.value
+        _timerState.value = TimerState.Initial
+        // Ensure session-in-progress flag is cleared so UI & TimerService don't show running/paused notifications
+        isSessionInProgressFlow.value = false
+        // Clear any previously emitted finished timestamp to avoid stale completed notifications
+        lastFinishedAt.value = 0L
     }
 
     // Add a property to save the remaining time when paused
     private var remainingTimeMillis = 0L
-
-    fun pauseCountdown() {
-        timerServiceManager.stopTimerService()
-        _timerState.value = TimerState.Paused
-
-        // Save the remaining time and cancel the current timer
-        remainingTimeMillis = timeLeftInMillisFlow.value
-        cancelCountdown()
-    }
-
-    fun resumeCountdown(openAndPopUp: (String, String) -> Unit) {
-
-        _timerState.value = TimerState.Running
-        timerServiceManager.startTimerService()
-        // Start a new countdown with the remaining time
-        startCountDown(remainingTimeMillis)
-    }
-
 
     //for notification
     fun startSession() {
@@ -335,84 +455,168 @@ class CountdownTimerManager @Inject constructor(
 
     }
 
-    fun resumeCountdown() {
-        startCountDown(remainingTimeMillis)
-    }
 
     fun onDayChallengeCompleted(change: Boolean) {
+        // make this idempotent: only add hours and update streaks when today's DayProgress transitions to completed
         _timerState.value = TimerState.Initial
         val sessionDurationMinutes = sessionDuration.value * _totalNoOfSessions.value.toLong()
-Log.d("sessionDurationMinutes","${minutesToHours(sessionDuration.value.toLong())}")
+        Log.d("sessionDurationMinutes", "${minutesToHours(sessionDuration.value.toLong())}")
+
         scope.launch {
-            val totalBreakMins =  if (_totalNoOfBreaks.value!=0) _totalNoOfBreaks.value * 5 else 0
-            val progressList = dayProgressFlow.value.map { dayProgress ->
-                val hoursSpent = dayProgress.hoursSpent + minutesToHours(sessionDurationMinutes + totalBreakMins +1 )
-                if (dayProgress.date == progressDate.value) {
-                    val sessionsCompleted = focusSetFlow.value
-                    val totalNoOfSessions = totalFocusSetFlow.value
+            val totalBreakMins = if (_totalNoOfBreaks.value != 0) _totalNoOfBreaks.value * 5 else 0
+
+            // Compute new progress list by updating today's entry
+            val oldProgress = dayProgressFlow.value
+            val todayKey = startOfDayMillis(progressDate.value)
+
+            var wasCompletedBefore = false
+            val newProgress = oldProgress.map { dayProgress ->
+                if (startOfDayMillis(dayProgress.date) == todayKey) {
+                    wasCompletedBefore = dayProgress.completed
+                    val hoursSpent = dayProgress.hoursSpent + minutesToHours(sessionDurationMinutes + totalBreakMins)
                     dayProgress.copy(
-                        date = progressDate.value,
-                        completed = if ( hoursSpent >= minutesToHours( _goalState.value.goal?.focusSet?.toMinutes()!!)) change else false,
+                        date = dayProgress.date,
+                        completed = if (hoursSpent >= minutesToHours(_goalState.value.goal?.focusSet?.toMinutes() ?: 0)) change else false,
                         hoursSpent = hoursSpent
                     )
-
                 } else dayProgress
             }
-            Log.d("totalBreakMins","${_totalNoOfBreaks.value} ")
-            // Check if the last DayProgress is completed
-            val lastDayProgress = progressList.lastOrNull()
+
+            // If today's entry did not exist in the list, optionally append it
+            val containsToday = newProgress.any { startOfDayMillis(it.date) == todayKey }
+            val finalProgress = if (!containsToday) {
+                val hours = minutesToHours(sessionDurationMinutes + totalBreakMins)
+                newProgress + DayProgress(date = progressDate.value, completed = hours >= minutesToHours(_goalState.value.goal?.focusSet?.toMinutes() ?: 0), hoursSpent = hours)
+            } else newProgress
+
+            // Update in-memory flow immediately
+            dayProgressFlow.value = finalProgress
+
+            // Persist goal progress (save will run on background executor in repository)
+            _goalState.value.goal?.let { goal ->
+                try {
+                    goalRepository.save(
+                        goal.copy(
+                            progress = finalProgress,
+                            durationInfo = Duration(
+                                countdownTime = minutesToHours(sessionDurationMinutes + totalBreakMins),
+                                isCompleted = sessionDurationMinutes * _totalNoOfSessions.value == millisecondsToMinutes(goal.focusSet).toLong()
+                            )
+                        )
+                    ) { _ -> /* no-op callback */ }
+                } catch (e: Exception) {
+                    Log.w("CountdownTimerManager", "Failed to persist goal progress: ${e.message}")
+                }
+            }
+
+            // If today's entry newly became completed (was not completed before, now is), update user hours and recalc streaks
+            val todaysProgress = finalProgress.find { startOfDayMillis(it.date) == todayKey }
+            val isCompletedNow = todaysProgress?.completed == true
+
+            if (isCompletedNow && !wasCompletedBefore) {
+                try {
+                    val users = userRepository.getUser().first()
+                    if (users.isNotEmpty()) {
+                        val user = users[0]
+                        val previousTotalHours = user.totalHoursSpent
+                        val sessionDurationInHours = minutesToHours(sessionDurationMinutes + totalBreakMins)
+                        val updatedTotalHours = previousTotalHours + sessionDurationInHours
+
+                        // Recalculate streaks from finalProgress
+                        val calculatedLongest = calculateLongestStreak(finalProgress)
+
+                        var mergedUser = user.copy(totalHoursSpent = updatedTotalHours)
+                        if (mergedUser.longestStreak < calculatedLongest) {
+                            mergedUser = mergedUser.copy(longestStreak = calculatedLongest)
+                        }
+
+                        // Persist updated user and check achievements
+                        userRepository.update(mergedUser)
+                        checkAndUnlockAchievements(mergedUser)
+                    }
+                } catch (e: Exception) {
+                    Log.w("CountdownTimerManager", "Failed to update user hours/streaks: ${e.message}")
+                }
+            } else {
+                // If not a new completion but hours may still have changed (e.g., app counts hours per session),
+                // consider whether to increment totalHoursSpent on partial sessions. Current approach only adds hours
+                // when a day transitions to completed, avoiding double-counts.
+            }
+
+            // Cancel any scheduled reminders for completed days
+            val lastDayProgress = finalProgress.lastOrNull()
             if (lastDayProgress?.completed == true) {
                 _goalState.value.goal?.let { goal ->
                     goalRepository.cancelReminderForDayProgress(goal, lastDayProgress)
                 }
             }
-            _goalState.value.goal?.let { goal ->
-                goalRepository.save(
-                    goal.copy(
-                        progress = progressList,
-                        durationInfo = Duration(
-                            countdownTime = minutesToHours( sessionDurationMinutes + totalBreakMins) ,
-                            // Todo() you need to  work on this
-                            isCompleted = sessionDurationMinutes * _totalNoOfSessions.value == millisecondsToMinutes(goal.focusSet).toLong()
-                        )
-                    )
-                ){goalId ->
-                    val goalWithId = goal.copy(id = goalId)
 
-                }
-                Log.d("DayHourSpentFromSession", "$sessionDurationMinutes")
-            }
-
-
-            val user = userRepository.getUser().first()
-            val previousTotalHours = user[0].totalHoursSpent
-            val sessionDurationInHours = minutesToHours(sessionDurationMinutes+ totalBreakMins )
-            val currentTotalHours = previousTotalHours + sessionDurationInHours
-          //  val updatedTotalHours = user[0].totalHoursSpent.plus(sessionDurationMinutes/60) // Add to total hours
-            val updatedUser = user[0].copy(totalHoursSpent = currentTotalHours) // Create a new user with updated data
-            userRepository.update(updatedUser) // Update the user in the database
-            checkAndUnlockAchievements(updatedUser) // Check for new achievements
+            // Stop service (we consider day-completed flows to finish timer-related work)
             timerServiceManager.stopTimerService()
-            Log.d("UserInCountdown", "$sessionDurationInHours")
-            Log.d("updatedUser","${updatedUser.totalHoursSpent}")
-
+            Log.d("CountdownTimerManager", "onDayChallengeCompleted finished for date=$todayKey")
         }
+    }
 
+    // Helper: normalize millis to day-start (local timezone)
+    private fun startOfDayMillis(millis: Long): Long {
+        val cal = java.util.Calendar.getInstance()
+        cal.timeInMillis = millis
+        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+        cal.set(java.util.Calendar.MINUTE, 0)
+        cal.set(java.util.Calendar.SECOND, 0)
+        cal.set(java.util.Calendar.MILLISECOND, 0)
+        return cal.timeInMillis
+    }
+
+    // Helper: compute the longest consecutive completed streak in the list
+    private fun calculateLongestStreak(progressList: List<DayProgress>): Int {
+        val completedDays = progressList.filter { it.completed }.map { startOfDayMillis(it.date) }.distinct().sorted()
+        if (completedDays.isEmpty()) return 0
+        var longest = 0
+        var current = 1
+        for (i in 1 until completedDays.size) {
+            if (completedDays[i] - completedDays[i - 1] == 24L * 60L * 60L * 1000L) {
+                current++
+            } else {
+                if (current > longest) longest = current
+                current = 1
+            }
+        }
+        if (current > longest) longest = current
+        return longest
     }
 
     private fun checkAndUnlockAchievements(user: User) {
 
-        val newAchievements = checkAchievements(user)
-        if (newAchievements.isNotEmpty()) {
-            // Update the user's achievements list
-            val updatedUser = user.copy(achievementsUnlocked = user.achievementsUnlocked.plus(newAchievements).filter{
-                it.isUnlocked
-            } )
+        val allChecked = checkAchievements(user)
+        // Only newly unlocked achievements are those with isUnlocked == true AND not already in user's list
+        val newlyUnlocked = allChecked.filter { it.isUnlocked && !user.achievementsUnlocked.any { unlocked -> unlocked.name == it.name } }
+
+        if (newlyUnlocked.isNotEmpty()) {
+            // Merge existing unlocked achievements with newly unlocked, deduplicating by name
+            val merged = (user.achievementsUnlocked + newlyUnlocked)
+                .distinctBy { it.name }
+
+            val updatedUser = user.copy(achievementsUnlocked = merged)
             scope.launch {
                 userRepository.save(updatedUser)
             }
-            // Optionally, notify the user about the new achievements
-            Log.d("Achievements", "New achievements unlocked: $newAchievements")
+
+            Log.d("Achievements", "New achievements unlocked: $newlyUnlocked")
+
+            // Show a notification for each newly unlocked achievement
+            newlyUnlocked.forEach { achievement ->
+                try {
+                    notificationHelper.showAchievementUnlockedNotification(achievement)
+                } catch (e: Exception) {
+                    Log.w("Achievements", "Failed to show achievement notification for ${achievement.name}: ${e.message}")
+                }
+            }
+
+            // Emit event for UI to display an in-app banner
+            scope.launch {
+                _unlockedAchievementsEvent.emit(newlyUnlocked)
+            }
         }
     }
 

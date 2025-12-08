@@ -10,11 +10,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -43,6 +45,7 @@ import com.example.str3ky.ui.MainViewModel
 import com.example.str3ky.ui.nav.MyAppNavHost
 import com.example.str3ky.ui.snackbar.ObserveAsEvents
 import com.example.str3ky.ui.snackbar.SnackbarController
+import com.example.str3ky.ui.snackbar.SnackbarEvent
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -56,13 +59,20 @@ class MainActivity : ComponentActivity() {
     lateinit var goalRepository: GoalRepositoryImpl
 
     private val mainViewModel: MainViewModel by viewModels()
-    // private val NOTIFICATION_PERMISSION_REQUEST_CODE = 1001 // Not strictly needed with ActivityResultLauncher
 
-    // State to track permission status
-    private var hasNotificationPermission by mutableStateOf(false)
+    // Track three states: not checked, granted, denied
+    private var permissionState by mutableStateOf<PermissionState>(PermissionState.NotChecked)
+
+    sealed class PermissionState {
+        object NotChecked : PermissionState()
+        object Granted : PermissionState()
+        object Denied : PermissionState()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        val shouldRequestNotifications = intent.getBooleanExtra(GoalRepositoryImpl.EXTRA_REQUEST_POST_NOTIFICATIONS, false)
 
         setContent {
             Str3kyTheme {
@@ -72,58 +82,73 @@ class MainActivity : ComponentActivity() {
                 val notificationPermissionLauncher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission(),
                     onResult = { isGranted ->
-                        hasNotificationPermission = isGranted
+                        permissionState = if (isGranted) PermissionState.Granted else PermissionState.Denied
                         if (!isGranted) {
                             coroutineScope.launch {
-                                snackbarHostState.showSnackbar(
-                                    message = "Notification permission denied. Some features may not work.",
-                                    duration = SnackbarDuration.Long
+                                SnackbarController.sendEvent(
+                                    event = SnackbarEvent(
+                                        message = "Notification permission denied. Some features may not work.",
+                                    )
                                 )
                             }
                         }
                     }
                 )
 
-                LaunchedEffect(Unit) {
+                LaunchedEffect(shouldRequestNotifications) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         val permission = android.Manifest.permission.POST_NOTIFICATIONS
                         val currentStatus = ContextCompat.checkSelfPermission(applicationContext, permission)
-                        if (currentStatus != PackageManager.PERMISSION_GRANTED) {
-                            notificationPermissionLauncher.launch(permission)
+                        permissionState = if (currentStatus == PackageManager.PERMISSION_GRANTED) {
+                            PermissionState.Granted
                         } else {
-                            hasNotificationPermission = true
+                            PermissionState.Denied
+                        }
+                        if (shouldRequestNotifications && permissionState == PermissionState.Denied) {
+                            notificationPermissionLauncher.launch(permission)
                         }
                     } else {
-                        hasNotificationPermission = true // Permission not needed below API 33
+                        permissionState = PermissionState.Granted
                     }
                 }
 
-                if (hasNotificationPermission) {
-                    // Only render app UI if permission is granted or not required
-                    val navController = rememberNavController()
-                    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) {
-                        MyAppNavHost(navController = navController, modifier = Modifier.padding(it))
+                when (permissionState) {
+                    PermissionState.NotChecked -> {
+                        // Show loading or nothing while checking
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
                     }
-                } else {
-                    // Optional: show fallback UI when permission not granted
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(16.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Please grant notification permission to proceed.")
-                        Button(onClick = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                    PermissionState.Granted -> {
+                        // Show main app
+                        val navController = rememberNavController()
+                        Scaffold() {
+                            MyAppNavHost(navController = navController, modifier = Modifier.padding(it))
+                        }
+                    }
+                    PermissionState.Denied -> {
+                        // Show permission request UI
+                        Column(
+                            modifier = Modifier.fillMaxSize().padding(16.dp),
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("Please grant notification permission to proceed.")
+                            Button(onClick = {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            }) {
+                                Text("Grant Permission")
                             }
-                        }) {
-                            Text("Grant Permission")
                         }
                     }
                 }
             }
         }
-
     }
 }
 

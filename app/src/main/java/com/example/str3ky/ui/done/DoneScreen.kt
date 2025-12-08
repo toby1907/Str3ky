@@ -16,12 +16,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -30,36 +36,89 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
-import com.example.str3ky.theme.Str3kyTheme
 import com.example.str3ky.toMinutes
 import com.example.str3ky.ui.nav.PROGRESS_SCREEN
-import com.example.str3ky.ui.nav.SESSION_SCREEN
+import com.example.str3ky.ui.nav.ACHIEVEMENTS_SCREEN
 import kotlin.text.count
 import kotlin.text.toFloat
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompletedScreen(
     viewModel: DoneScreenViewModel = hiltViewModel(),
     sessionDuration:Long,
     nav: NavHostController
 ) {
-    val nameText = remember {
-        mutableStateOf("30")
+    val unlocked by viewModel.unlockedAchievements.collectAsState()
+    val showBanner = remember { mutableStateOf(unlocked.isNotEmpty()) }
+
+    LaunchedEffect(unlocked) {
+        showBanner.value = unlocked.isNotEmpty()
     }
-    val selected = remember {
-        mutableStateOf(true)
-    }
+
     Scaffold(
+        topBar = {
+            if (showBanner.value && unlocked.isNotEmpty()) {
+                // Banner showing up to 3 unlocked achievements and actions
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(text = stringResource(id = R.string.reward_unlocked))
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                // show up to 3 achievements
+                                val list = unlocked.take(3)
+                                for ((index, a) in list.withIndex()) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        // small icon placeholder
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.baseline_timer_24),
+                                            contentDescription = null,
+                                            tint = colorScheme.onPrimaryContainer,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = a.name,
+                                            style = TextStyle(
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = colorScheme.onPrimaryContainer
+                                            )
+                                        )
+                                        if (index < list.lastIndex) Spacer(modifier = Modifier.width(12.dp))
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = colorScheme.primaryContainer,
+                        titleContentColor = colorScheme.onSurface
+                    ),
+                    actions = {
+                        // View all CTA
+                        IconButton(onClick = { nav.navigate(ACHIEVEMENTS_SCREEN) }) {
+                            Text(text = stringResource(id = R.string.view_all))
+                        }
+                        IconButton(onClick = { showBanner.value = false }) {
+                            // Replace missing drawable with simple text cross
+                            Text(text = "✕", style = TextStyle(fontSize = 18.sp))
+                        }
+                    }
+                )
+            }
+        },
         content = {
 
             Column(
@@ -116,7 +175,7 @@ private fun Timer(
                 val progress = if (totalDays > 0) daysCompleted.toFloat() / totalDays.toFloat() else 0f
 
                 CircularProgressIndicator(
-                    progress = progress,
+                    progress = { progress },
                     modifier = modifier
                         .fillMaxSize()
                         .scale(scaleX = -1f, scaleY = 1f),
@@ -125,7 +184,7 @@ private fun Timer(
                 )
                 //background
                 CircularProgressIndicator(
-                    progress = 1f,
+                    progress = { 1f },
                     modifier = modifier
                         .fillMaxSize()
                         .scale(scaleX = -1f, scaleY = 1f),
@@ -226,4 +285,3 @@ private fun Timer(
 
     }
 }
-

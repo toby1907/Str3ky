@@ -2,12 +2,12 @@ package com.example.str3ky.ui.done
 
 import android.util.Log
 import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableDoubleStateOf
-import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.str3ky.data.Achievement
+import com.example.str3ky.data.CountdownTimerManager
 import com.example.str3ky.data.DayProgress
 import com.example.str3ky.repository.GoalRepositoryImpl
 import com.example.str3ky.repository.UserRepositoryImpl
@@ -16,6 +16,8 @@ import com.example.str3ky.ui.add_challenge_screen.GoalState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,7 +26,8 @@ import javax.inject.Inject
 class DoneScreenViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val goalRepository: GoalRepositoryImpl,
-    private val userRepository: UserRepositoryImpl
+    private val userRepository: UserRepositoryImpl,
+    private val countdownTimerManager: CountdownTimerManager
 ) : ViewModel() {
 
     private var currentGoalIdFlow = MutableStateFlow(-1)
@@ -49,14 +52,13 @@ class DoneScreenViewModel @Inject constructor(
 
     private val _progress = mutableStateOf(emptyList<DayProgress>())
     private val goalState = mutableStateOf(GoalState())
-
-
-    val goalName: State<GoalScreenState> = _goalName
-    val frequency: State<GoalScreenState> = _frequency
-    val focusTime: State<GoalScreenState> = _focusTime
-   val progress: State<List<DayProgress>> = _progress
-    val goalCompleted: State<Boolean> = _goalCompleted
+    // Expose goal state for UI
     val goal: State<GoalState> = goalState
+
+    // New: expose unlocked achievements for UI banner
+    private val _unlockedAchievements = MutableStateFlow<List<Achievement>>(emptyList())
+    val unlockedAchievements: StateFlow<List<Achievement>> = _unlockedAchievements.asStateFlow()
+
     private var progressDateFlow = MutableStateFlow(0L)
     val progressDate = progressDateFlow
     private val dayHourSpentFlow = MutableStateFlow(
@@ -72,15 +74,21 @@ class DoneScreenViewModel @Inject constructor(
                 currentUserId = user.first().id
 
             }}
+
+        // Listen for achievement unlock events from CountdownTimerManager
+        viewModelScope.launch {
+            countdownTimerManager.unlockedAchievementsEvent.collectLatest { list ->
+                // publish to UI state so DoneScreen can show banners
+                _unlockedAchievements.value = list
+            }
+        }
+
         savedStateHandle.get<Int>("goalId")?.let { goalId ->
 
             if (goalId != -1) {
                 currentGoalIdFlow.value = goalId
                 viewModelScope.launch {
                     goalRepository.getGoal(goalId).collect{ goal ->
-                        if(goal!=null){
-                           // currentGoalId = goal.id
-                        }
                         if (goal!=null){
                             _goalName.value = _goalName.value.copy(goalName=goal.title)
                         }

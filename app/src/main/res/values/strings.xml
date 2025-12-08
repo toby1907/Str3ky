@@ -8,11 +8,34 @@
     <string name="short_break_length">Short break length</string>
     <string name="long_break_length">Long break length</string>
     <string name="pomodoro_completed_title">Pomodoro completed!</string>
-    <string name="pomodoro_completed_message">Time for a break</string>
+    <string name="pomodoro_completed_message">You are a Warrior!</string>
     <string name="break_over_title">Break is over!</string>
     <string name="break_over_message">Time to get back to work!</string>
     <string name="timer_service_channel_description">Shows a persistent notification when the pomodoro timer is running</string>
     <string name="timer_completed_channel_name">Timer completed notifications</string>
     <string name="timer_completed_channel_description">Shows a notification when a countdown timer finishes</string>
     <string name="ok">OK</string>
+    <string name="reminder_title">Reminder</string>
+    <string name="reminder_body">"Don't forget to work on your goal today!"</string>
+    <string name="reminder_channel_name">Goal reminders</string>
+    <string name="reward_unlocked">Reward Unlocked!</string>
+
+    <!-- Added channel strings for achievement/reward notifications -->
+    <string name="reward_unlocked_channel_name">Rewards</string>
+    <string name="reward_unlocked_channel_description">Notifications when you unlock achievements or rewards</string>
+
+    <!-- UI strings -->
+    <string name="view_all">View all</string>
+
+    <!-- Notification permission dialog strings -->
+    <string name="notifications_permission_title">Enable notifications</string>
+    <string name="notifications_permission_message">Allow the app to send notifications so you can receive timer and achievement alerts.</string>
+    <string name="allow">Allow</string>
+    <string name="later">Later</string>
+
+    <!-- Permanent denial / settings dialog -->
+    <string name="notifications_permission_needed">Notifications permission needed</string>
+    <string name="notifications_permission_open_settings">"Notifications are blocked. Open the app's notification settings to enable notifications."</string>
+    <string name="open_settings">Open settings</string>
+    <string name="cancel">Cancel</string>
 </resources>

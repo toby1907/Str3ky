@@ -1,26 +1,31 @@
 package com.example.str3ky.core.notification
 
 import android.app.Service
+import android.app.Notification
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
+import android.util.Log
 import com.example.str3ky.data.CountdownTimerManager
+import com.example.str3ky.data.CountdownTimerManager.Phase
 import com.example.str3ky.di.ApplicationScope
 import com.example.str3ky.millisecondsToMinutes
 import com.florianwalther.incentivetimer.core.notification.DefaultNotificationHelper
+import com.florianwalther.incentivetimer.core.notification.TIMER_SERVICE_NOTIFICATION_ID
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import com.example.str3ky.data.TimerState
 
 @AndroidEntryPoint
 class TimerService : Service() {
 
     @Inject
+    @ApplicationScope
     lateinit var serviceScope: CoroutineScope
 
     @Inject
@@ -28,223 +33,240 @@ class TimerService : Service() {
 
     @Inject
     lateinit var countdownTimerManager: CountdownTimerManager
-    private val coroutineScope  = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    @Inject
+    lateinit var timerStateCache: com.example.str3ky.data.TimerServiceStateCache
+
     private var timerJob: Job? = null
-
-/*    private lateinit var notificationManager: NotificationManagerCompat
-
-    private lateinit var timerNotification: NotificationCompat.Builder*/
-/*
-
-    private val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-    } else {
-        PendingIntent.FLAG_UPDATE_CURRENT
-    }
-*/
-
-
-
-
+    // When true, the next finished event received will be ignored. Used to avoid handling a stale
+    // finished event when the user starts a fresh session immediately after completion.
+    @Volatile
+    private var suppressNextFinished = false
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForeground(TIMER_SERVICE_NOTIFICATION_ID, notificationHelper.getBaseTimerServiceNotification().build())
+        // Use API-34 overload to provide foreground service type when available to satisfy targetSdk 34 requirements.
+        val baseNotification = notificationHelper.getBaseTimerServiceNotification().build()
+
+        try {
+            if (Build.VERSION.SDK_INT >= 34) {
+                // Try to use the API-34 three-arg startForeground at runtime via reflection.
+                // This avoids a compile-time dependency on ServiceInfo when compileSdk < 34.
+                try {
+                    val serviceInfoClass = Class.forName("android.app.ServiceInfo")
+                    val field = serviceInfoClass.getField("FOREGROUND_SERVICE_TYPE_DATA_SYNC")
+                    val type = (field.get(null) as? Int) ?: 0
+
+                    // Call startForeground(int, Notification, int) reflectively
+                    val startForegroundMethod = Service::class.java.getMethod(
+                        "startForeground",
+                        Int::class.javaPrimitiveType,
+                        Notification::class.java,
+                        Int::class.javaPrimitiveType
+                    )
+                    startForegroundMethod.invoke(this, TIMER_SERVICE_NOTIFICATION_ID, baseNotification, type)
+                } catch (inner: Exception) {
+                    Log.w(TAG, "Reflection startForeground failed, falling back to two-arg startForeground: ${inner.message}")
+                    startForeground(TIMER_SERVICE_NOTIFICATION_ID, baseNotification)
+                }
+            } else {
+                startForeground(TIMER_SERVICE_NOTIFICATION_ID, baseNotification)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "startForeground failed: ${e.message}")
+            startForeground(TIMER_SERVICE_NOTIFICATION_ID, baseNotification)
+        }
 
         timerJob?.cancel()
-        timerJob = coroutineScope.launch {
-            countdownTimerManager.combinedFlow.collectLatest { timerStates ->
+        timerJob = serviceScope.launch {
+            // Collector A: observe combined state for running/paused updates
+            launch {
+                countdownTimerManager.combinedFlow.collectLatest { timerStates ->
+                    // Persist the latest timer state for restoration after process death
+                    timerStateCache.updateTimerState(timerStates)
 
-                notificationHelper.
-                updateTimerServiceNotification(timerStates.currentPhase,timerStates.timeLeftInMillis,true,timerStates.goalId,timerStates.totalFocusSet,millisecondsToMinutes(timerStates.timeLeftInMillis),timerStates.progressDate)
+                    val isRunning = countdownTimerManager.isSessionInProgress.value
+                    if (isRunning) {
+                        notificationHelper.updateTimerServiceNotification(
+                            timerStates.currentPhase,
+                            timerStates.timeLeftInMillis,
+                            true,
+                            timerStates.goalId,
+                            timerStates.totalFocusSet,
+                            millisecondsToMinutes(timerStates.timeLeftInMillis),
+                            timerStates.progressDate,
+                            timerStates.focusCompleted,
+                            timerStates.breakCompleted
+                        )
+                        // Clear any stale resume notification
+                        notificationHelper.removeResumeTimerNotification()
+                    } else {
+                        // Do not show resume notification when the timer is in Initial state (e.g., after reset)
+                        val ts = countdownTimerManager.timerState.value
+                        // If the manager is in Initial or Finished state, ensure no resume or running notifications are shown.
+                        if (ts == com.example.str3ky.data.TimerState.Initial || ts == com.example.str3ky.data.TimerState.Finished) {
+                            notificationHelper.removeTimerServiceNotification()
+                            notificationHelper.removeResumeTimerNotification()
+                        } else {
+                            // Remove any running notification first to avoid showing a stale running notification
+                            notificationHelper.removeTimerServiceNotification()
+                            // Show resume notification when paused
+                            notificationHelper.showResumeTimerNotification(
+                                currentPhase = timerStates.currentPhase,
+                                timeLeftInMillis = timerStates.timeLeftInMillis,
+                                focusCompleted = timerStates.focusCompleted,
+                                breakCompleted = timerStates.breakCompleted
+                            )
+                        }
+                    }
+                }
+            }
 
-                /* if(it==CountdownTimerManager.Phase.COMPLETED){
-                     stopForeground(STOP_FOREGROUND_REMOVE)
-                     stopSelf()
-                 }*/
+            // Collector B: separate finished event handler to post completed notifications deterministically
+            launch {
+                countdownTimerManager.timerFinishedEvent.collectLatest { token ->
+                    // If suppression was requested, ignore the first finished event and clear the flag
+                    if (suppressNextFinished) {
+                        Log.d(TAG, "Suppressing finished event token=$token due to suppressNextFinished")
+                        suppressNextFinished = false
+                        return@collectLatest
+                    }
 
+                    try {
+                        Log.d(TAG, "Received timerFinishedEvent token=$token, manager.lastFinishedAt=${countdownTimerManager.lastFinishedAt.value}")
+
+                        // Verify token matches manager's lastFinishedAt to avoid stale events
+                        if (token != countdownTimerManager.lastFinishedAt.value) {
+                            Log.w(TAG, "Finished token $token did not match manager.lastFinishedAt ${countdownTimerManager.lastFinishedAt.value}; ignoring")
+                            return@collectLatest
+                        }
+
+                        // Wait briefly for the manager to set final completion flags to avoid races
+                        var managerReportsFinished = countdownTimerManager.isCompleted.value || countdownTimerManager.timerState.value == TimerState.Finished
+                        var attempts = 0
+                        while (!managerReportsFinished && attempts < 10) {
+                            delay(100)
+                            managerReportsFinished = countdownTimerManager.isCompleted.value || countdownTimerManager.timerState.value == TimerState.Finished
+                            attempts++
+                        }
+
+                        if (!managerReportsFinished) {
+                            Log.w(TAG, "Finished event received but manager did not report final completion state after wait; skipping completed notification")
+                            return@collectLatest
+                        }
+
+                        val goalId = countdownTimerManager.goalId.value
+                        // Post completed notification whenever we have a valid goalId (don't gate on totalFocusSet)
+                        if (goalId != -1) {
+                            // Extra safety: if manager currently reports a session in progress, skip posting completed
+                            if (countdownTimerManager.isSessionInProgress.value) {
+                                Log.w(TAG, "Manager reports session in progress at finished token=$token; skipping completed notification to avoid race")
+                                return@collectLatest
+                            }
+                            Log.d(TAG, "Posting completed notification for goalId=$goalId token=$token")
+                            val finishedPhase = countdownTimerManager.lastFinishedPhase.value ?: Phase.COMPLETED
+                            notificationHelper.showTimerCompletedNotification(
+                                finishedPhase = finishedPhase,
+                                goalId = goalId,
+                                progressDate = countdownTimerManager.progressDate.value,
+                                sessionDuration = countdownTimerManager.sessionDuration.value.toLong()
+                            )
+                            // Ensure any running/resume notifications are removed to avoid stale UI
+                            notificationHelper.removeTimerServiceNotification()
+                            notificationHelper.removeResumeTimerNotification()
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Error while handling finished event: ${e.message}")
+                    }
+
+                    // Clear persisted timer state so a subsequent fresh session doesn't reload completed state
+                    try {
+                        timerStateCache.clear()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to clear timer state cache after finished event: ${e.message}")
+                    }
+
+                    // Stop the foreground service now that session reached COMPLETED
+                    if (Build.VERSION.SDK_INT >= 24) {
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        stopForeground(true)
+                    }
+                    stopSelf()
+                }
             }
         }
-       /* notificationManager = NotificationManagerCompat.from(this)
-        createNotificationChannel()
-        timerNotification = NotificationCompat.Builder(this, TIMER_SERVICE_CHANNEL_ID)
-            .setSmallIcon(R.drawable.baseline_timer_24)
-            .setSilent(true)
-            .setOnlyAlertOnce(true)*/
 
- /*goalId = countdownTimerManager.goalId
-        val sessionDuration = countdownTimerManager.timeLeftInMillisFlow.value
-        val progressDate = countdownTimerManager.progressDate.value
-        when (intent?.action) {
-            TimerActions.START.name -> {
-                start()
-                stopCompletedNotification()
-            }
-            TimerActions.STOP.name -> stop()
-            TimerActions.COMPLETED.name -> {
-                stop()
-                sessionCompletedNotification(goalId, progressDate, sessionDuration)
-            }
-            TimerActions. CANCEL.name -> stopCompletedNotification()
-        }*/
-
-
+        handleStart(intent)
 
         return START_STICKY
     }
 
-  /*  fun start() {
-
-        serviceScope.launch {
-            countdownTimerManager.combinedFlow.collect { timerStates ->
-
-                updateTimerNotification(timerStates)
-
-                *//* if(it==CountdownTimerManager.Phase.COMPLETED){
-                     stopForeground(STOP_FOREGROUND_REMOVE)
-                     stopSelf()
-                 }*//*
-
+    private fun handleStart(intent: Intent?) {
+        // Support an optional action to suppress the next finished event (helps avoid race with UI)
+        val action = intent?.action
+        if (action == ACTION_SUPPRESS_NEXT_FINISHED) {
+            // Only suppress next finished if the manager actually reports a previous finished timestamp.
+            // This prevents suppressing a legitimate finished event when starting fresh after clearing state.
+            val last = try {
+                countdownTimerManager.lastFinishedAt.value
+            } catch (e: Exception) {
+                0L
             }
-        }
-    }*/
+            if (last != 0L) {
+                Log.d(TAG, "handleStart: ACTION_SUPPRESS_NEXT_FINISHED received - will ignore next finished event (lastFinishedAt=$last)")
+                suppressNextFinished = true
+            } else {
+                Log.d(TAG, "handleStart: ACTION_SUPPRESS_NEXT_FINISHED ignored - no previous finished timestamp")
+            }
+             // Clear any completed notification and cached state proactively
+             try {
+                 timerStateCache.clear()
+             } catch (e: Exception) {
+                 Log.w(TAG, "Failed to clear timer state cache on suppress action: ${e.message}")
+             }
+             notificationHelper.removeTimerCompletedNotification()
+             // still continue to save state if extras are present
+         }
 
- /*   private fun sessionCompletedNotification( goalId: Int, progressDate: Long,sessionDuration: Long) {
-        *//*val openTimerIntent = Intent(
-            Intent.ACTION_VIEW,
-            MY_URI.toUri(),
-            applicationContext,
-            MainActivity::class.java
-        )*//*
-        stop()
-        val deepLink = Uri.parse("myapp://donescreen?goalId=$goalId&sessionDuration=$sessionDuration&progressDate=$progressDate")
-
-        val openTimerIntent = Intent(
-            Intent.ACTION_VIEW,
-          deepLink
-        )
-     val openTimerPendingIntent = PendingIntent.getActivity(
-            applicationContext, 0, openTimerIntent, pendingIntentFlags
-        )
-
-        val timerCompletedNotification =
-            NotificationCompat.Builder(applicationContext, TIMER_COMPLETED_CHANNEL_ID)
-                .setContentTitle("Session Completed")
-                .setContentText("Day Goal Reached, Bravo!")
-                .setSmallIcon(R.drawable.baseline_timer_24)
-                .setContentIntent(openTimerPendingIntent)
-                .setAutoCancel(true)
-                .build()
-        if (ActivityCompat.checkSelfPermission(
-                applicationContext,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return
-        }
-        notificationManager.notify(TIMER_COMPLETED_NOTIFICATION_ID, timerCompletedNotification)
-
+        val goalId = intent?.getIntExtra(EXTRA_GOAL_ID, countdownTimerManager.goalId.value)
+        val totalSessions = intent?.getIntExtra(EXTRA_TOTAL_SESSIONS, 0) ?: 0
+        val sessionDuration = intent?.getIntExtra(EXTRA_SESSION_DURATION, 0) ?: 0
+        val progressDate = intent?.getLongExtra(EXTRA_PROGRESS_DATE, 0) ?: 0
+        timerStateCache.saveState(goalId ?: -1, totalSessions, sessionDuration, progressDate)
     }
-*/
-    /*fun stop() {
-        serviceScope.cancel()
+
+    private fun handleStop() {
+        timerJob?.cancel()
         countdownTimerManager.cancelCountdown()
+        timerStateCache.clear()
+        if (Build.VERSION.SDK_INT >= 24) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        } else {
+            stopForeground(true)
+        }
         stopSelf()
-    }*/
-   /* fun stop() {
-        notificationManager.cancel(TIMER_SERVICE_NOTIFICATION_ID)
     }
-    fun stopCompletedNotification(){
-        notificationManager.cancel(TIMER_COMPLETED_NOTIFICATION_ID)
-    }*/
-
-    /*private fun updateTimerNotification(timerState: CombinedData) {
-
-        val minutes = timerState.timeLeftInMillis / 1000 / 60
-        val seconds = timerState.timeLeftInMillis / 1000 % 60
-        val formattedTime = String.format("%02d:%02d", minutes, seconds)
-
-        val notificationUpdate = timerNotification
-            .setContentTitle(timerState.currentPhase.name)
-            .setContentText(formattedTime)
-            .build()
-
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.POST_NOTIFICATIONS
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return
-        }
-        //  startForeground(TIMER_SERVICE_NOTIFICATION_ID, notificationUpdate)
-        notificationManager.notify(TIMER_SERVICE_NOTIFICATION_ID, notificationUpdate)
-
-
-    }*/
-
-    /*private fun createNotificationChannel() {
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
-            *//*   val timerServiceChannel = NotificationChannel(
-                   TIMER_SERVICE_CHANNEL_ID,
-                   getString(R.string.timer_service_channel_name),
-                   NotificationManager.IMPORTANCE_DEFAULT
-
-               )*//*
-            val timerServiceChannel = NotificationChannelCompat.Builder(
-                TIMER_SERVICE_CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_HIGH
-            ).setName(getString(R.string.timer_service_channel_name))
-                .setDescription("Shows a notification as countdown occurs")
-                .build()
-
-            val timerCompletedChannel = NotificationChannelCompat.Builder(
-                TIMER_COMPLETED_CHANNEL_ID,
-                NotificationManagerCompat.IMPORTANCE_HIGH
-            )
-                .setName(applicationContext.getString(R.string.timer_completed_channel_name))
-                .setDescription(applicationContext.getString(R.string.timer_completed_channel_description))
-                .build()
-
-            notificationManager.createNotificationChannelsCompat(
-                listOf(
-                    timerServiceChannel,
-                    timerCompletedChannel,
-                    //  rewardUnlockedChannel,
-                )
-            )
-            //  notificationManager.createNotificationChannel(timerServiceChannel)
-
-        }
-
-    }*/
 
     override fun onBind(p0: Intent?): IBinder? {
-        TODO("Not yet implemented")
+        // This is a started (foreground) service; no binding provided.
+        return null
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        serviceScope.cancel()
-       // countdownTimerManager.cancelCountdown()
+        timerJob?.cancel()
         notificationHelper.removeTimerServiceNotification()
     }
-}
 
-private const val TIMER_COMPLETED_CHANNEL_ID = "timer_completed_notification_channel"
-private const val TIMER_SERVICE_CHANNEL_ID = "timer_service_channel"
-private const val TIMER_SERVICE_NOTIFICATION_ID = 123
-private const val TIMER_COMPLETED_NOTIFICATION_ID = -3
+    companion object {
+        private const val TAG = "TimerService"
+
+        const val EXTRA_GOAL_ID = "extra_goal_id"
+        const val EXTRA_TOTAL_SESSIONS = "extra_total_sessions"
+        const val EXTRA_SESSION_DURATION = "extra_session_duration"
+        const val EXTRA_PROGRESS_DATE = "extra_progress_date"
+
+        const val ACTION_SUPPRESS_NEXT_FINISHED = "com.example.str3ky.action.SUPPRESS_NEXT_FINISHED"
+    }
+}

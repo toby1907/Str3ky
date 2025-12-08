@@ -1,17 +1,12 @@
 package com.example.str3ky.repository
 
 
-import android.Manifest
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
-import android.provider.Settings
 import android.util.Log
-import androidx.annotation.RequiresApi
-import androidx.core.content.ContextCompat
 import com.example.str3ky.core.alarm.AlarmReceiver
 import com.example.str3ky.data.DayProgress
 import com.example.str3ky.data.Goal
@@ -63,8 +58,9 @@ class GoalRepositoryImpl(private val goalDao: GoalDao, private val context: Cont
     val alarmPermissionNeeded: SharedFlow<Unit> = _alarmPermissionNeeded.asSharedFlow()
     companion object {
         const val GOAL_ID_EXTRA = "goalId"
+        const val PROGRESS_DATE_EXTRA = "progressDate"
+        const val EXTRA_REQUEST_POST_NOTIFICATIONS = "request_post_notifications"
     }
-    @RequiresApi(Build.VERSION_CODES.M)
     fun scheduleRemindersForGoal(goal: Goal, dayProgressList: List<DayProgress>) {
         if (goal.alarmTime == null) return
 
@@ -72,33 +68,32 @@ class GoalRepositoryImpl(private val goalDao: GoalDao, private val context: Cont
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (!alarmManager.canScheduleExactAlarms()) {
-                Log.e("GoalRepository", "Cannot schedule exact alarms")
-                //callback.onExactAlarmPermissionNeeded()
                 _alarmPermissionNeeded.tryEmit(Unit)
                 return
             }
         }
 
-
-
         for (dayProgress in dayProgressList) {
-
-                scheduleReminder(goal, dayProgress)
-
+            scheduleReminder(goal, dayProgress)
         }
     }
-    @RequiresApi(Build.VERSION_CODES.M)
+
     private fun scheduleReminder(goal: Goal, dayProgress: DayProgress) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java).apply {
-            putExtra(GOAL_ID_EXTRA, goal.id)
-            Log.d("this is the ID", "$goal.id")
+            putExtra(GOAL_ID_EXTRA, goal.id ?: return)
+            putExtra(PROGRESS_DATE_EXTRA, dayProgress.date)
+        }
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        } else {
+            PendingIntent.FLAG_UPDATE_CURRENT
         }
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            generatePendingIntentId(goal, dayProgress), // Unique ID
+            generatePendingIntentId(goal, dayProgress),
             intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            flags
         )
 
         val calendar = Calendar.getInstance().apply {
@@ -117,11 +112,19 @@ class GoalRepositoryImpl(private val goalDao: GoalDao, private val context: Cont
 
         Log.d("GoalRepository", "Alarm scheduled for: ${calendar.time}")
         try {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP,
-                calendar.timeInMillis,
-                pendingIntent
-            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.timeInMillis,
+                    pendingIntent
+                )
+            } else {
+                alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.timeInMillis,
+                    pendingIntent
+                )
+            }
         } catch (e: SecurityException) {
             Log.e("GoalRepository", "SecurityException: ${e.message}")
         }
@@ -135,9 +138,9 @@ class GoalRepositoryImpl(private val goalDao: GoalDao, private val context: Cont
         for (dayProgress in dayProgressList) {
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
-                generatePendingIntentId(goal, dayProgress), // Unique ID
+                generatePendingIntentId(goal, dayProgress),
                 intent,
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT else PendingIntent.FLAG_UPDATE_CURRENT
             )
             alarmManager.cancel(pendingIntent)
         }
@@ -148,9 +151,9 @@ class GoalRepositoryImpl(private val goalDao: GoalDao, private val context: Cont
         val intent = Intent(context, AlarmReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            generatePendingIntentId(goal, dayProgress), // Unique ID
+            generatePendingIntentId(goal, dayProgress),
             intent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT else PendingIntent.FLAG_UPDATE_CURRENT
         )
         alarmManager.cancel(pendingIntent)
     }
@@ -167,8 +170,16 @@ class GoalRepositoryImpl(private val goalDao: GoalDao, private val context: Cont
     }
 
     private fun generatePendingIntentId(goal: Goal, dayProgress: DayProgress): Int {
-        // Create a unique ID based on the goal ID and the dayProgress date
         return (goal.id.toString() + dayProgress.date.toString()).hashCode()
+    }
+
+    fun rescheduleAllReminders() {
+        val goals = goalDao.getAllGoalsBlocking()
+        goals.forEach { goal ->
+            goal.progress.filter { !it.completed && goal.alarmTime != null }.forEach { dayProgress ->
+                scheduleReminder(goal, dayProgress)
+            }
+        }
     }
 
 }
