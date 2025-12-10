@@ -78,6 +78,8 @@ data class User(
     @ColumnInfo(name = "total_hours_spent") val totalHoursSpent: Double,
     @ColumnInfo(name = "achievements_unlocked") val achievementsUnlocked: List<Achievement>,
     @ColumnInfo(name = "longest_streak") val longestStreak:Int,
+    @ColumnInfo(name = "current_streak") val currentStreak: Int = 0,
+    @ColumnInfo(name = "last_completed_date") val lastCompletedDate: Long = 0L,
     // Other user-specific fields
 )
 {

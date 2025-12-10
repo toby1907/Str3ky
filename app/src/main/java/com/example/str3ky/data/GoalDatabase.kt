@@ -1,13 +1,12 @@
 package com.example.str3ky.data
 
 import android.content.Context
-import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [Goal::class,User::class], version = 1)
+@Database(entities = [Goal::class,User::class], version = 2)
 @TypeConverters(OccurrenceSelectionConverter::class, ProgressConverter::class, DurationTypeConverter::class,Converters::class)
 abstract class GoalDatabase : RoomDatabase() {
 
@@ -31,9 +30,14 @@ abstract class GoalDatabase : RoomDatabase() {
                     GoalDatabase::class.java,
                     "user_goals_database"
                 )
-                    .fallbackToDestructiveMigration() // Add this line if you want to handle migrations by destroying and recreating the database
+                    .addMigrations(object : androidx.room.migration.Migration(1, 2) {
+                        override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                            // Add columns with defaults to user_table
+                            db.execSQL("ALTER TABLE user_table ADD COLUMN current_streak INTEGER NOT NULL DEFAULT 0")
+                            db.execSQL("ALTER TABLE user_table ADD COLUMN last_completed_date INTEGER NOT NULL DEFAULT 0")
+                        }
+                    })
                     .build().also { instance = it }
-                   // .build()
             }
         }
     }

@@ -237,6 +237,43 @@ class CountdownTimerManager @Inject constructor(
                     Phase.FOCUS_SESSION -> {
                         focusSetFlow.value = focusSetFlow.value + 1
                         Log.d("CountdownTimerManager", "Focus session completed. focusSet=${focusSetFlow.value}")
+
+                        // Per-session hour accumulation: add this session's hours to today's DayProgress and to User.totalHoursSpent
+                        try {
+                            val sessionHours = minutesToHours(sessionDuration.value.toLong())
+                            // update dayProgressFlow for today's entry
+                            val todayKey = startOfDayMillis(progressDate.value)
+                            val updatedProgress = dayProgressFlow.value.toMutableList()
+                            var found = false
+                            for (i in updatedProgress.indices) {
+                                if (startOfDayMillis(updatedProgress[i].date) == todayKey) {
+                                    updatedProgress[i] = updatedProgress[i].copy(hoursSpent = updatedProgress[i].hoursSpent + sessionHours)
+                                    found = true
+                                    break
+                                }
+                            }
+                            if (!found) {
+                                updatedProgress.add(DayProgress(date = progressDate.value, completed = false, hoursSpent = sessionHours))
+                            }
+                            dayProgressFlow.value = updatedProgress
+
+                            // Persist user total hours incrementally inside coroutine
+                            scope.launch {
+                                try {
+                                    val users = userRepository.getUser().first()
+                                    if (users.isNotEmpty()) {
+                                        val user = users[0]
+                                        val newTotal = user.totalHoursSpent + sessionHours
+                                        val merged = user.copy(totalHoursSpent = newTotal)
+                                        userRepository.update(merged)
+                                    }
+                                } catch (e: Exception) {
+                                    Log.w("CountdownTimerManager", "Failed to persist user hours in coroutine: ${e.message}")
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.w("CountdownTimerManager", "Failed to accumulate session hours: ${e.message}")
+                        }
                     }
                     Phase.BREAK -> {
                         breakSetFlow.value = breakSetFlow.value + 1
@@ -465,7 +502,7 @@ class CountdownTimerManager @Inject constructor(
         scope.launch {
             val totalBreakMins = if (_totalNoOfBreaks.value != 0) _totalNoOfBreaks.value * 5 else 0
 
-            // Compute new progress list by updating today's entry
+            // Compute new progress list by marking today's entry completed based on existing hours
             val oldProgress = dayProgressFlow.value
             val todayKey = startOfDayMillis(progressDate.value)
 
@@ -473,20 +510,21 @@ class CountdownTimerManager @Inject constructor(
             val newProgress = oldProgress.map { dayProgress ->
                 if (startOfDayMillis(dayProgress.date) == todayKey) {
                     wasCompletedBefore = dayProgress.completed
-                    val hoursSpent = dayProgress.hoursSpent + minutesToHours(sessionDurationMinutes + totalBreakMins)
+                    // Do NOT add hours here; per-session accumulation already updated hoursSpent.
+                    val isNowCompleted = dayProgress.hoursSpent >= minutesToHours(_goalState.value.goal?.focusSet?.toMinutes() ?: 0)
                     dayProgress.copy(
                         date = dayProgress.date,
-                        completed = if (hoursSpent >= minutesToHours(_goalState.value.goal?.focusSet?.toMinutes() ?: 0)) change else false,
-                        hoursSpent = hoursSpent
+                        completed = if (isNowCompleted) change else false,
+                        hoursSpent = dayProgress.hoursSpent
                     )
                 } else dayProgress
             }
 
-            // If today's entry did not exist in the list, optionally append it
+            // If today's entry did not exist in the list, append it (no hours added)
             val containsToday = newProgress.any { startOfDayMillis(it.date) == todayKey }
             val finalProgress = if (!containsToday) {
-                val hours = minutesToHours(sessionDurationMinutes + totalBreakMins)
-                newProgress + DayProgress(date = progressDate.value, completed = hours >= minutesToHours(_goalState.value.goal?.focusSet?.toMinutes() ?: 0), hoursSpent = hours)
+                val hours = 0.0
+                newProgress + DayProgress(date = progressDate.value, completed = false, hoursSpent = hours)
             } else newProgress
 
             // Update in-memory flow immediately
@@ -509,7 +547,7 @@ class CountdownTimerManager @Inject constructor(
                 }
             }
 
-            // If today's entry newly became completed (was not completed before, now is), update user hours and recalc streaks
+            // If today's entry newly became completed (was not completed before, now is), recalc streaks and persist user
             val todaysProgress = finalProgress.find { startOfDayMillis(it.date) == todayKey }
             val isCompletedNow = todaysProgress?.completed == true
 
@@ -518,17 +556,17 @@ class CountdownTimerManager @Inject constructor(
                     val users = userRepository.getUser().first()
                     if (users.isNotEmpty()) {
                         val user = users[0]
-                        val previousTotalHours = user.totalHoursSpent
-                        val sessionDurationInHours = minutesToHours(sessionDurationMinutes + totalBreakMins)
-                        val updatedTotalHours = previousTotalHours + sessionDurationInHours
 
                         // Recalculate streaks from finalProgress
                         val calculatedLongest = calculateLongestStreak(finalProgress)
+                        val calculatedCurrent = calculateCurrentStreak(finalProgress, todayKey)
 
-                        var mergedUser = user.copy(totalHoursSpent = updatedTotalHours)
-                        if (mergedUser.longestStreak < calculatedLongest) {
-                            mergedUser = mergedUser.copy(longestStreak = calculatedLongest)
-                        }
+                        val mergedUser = user.copy(
+                            // totalHoursSpent already updated per-session
+                            longestStreak = maxOf(user.longestStreak, calculatedLongest),
+                            currentStreak = calculatedCurrent,
+                            lastCompletedDate = todayKey
+                        )
 
                         // Persist updated user and check achievements
                         userRepository.update(mergedUser)
@@ -537,10 +575,6 @@ class CountdownTimerManager @Inject constructor(
                 } catch (e: Exception) {
                     Log.w("CountdownTimerManager", "Failed to update user hours/streaks: ${e.message}")
                 }
-            } else {
-                // If not a new completion but hours may still have changed (e.g., app counts hours per session),
-                // consider whether to increment totalHoursSpent on partial sessions. Current approach only adds hours
-                // when a day transitions to completed, avoiding double-counts.
             }
 
             // Cancel any scheduled reminders for completed days
@@ -559,14 +593,15 @@ class CountdownTimerManager @Inject constructor(
 
     // Helper: normalize millis to day-start (local timezone)
     private fun startOfDayMillis(millis: Long): Long {
-        val cal = java.util.Calendar.getInstance()
-        cal.timeInMillis = millis
-        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
-        cal.set(java.util.Calendar.MINUTE, 0)
-        cal.set(java.util.Calendar.SECOND, 0)
-        cal.set(java.util.Calendar.MILLISECOND, 0)
-        return cal.timeInMillis
-    }
+        // Use UTC day-start to make day keys timezone-agnostic for storage and comparisons
+        val cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+         cal.timeInMillis = millis
+         cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+         cal.set(java.util.Calendar.MINUTE, 0)
+         cal.set(java.util.Calendar.SECOND, 0)
+         cal.set(java.util.Calendar.MILLISECOND, 0)
+         return cal.timeInMillis
+     }
 
     // Helper: compute the longest consecutive completed streak in the list
     private fun calculateLongestStreak(progressList: List<DayProgress>): Int {
@@ -584,6 +619,24 @@ class CountdownTimerManager @Inject constructor(
         }
         if (current > longest) longest = current
         return longest
+    }
+
+    // Helper: compute the current streak based on today's date and the progress list
+    private fun calculateCurrentStreak(progressList: List<DayProgress>, todayMillis: Long): Int {
+        val todayStart = startOfDayMillis(todayMillis)
+        val completedToday = progressList.any { startOfDayMillis(it.date) == todayStart && it.completed }
+        return if (completedToday) {
+            // Count consecutive completed days including today
+            var count = 1
+            var currentDay = todayStart - 24L * 60L * 60L * 1000L // go back one day
+            while (progressList.any { startOfDayMillis(it.date) == currentDay && it.completed }) {
+                count++
+                currentDay -= 24L * 60L * 60L * 1000L
+            }
+            count
+        } else {
+            0
+        }
     }
 
     private fun checkAndUnlockAchievements(user: User) {

@@ -49,6 +49,12 @@ class AppModule {
     @Singleton
     fun provideGoalDatabase(app: Application): GoalDatabase {
         return Room.databaseBuilder(app.applicationContext, GoalDatabase::class.java, "user_goals_database")
+            .addMigrations(object : androidx.room.migration.Migration(1, 2) {
+                override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                    db.execSQL("ALTER TABLE user_table ADD COLUMN current_streak INTEGER NOT NULL DEFAULT 0")
+                    db.execSQL("ALTER TABLE user_table ADD COLUMN last_completed_date INTEGER NOT NULL DEFAULT 0")
+                }
+            })
             .build()
     }
     @Provides
