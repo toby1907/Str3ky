@@ -1,6 +1,5 @@
 package com.example.str3ky.repository
 
-
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -11,6 +10,8 @@ import com.example.str3ky.core.alarm.AlarmReceiver
 import com.example.str3ky.data.DayProgress
 import com.example.str3ky.data.Goal
 import com.example.str3ky.data.GoalDao
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -18,7 +19,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import java.util.Calendar
 import java.util.concurrent.Executors
 
-class GoalRepositoryImpl(private val goalDao: GoalDao, private val context: Context) :
+class GoalRepositoryImpl @Inject constructor(private val goalDao: GoalDao, @ApplicationContext private val context: Context) :
     GoalRepository {
 
     private val SINGLE_EXECUTOR = Executors.newSingleThreadExecutor()
@@ -61,7 +62,7 @@ class GoalRepositoryImpl(private val goalDao: GoalDao, private val context: Cont
         const val PROGRESS_DATE_EXTRA = "progressDate"
         const val EXTRA_REQUEST_POST_NOTIFICATIONS = "request_post_notifications"
     }
-    fun scheduleRemindersForGoal(goal: Goal, dayProgressList: List<DayProgress>) {
+    override fun scheduleRemindersForGoal(goal: Goal, dayProgressList: List<DayProgress>) {
         if (goal.alarmTime == null) return
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
@@ -130,8 +131,8 @@ class GoalRepositoryImpl(private val goalDao: GoalDao, private val context: Cont
         }
     }
 
-//remember to call this when you delete a goal or well goal is successful
-    fun cancelRemindersForGoal(goal: Goal, dayProgressList: List<DayProgress>) {
+    //remember to call this when you delete a goal or well goal is successful
+    override fun cancelRemindersForGoal(goal: Goal, dayProgressList: List<DayProgress>) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java)
 
@@ -146,7 +147,7 @@ class GoalRepositoryImpl(private val goalDao: GoalDao, private val context: Cont
         }
     }
 
-    fun cancelReminderForDayProgress(goal: Goal, dayProgress: DayProgress) {
+    override fun cancelReminderForDayProgress(goal: Goal, dayProgress: DayProgress) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, AlarmReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(

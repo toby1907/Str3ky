@@ -4,16 +4,16 @@ import android.os.CountDownTimer
 import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import com.example.str3ky.core.notification.TimerServiceManager
+import com.example.str3ky.core.notification.TimerServiceAdapter
 import com.example.str3ky.millisecondsToMinutes
 import com.example.str3ky.minutesToHours
-import com.example.str3ky.repository.GoalRepositoryImpl
-import com.example.str3ky.repository.UserRepositoryImpl
+import com.example.str3ky.repository.GoalRepository
+import com.example.str3ky.repository.UserRepository
 import com.example.str3ky.ui.achievements.checkAchievements
 import com.example.str3ky.ui.add_challenge_screen.GoalState
 import com.example.str3ky.ui.progress.toMinutes
 import com.example.str3ky.ui.session.SessionScreenState
-import com.florianwalther.incentivetimer.core.notification.DefaultNotificationHelper
+import com.example.str3ky.core.notification.NotificationAdapter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -31,15 +31,17 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
+import com.example.str3ky.di.ApplicationScope
 
 @Singleton
 class CountdownTimerManager @Inject constructor(
-    val timerServiceManager: TimerServiceManager,
-    val goalRepository: GoalRepositoryImpl,
-    val notificationHelper: DefaultNotificationHelper,
-    private val userRepository: UserRepositoryImpl
-    ) {
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val timerServiceAdapter: TimerServiceAdapter,
+    val goalRepository: GoalRepository,
+    private val notificationAdapter: NotificationAdapter,
+    private val userRepository: UserRepository,
+    @ApplicationScope private val externalScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+) {
+    private val scope: CoroutineScope = externalScope
 
     // New: emit newly unlocked achievements for UI display
     private val _unlockedAchievementsEvent = MutableSharedFlow<List<Achievement>>(replay = 0)
@@ -60,7 +62,6 @@ class CountdownTimerManager @Inject constructor(
     var popUpLambda: ((String, String) -> Unit)? = null
     var work: ((Boolean) -> Unit)? = null
     val goalId = MutableStateFlow(-1)
-
 
   /*  private val _progressDate = mutableStateOf(0L)
     val progressDate: State<Long> = _progressDate
@@ -83,7 +84,7 @@ class CountdownTimerManager @Inject constructor(
     var progressDate =  MutableStateFlow(0L)
     var progressFlowCombine: Flow<Long> = progressDate.asStateFlow()
     val dayProgressFlow = MutableStateFlow(emptyList<DayProgress>())
-    val dayProgress: StateFlow<List<DayProgress>> = dayProgressFlow
+    // Public alias removed; use dayProgressFlow directly from other classes (safer and less noisy)
     val _goalState = MutableStateFlow(
         GoalState()
     )
@@ -169,13 +170,7 @@ class CountdownTimerManager @Inject constructor(
     val currentTimeTargetInMillis: Flow<Long> = currentTimeTargetInMillisFlow
 
 
-    val sessionTotalDurationMillis: Flow<Long> = _sessionTotalDurationMillis
-    val breakDurationMillis: State<SessionScreenState> = _breakDurationMillis
-    val countdownTimeMillis: State<SessionScreenState> = _countdownTimeMillis
-
-    val isSessionInProgress: StateFlow<Boolean> = isSessionInProgressFlow
-
-    val isBreakInProgress: State<Boolean> = _isBreakInProgress
+    // Removed unused public aliases
 
     val onSkipClickedFlow = MutableStateFlow(false)
     val onSkipClicked: StateFlow<Boolean> = onSkipClickedFlow
@@ -238,47 +233,20 @@ class CountdownTimerManager @Inject constructor(
                         focusSetFlow.value = focusSetFlow.value + 1
                         Log.d("CountdownTimerManager", "Focus session completed. focusSet=${focusSetFlow.value}")
 
-                        // Per-session hour accumulation: add this session's hours to today's DayProgress and to User.totalHoursSpent
+                        // Per-session hour accumulation delegated to helper (testable)
                         try {
                             val sessionHours = minutesToHours(sessionDuration.value.toLong())
-                            // update dayProgressFlow for today's entry
-                            val todayKey = startOfDayMillis(progressDate.value)
-                            val updatedProgress = dayProgressFlow.value.toMutableList()
-                            var found = false
-                            for (i in updatedProgress.indices) {
-                                if (startOfDayMillis(updatedProgress[i].date) == todayKey) {
-                                    updatedProgress[i] = updatedProgress[i].copy(hoursSpent = updatedProgress[i].hoursSpent + sessionHours)
-                                    found = true
-                                    break
-                                }
-                            }
-                            if (!found) {
-                                updatedProgress.add(DayProgress(date = progressDate.value, completed = false, hoursSpent = sessionHours))
-                            }
-                            dayProgressFlow.value = updatedProgress
-
-                            // Persist user total hours incrementally inside coroutine
-                            scope.launch {
-                                try {
-                                    val users = userRepository.getUser().first()
-                                    if (users.isNotEmpty()) {
-                                        val user = users[0]
-                                        val newTotal = user.totalHoursSpent + sessionHours
-                                        val merged = user.copy(totalHoursSpent = newTotal)
-                                        userRepository.update(merged)
-                                    }
-                                } catch (e: Exception) {
-                                    Log.w("CountdownTimerManager", "Failed to persist user hours in coroutine: ${e.message}")
-                                }
-                            }
+                            accumulateSessionHours(sessionHours)
                         } catch (e: Exception) {
                             Log.w("CountdownTimerManager", "Failed to accumulate session hours: ${e.message}")
                         }
                     }
+
                     Phase.BREAK -> {
                         breakSetFlow.value = breakSetFlow.value + 1
                         Log.d("CountdownTimerManager", "Break completed. breakSet=${breakSetFlow.value}")
                     }
+
                     else -> {
                         // no-op for COMPLETED
                         Log.d("CountdownTimerManager", "onFinish - phase was COMPLETED (no increment)")
@@ -325,14 +293,14 @@ class CountdownTimerManager @Inject constructor(
         }
 
         _timerState.value = TimerState.Running
-        notificationHelper.removeTimerCompletedNotification()
+        notificationAdapter.removeTimerCompletedNotification()
         // ensure state updated before starting the service
         popUpLambda = openAndPopUp
         // ensure remainingTimeMillis reflects the active countdown
         remainingTimeMillis = durationToStart
         // start the service after internal state is ready
         // If we just cleared a completed run, ask the service to suppress any next finished event to avoid race
-        timerServiceManager.startTimerService(suppressNextFinished = wasCompleted)
+        timerServiceAdapter.startTimerService(suppressNextFinished = wasCompleted)
         startCountDown(durationToStart)
     }
 
@@ -394,7 +362,7 @@ class CountdownTimerManager @Inject constructor(
             currentphase.value = Phase.COMPLETED
             isCompleted.value = true
             _timerState.value = TimerState.Finished
-            notificationHelper.removeTimerServiceNotification()
+            notificationAdapter.removeTimerServiceNotification()
 
             work?.invoke(true)
 
@@ -419,7 +387,7 @@ class CountdownTimerManager @Inject constructor(
             currentphase.value = Phase.COMPLETED
             isCompleted.value = true
             _timerState.value = TimerState.Finished
-            notificationHelper.removeTimerServiceNotification()
+            notificationAdapter.removeTimerServiceNotification()
             // Record which phase just finished so notifications can reflect it correctly
             lastFinishedPhase.value = currentPhase
             work?.invoke(true)
@@ -449,7 +417,7 @@ class CountdownTimerManager @Inject constructor(
         _timerState.value = TimerState.Running
         popUpLambda = openAndPopUp
         // ensure service is running when resuming
-        timerServiceManager.startTimerService()
+        timerServiceAdapter.startTimerService()
         remainingTimeMillis = toStart
         startCountDown(toStart)
     }
@@ -457,7 +425,7 @@ class CountdownTimerManager @Inject constructor(
     // Removed duplicate parameterless resumeCountdown() overload to avoid ambiguity/conflicts
 
     fun cancelCountdown() {
-        timerServiceManager.stopTimerService()
+        timerServiceAdapter.stopTimerService()
         countDownTimer?.cancel()
         countDownTimer = null
         isSessionInProgressFlow.value = false
@@ -465,7 +433,7 @@ class CountdownTimerManager @Inject constructor(
     }
 
     fun resetCountdown() {
-        timerServiceManager.stopTimerService()
+        timerServiceAdapter.stopTimerService()
         countDownTimer?.cancel()
         timeLeftInMillisFlow.value = _sessionTotalDurationMillis.value
         focusSetFlow.value = 0
@@ -484,12 +452,42 @@ class CountdownTimerManager @Inject constructor(
     // Add a property to save the remaining time when paused
     private var remainingTimeMillis = 0L
 
-    //for notification
-    fun startSession() {
+    // Public helper to accumulate hours for a finished focus session.
+    // Updates in-memory dayProgressFlow immediately and persists totalHoursSpent asynchronously.
+    fun accumulateSessionHours(sessionHours: Double) {
+        try {
+            val todayKey = startOfDayMillis(progressDate.value)
+            val updatedProgress = dayProgressFlow.value.toMutableList()
+            var found = false
+            for (i in updatedProgress.indices) {
+                if (startOfDayMillis(updatedProgress[i].date) == todayKey) {
+                    updatedProgress[i] = updatedProgress[i].copy(hoursSpent = updatedProgress[i].hoursSpent + sessionHours)
+                    found = true
+                    break
+                }
+            }
+            if (!found) {
+                updatedProgress.add(DayProgress(date = progressDate.value, completed = false, hoursSpent = sessionHours))
+            }
+            dayProgressFlow.value = updatedProgress
 
-        Log.d("TimeTarget", "${currentTimeTargetInMillisFlow.value}")
-        startCountDown(currentTimeTargetInMillisFlow.value)
-
+            // Persist user total hours incrementally inside coroutine
+            scope.launch {
+                try {
+                    val users = userRepository.getUser().first()
+                    if (users.isNotEmpty()) {
+                        val user = users[0]
+                        val newTotal = user.totalHoursSpent + sessionHours
+                        val merged = user.copy(totalHoursSpent = newTotal)
+                        userRepository.update(merged)
+                    }
+                } catch (e: Exception) {
+                    Log.w("CountdownTimerManager", "Failed to persist user hours in coroutine: ${e.message}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.w("CountdownTimerManager", "accumulateSessionHours failed: ${e.message}")
+        }
     }
 
 
@@ -586,7 +584,7 @@ class CountdownTimerManager @Inject constructor(
             }
 
             // Stop service (we consider day-completed flows to finish timer-related work)
-            timerServiceManager.stopTimerService()
+            timerServiceAdapter.stopTimerService()
             Log.d("CountdownTimerManager", "onDayChallengeCompleted finished for date=$todayKey")
         }
     }
@@ -639,36 +637,44 @@ class CountdownTimerManager @Inject constructor(
         }
     }
 
-    private fun checkAndUnlockAchievements(user: User) {
+    fun checkAndUnlockAchievements(user: User) {
 
         val allChecked = checkAchievements(user)
         // Only newly unlocked achievements are those with isUnlocked == true AND not already in user's list
         val newlyUnlocked = allChecked.filter { it.isUnlocked && !user.achievementsUnlocked.any { unlocked -> unlocked.name == it.name } }
 
         if (newlyUnlocked.isNotEmpty()) {
-            // Merge existing unlocked achievements with newly unlocked, deduplicating by name
-            val merged = (user.achievementsUnlocked + newlyUnlocked)
-                .distinctBy { it.name }
-
-            val updatedUser = user.copy(achievementsUnlocked = merged)
+            // Use repository atomic update to avoid read-modify-write races
             scope.launch {
-                userRepository.save(updatedUser)
-            }
-
-            Log.d("Achievements", "New achievements unlocked: $newlyUnlocked")
-
-            // Show a notification for each newly unlocked achievement
-            newlyUnlocked.forEach { achievement ->
                 try {
-                    notificationHelper.showAchievementUnlockedNotification(achievement)
-                } catch (e: Exception) {
-                    Log.w("Achievements", "Failed to show achievement notification for ${achievement.name}: ${e.message}")
-                }
-            }
+                    // Use the new atomic add API which returns only the achievements that were actually persisted
+                    val actualAdded = try {
+                        userRepository.addAchievementsAtomically(newlyUnlocked)
+                    } catch (e: Exception) {
+                        Log.w("Achievements", "addAchievementsAtomically failed: ${e.message}")
+                        emptyList<Achievement>()
+                    }
 
-            // Emit event for UI to display an in-app banner
-            scope.launch {
-                _unlockedAchievementsEvent.emit(newlyUnlocked)
+                    if (actualAdded.isNotEmpty()) {
+                        Log.d("Achievements", "New achievements unlocked: $actualAdded")
+
+                        // Show a notification for each newly unlocked achievement
+                        actualAdded.forEach { achievement ->
+                            try {
+                                notificationAdapter.showAchievementUnlockedNotification(achievement)
+                            } catch (e: Exception) {
+                                Log.w("Achievements", "Failed to show achievement notification for ${achievement.name}: ${e.message}")
+                            }
+                        }
+
+                        // Emit event for UI to display an in-app banner
+                        _unlockedAchievementsEvent.emit(actualAdded)
+                    } else {
+                        Log.d("Achievements", "No actual achievements added (likely already present). Skipping notifications/emits.")
+                    }
+                } catch (e: Exception) {
+                    Log.w("Achievements", "Failed to persist/emit new achievements: ${e.message}")
+                }
             }
         }
     }

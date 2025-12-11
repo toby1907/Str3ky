@@ -151,10 +151,10 @@ fun AchievementScreenContent(modifier: Modifier = Modifier,
                   }
                   items(
                       achievements.size,
-                  ) { user ->
-                      RewardItems(achievements[user],
+                  ) { index ->
+                      RewardItems(achievements[index],
                           onClick = {
-                              selectedAchievement = achievements[user]
+                              selectedAchievement = achievements[index]
                               showDialog = true
                           }
                       )
@@ -186,10 +186,10 @@ fun AchievementScreenContent(modifier: Modifier = Modifier,
 
                   items(
                       achievements.size,
-                  ) { user ->
-                      RewardItems(achievements[user],
+                  ) { lockedIndex ->
+                      RewardItems(achievements[lockedIndex],
                           onClick = {
-                              selectedAchievement = achievements[user]
+                              selectedAchievement = achievements[lockedIndex]
                               showDialog = true
                           }
                       )

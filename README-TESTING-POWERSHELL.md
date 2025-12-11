@@ -1,144 +1,66 @@
-Quick Dev README — Testing & debugging from PowerShell (adb + Gradle)
+# Testing and Building from PowerShell (Windows)
 
-Purpose
+This guide shows the exact PowerShell commands I use to build the app, run tests, and capture logs for debugging outside of Android Studio.
 
-This file collects the exact PowerShell commands and short explanations you can copy/paste to build, install, and capture logs for this Android project from a Windows PowerShell session (outside Android Studio). It also contains safe notes about Room migrations and a dev-only destructive fallback you can enable for fast iteration.
+> NOTE: You must have a full JDK installed (Temurin/Adoptium, Azul, Oracle, or other) and Android SDK platform-tools installed.
 
-Checklist (high level)
+Quick checklist before you start
+- Install JDK 17 (or a JDK compatible with your Gradle & compile options).
+- Install Android SDK and ensure platform-tools (adb) are installed.
+- Optionally install Android Studio (recommended) for faster dev iteration.
 
-- Ensure a JDK is available and JAVA_HOME is set (or use Android Studio bundled JDK).
-- Ensure Android platform-tools (adb) are installed and on PATH for the session.
-- Build the debug APK with Gradle.
-- Install on a device and reproduce the issue.
-- Capture filtered Room+app logs and paste them into a file for analysis.
-
-1) Make adb available in this PowerShell session
-
-If you installed Android SDK via Android Studio, platform-tools are usually at:
-%USERPROFILE%\AppData\Local\Android\Sdk\platform-tools
-
-Temporary for this session (replace if your SDK location differs):
-
+1) Verify `adb` is available (platform-tools)
 ```powershell
+# Add platform-tools temporarily for this shell session (adjust path if needed)
 $env:PATH = "$env:USERPROFILE\AppData\Local\Android\Sdk\platform-tools;$env:PATH"
 adb devices
 ```
+If you see your device listed, adb is available.
 
-- Expected: you see your device id and "device".
-- If it shows "unauthorized", accept the USB debugging prompt on the phone.
-
-2) (Optional) Clear logcat buffer to reduce noise
-
+2) Ensure `java` (JDK) is available
 ```powershell
-adb logcat -c
-```
-
-3) Reproduce the issue on the device
-
-- Launch the app on the device/emulator and reproduce the migration/crash or the bug you're debugging.
-
-4) Capture Room + relevant app logs to a file (recommended)
-
-```powershell
-# create a folder for logs first (one-time)
-New-Item -ItemType Directory -Force -Path C:\temp
-
-# dump logs filtered to Room and relevant tags to a file
-adb logcat -v threadtime Room:V NotifHelper:V CountdownTimerManager:V TimerService:V *:S -d > C:\temp\room_log.txt
-
-# Open the file to inspect/copy-paste
-notepad C:\temp\room_log.txt
-```
-
-- Copy the IllegalStateException or crash stack trace plus ~20 lines before/after and paste here for analysis.
-
-5) Build the APK (set JAVA_HOME first)
-
-A) Try Android Studio embedded JDK (fast, no install):
-
-```powershell
-# check whether Android Studio JBR exists
-Test-Path "$env:ProgramFiles\Android\Android Studio\jbr\bin\java.exe"
-
-# if true - set it for the session (example)
-$env:JAVA_HOME = "$env:ProgramFiles\Android\Android Studio\jbr"
+# Set JAVA_HOME for this shell session. Replace with your actual JDK path.
+$env:JAVA_HOME = 'C:\Program Files\Amazon Corretto\jdk17'  # example
 $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
 java -version
 ```
+If you get `Error: could not open '...jvm.cfg'` then use a standard JDK installation (not Android Studio's JBR) for CLI builds.
 
-B) If no embedded JDK, install a JDK (Temurin 17 LTS recommended):
-
-```powershell
-# using winget (Windows 10/11)
-winget install --id EclipseAdoptium.Temurin.17 -e
-
-# then find java on PATH
-where.exe java
-java -version
-
-# set JAVA_HOME for this session to the directory that contains bin\java.exe (example)
-$env:JAVA_HOME = 'C:\Program Files\Eclipse Adoptium\jdk-17.x.x'
-$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
-```
-
-C) Once java -version shows a valid JDK, build the debug APK:
-
+3) Build the app (clean + assembleDebug)
 ```powershell
 cd 'C:\Users\olale\AndroidStudioProjects\Str3ky'
-.\gradlew.bat clean assembleDebug --no-daemon
+.\gradlew.bat clean assembleDebug --no-daemon --stacktrace | Tee-Object -FilePath build-output.txt
 ```
-
-6) Install the APK on device
-
+- This runs a clean build and saves the build log to `build-output.txt`. If `kapt` fails, paste the relevant sections of the log here (use the last ~200 lines). If you prefer smaller output, try the single task:
 ```powershell
-adb install -r app\build\outputs\apk\debug\app-debug.apk
+.\gradlew.bat :app:kaptDebugKotlin --no-daemon --stacktrace | Tee-Object -FilePath kapt-output.txt
 ```
 
-Or uninstall then reinstall (wipes DB):
-
+4) Run unit tests
 ```powershell
-adb uninstall com.example.str3ky
-adb install app\build\outputs\apk\debug\app-debug.apk
+.\gradlew.bat test --no-daemon --stacktrace | Tee-Object -FilePath test-output.txt
 ```
 
-7) Launch app from adb (optional)
-
+5) Capture runtime logs from a device (adb logcat)
 ```powershell
-adb shell am start -n "com.example.str3ky/com.example.str3ky.MainActivity"
+# Show verbose thread-time output, filter Room logs (example):
+adb logcat -v threadtime Room:V *:S
+# For all logs (bigger):
+adb logcat -v threadtime | Tee-Object -FilePath device-log.txt
 ```
 
-8) Run unit tests locally
+6) Common fixes if kapt/build fails
+- Make sure `kapt` plugin is applied in `app/build.gradle.kts` (it is in this repo).
+- Ensure Room/Hilt compiler dependencies are declared with `kapt(...)` in `app/build.gradle.kts`.
+- If you see `incompatible types: Object cannot be converted to Annotation` in kapt stubs, that usually means an annotation type (custom qualifier) could not be resolved during kapt. Ensure the qualifier file exists and is in the same package/imported where used.
+- If you see Hilt missing binding errors, check that either:
+  - the implementation has an `@Inject` constructor, or
+  - a `@Module` provides/binds the type. Example: `AppModule` in `app/src/main/java/.../di` contains several `@Provides` methods.
 
-```powershell
-cd 'C:\Users\olale\AndroidStudioProjects\Str3ky'
-.\gradlew.bat test --no-daemon
-```
+7) If you want me to continue
+- Run one of the build commands above and paste the output (the last ~200 lines if large). I'll parse errors and fix the source files in your repository. If kapt is the error, copy the KAPT section or `kapt-output.txt` and paste it here.
 
-Room migration notes & quick dev fallback
+Security note: don't paste long unrelated logs that may contain secrets; the build logs in this repository typically contain only compiler diagnostics.
 
-- We added a Room migration 1->2 that adds `current_streak` and `last_completed_date` columns to `user_table`. If the device still runs an older APK that created DB v1, you must install a build that contains the migration or otherwise Room will throw the IllegalStateException you observed.
-
-- Safe option: keep migration in the code and install the APK built after the migration was added (recommended). This preserves data.
-
-- Fast dev fallback (destructive — erases DB): if you only need to iterate quickly, you can temporarily allow destructive migration so Room recreates DB instead of failing. To enable (dev-only), change the DB builder in `AppModule.provideGoalDatabase(...)` to:
-
-```kotlin
-Room.databaseBuilder(app.applicationContext, GoalDatabase::class.java, "user_goals_database")
-    .fallbackToDestructiveMigration()
-    .build()
-```
-
-Then rebuild & reinstall. CAUTION: this will drop and recreate the DB (lose local data).
-
-How to revert the destructive fallback
-
-- Remove `.fallbackToDestructiveMigration()` and instead use `.addMigrations(...)` with your migration objects. Rebuild and reinstall (or restore backup DB if you have one).
-
-Extra troubleshooting tips
-
-- If `adb devices` returns nothing: ensure USB debugging is enabled on phone, use a data cable, accept debugging prompt.
-- If Gradle complains "JAVA_HOME is not set": ensure you set `JAVA_HOME` as shown above and re-open PowerShell or export it in the current session.
-- If you see `Error: could not open ... jvm.cfg` when pointing to Android Studio jbr, that that particular path is not a full JDK; try installing Temurin or use Android Studio's Gradle JDK configured in the IDE.
-
-If you'd like I can commit this README to the repo (small PR). Say "create README" and I will add it to the repo now. If you want the destructive fallback applied instead, say "apply destructive fallback" and I'll patch `AppModule.provideGoalDatabase` (dev-only change).
+-- End of guide --
 
