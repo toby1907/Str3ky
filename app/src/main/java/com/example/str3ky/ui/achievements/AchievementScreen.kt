@@ -32,6 +32,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,6 +64,13 @@ import com.example.str3ky.ui.nav.MAIN_SCREEN
 @Composable
 fun AchievementScreen(navController: NavHostController,) {
 
+    val viewModel: AchievementViewModel = hiltViewModel()
+
+    // mark as seen when screen is opened
+    LaunchedEffect(Unit) {
+        viewModel.markAllSeen()
+    }
+
     Scaffold (
         topBar = {
             TopAppBar(
@@ -92,7 +100,6 @@ fun AchievementScreen(navController: NavHostController,) {
     ){ padding ->
         AchievementScreenContent( modifier = Modifier.padding(padding))
     }
-
 
 
 

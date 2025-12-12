@@ -30,10 +30,18 @@ class AchievementViewModel @Inject constructor(
     private val _recentUnlocked = MutableStateFlow<List<Achievement>>(emptyList())
     val recentUnlocked: StateFlow<List<Achievement>> = _recentUnlocked.asStateFlow()
 
+    // Unseen / unread count for badge
+    private val _unseenCount = MutableStateFlow(0)
+    val unseenCount: StateFlow<Int> = _unseenCount.asStateFlow()
+
     init {
         viewModelScope.launch {
             countdownTimerManager.unlockedAchievementsEvent.collect { list ->
+                // Append to recent unlocked for the banner and increase unseen counter
                 _recentUnlocked.value = list
+                if (list.isNotEmpty()) {
+                    _unseenCount.value = _unseenCount.value + list.size
+                }
             }
         }
 
@@ -52,6 +60,12 @@ class AchievementViewModel @Inject constructor(
     }
 
     fun clear() {
+        _recentUnlocked.value = emptyList()
+    }
+
+    // Mark all unlocked achievements as seen (clear unseen counter)
+    fun markAllSeen() {
+        _unseenCount.value = 0
         _recentUnlocked.value = emptyList()
     }
 }

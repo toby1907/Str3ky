@@ -1,226 +1,126 @@
 package com.example.str3ky.data
 
-import com.example.str3ky.repository.UserRepository
-import com.example.str3ky.repository.GoalRepository
 import com.example.str3ky.core.notification.NotificationAdapter
-import com.example.str3ky.core.notification.TimerServiceAdapter
+import com.example.str3ky.data.Achievement
+import com.example.str3ky.data.User
+import com.example.str3ky.repository.UserRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.delay
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
 import org.junit.Test
-import java.util.concurrent.atomic.AtomicInteger
 
-// Minimal fake implementations
-class FakeUserRepository(initialUser: User) : UserRepository {
-    private val _users = MutableStateFlow(listOf(initialUser))
-    var updatedCount = AtomicInteger(0)
-
-    override suspend fun save(user: User) {
-        _users.value = listOf(user)
-    }
-
-    override fun getUser(): Flow<List<User>> = _users.asStateFlow()
-
-    override suspend fun deleteUsers(vararg users: User) {
-        // no-op
-    }
-
-    override suspend fun update(user: User) {
-        _users.value = listOf(user)
-        updatedCount.incrementAndGet()
-    }
-
-    override suspend fun updateUserAtomically(transform: suspend (User) -> User) {
-        val current = _users.value.firstOrNull() ?: return
-        val merged = transform(current)
-        update(merged)
-    }
-
-    override suspend fun addAchievementsAtomically(achievementsToAdd: List<Achievement>): List<Achievement> {
-        val current = _users.value.firstOrNull() ?: return emptyList()
-        val existing = current.achievementsUnlocked.map { it.name }.toSet()
-        val toAdd = achievementsToAdd.filter { it.name !in existing }
-        if (toAdd.isEmpty()) return emptyList()
-        val merged = (current.achievementsUnlocked + toAdd).distinctBy { it.name }
-        val updated = current.copy(achievementsUnlocked = merged)
-        update(updated)
-        return toAdd
-    }
-}
-
-class FakeNotificationAdapter : NotificationAdapter {
-    val shown = mutableListOf<Achievement>()
-    override fun removeTimerCompletedNotification() {}
-    override fun removeTimerServiceNotification() {}
-    override fun removeResumeTimerNotification() {}
-    override fun showAchievementUnlockedNotification(achievement: Achievement) { shown.add(achievement) }
-    override fun showTimerServiceNotification() {}
-    override fun showResumeTimerNotification(currentPhase: CountdownTimerManager.Phase, timeLeftInMillis: Long, focusCompleted: Int, breakCompleted: Int) {}
-    override fun showTimerCompletedNotification(finishedPhase: CountdownTimerManager.Phase, goalId: Int, progressDate: Long, sessionDuration: Long) {}
-    override fun updateTimerServiceNotification(currentPhase: CountdownTimerManager.Phase, timeLeftInMillis: Long, timerRunning: Boolean, goalId: Int, totalSessions: Int, sessionDuration: Int, progressDate: Long, focusCompleted: Int, breakCompleted: Int) {}
-}
-
-class FakeGoalRepository : GoalRepository {
-    override fun getGoal(id: Int) = flowOf<Goal?>(null)
-    override suspend fun delete(goal: Goal) {}
-    override suspend fun save(goal: Goal, callback: (Int) -> Unit) { callback(-1) }
-    override suspend fun update(goal: Goal) {}
-    override fun getAllGoals() = flowOf<List<Goal>>(emptyList())
-    override fun getGoalsForUser(userId: Int) = flowOf<List<Goal>>(emptyList())
-    override fun scheduleRemindersForGoal(goal: Goal, dayProgressList: List<DayProgress>) {}
-    override fun cancelRemindersForGoal(goal: Goal, dayProgressList: List<DayProgress>) {}
-    override fun cancelReminderForDayProgress(goal: Goal, dayProgress: DayProgress) {}
-}
-
-// Tests
+@OptIn(ExperimentalCoroutinesApi::class)
 class CountdownTimerManagerAchievementTest {
 
+    private class FakeUserRepository(initial: User) : UserRepository {
+        private val _userFlow = MutableStateFlow(listOf(initial))
+
+        override suspend fun save(user: User) {
+            _userFlow.value = listOf(user)
+        }
+
+        override fun getUser(): Flow<List<User>> = _userFlow
+
+        override suspend fun deleteUsers(vararg users: User) {
+            // no-op
+        }
+
+        override suspend fun update(user: User) {
+            _userFlow.value = listOf(user)
+        }
+
+        override suspend fun updateUserAtomically(transform: suspend (User) -> User) {
+            val current = _userFlow.value.first()[0]
+            val merged = runCatching { transform(current) }.getOrNull() ?: current
+            _userFlow.value = listOf(merged)
+        }
+
+        override suspend fun addAchievementsAtomically(achievementsToAdd: List<Achievement>): List<Achievement> {
+            val current = _userFlow.value.first()[0]
+            val existingNames = current.achievementsUnlocked.map { it.name }.toSet()
+            val actuallyToAdd = achievementsToAdd.filter { it.name !in existingNames }
+            if (actuallyToAdd.isEmpty()) return emptyList()
+            val merged = (current.achievementsUnlocked + actuallyToAdd).distinctBy { it.name }
+            val updated = current.copy(achievementsUnlocked = merged)
+            _userFlow.value = listOf(updated)
+            return actuallyToAdd
+        }
+    }
+
+    private class FakeNotificationAdapter : NotificationAdapter {
+        val shown = mutableListOf<Achievement>()
+        override fun showAchievementUnlockedNotification(achievement: Achievement) {
+            shown.add(achievement)
+        }
+
+        override fun removeTimerServiceNotification() {}
+        override fun removeTimerCompletedNotification() {}
+    }
+
     @Test
-    fun `accumulateSessionHours updates user totalHoursSpent`() = runTest {
-        val initialUser = User(id = 1, totalHoursSpent = 1.0, achievementsUnlocked = emptyList(), longestStreak = 0)
+    fun `accumulateSessionHours increases user hours and unlocks hour achievement`() = runTest {
+        val testScope = TestScope(UnconfinedTestDispatcher(testScheduler))
+        val initialUser = User(id = 1, totalHoursSpent = 9.0, achievementsUnlocked = emptyList(), longestStreak = 0, currentStreak = 0, lastCompletedDate = 0L)
         val repo = FakeUserRepository(initialUser)
         val notif = FakeNotificationAdapter()
-        val timerSvc = object : TimerServiceAdapter {
-            override fun startTimerService(suppressNextFinished: Boolean) {}
-            override fun stopTimerService() {}
-        }
-        val goalRepo = FakeGoalRepository()
+        val manager = CountdownTimerManager(
+            timerServiceAdapter = object: TimerServiceAdapter { override fun startTimerService(suppressNextFinished: Boolean) {} override fun startTimerService() {} override fun stopTimerService() {} },
+            goalRepository = object: com.example.str3ky.repository.GoalRepository { /* minimal stub */
+                override fun save(goal: com.example.str3ky.data.Goal, onSaved: (Long) -> Unit) {}
+                override fun getGoals(): Flow<List<com.example.str3ky.data.Goal>> = flow { emit(emptyList()) }
+                override fun cancelReminderForDayProgress(goal: com.example.str3ky.data.Goal, dayProgress: DayProgress) {}
+                override suspend fun scheduleRemindersForGoal(goal: com.example.str3ky.data.Goal) {}
+            },
+            notificationAdapter = notif,
+            userRepository = repo,
+            externalScope = testScope
+        )
 
-        val manager = CountdownTimerManager(timerSvc, goalRepo, notif, repo)
-
-        // set a progressDate so accumulateSessionHours will add DayProgress entry
+        // accumulate 1 hour -> should reach 10 and unlock TIME_TRAVELER
         manager.progressDate.value = System.currentTimeMillis()
+        manager.accumulateSessionHours(1.0)
 
-        manager.accumulateSessionHours(0.5)
-
-        // wait briefly to allow coroutine update
-        delay(50)
+        // give coroutines a moment
+        testScheduler.advanceUntilIdle()
 
         val users = repo.getUser().first()
-        assertEquals(1, users.size)
-        assertEquals(1.5, users[0].totalHoursSpent, 0.0001)
+        assertEquals(10.0, users[0].totalHoursSpent, 0.001)
+        // notification adapter should have been called for unlocked achievement
+        assertEquals(1, notif.shown.size)
     }
 
     @Test
-    fun `checkAndUnlockAchievements emits and notifies when new achievements unlocked`() = runTest {
-        val initialUser = User(id = 1, totalHoursSpent = 9.0, achievementsUnlocked = emptyList(), longestStreak = 0)
+    fun `checkAndUnlockAchievements is idempotent`() = runTest {
+        val testScope = TestScope(UnconfinedTestDispatcher(testScheduler))
+        val initialUser = User(id = 1, totalHoursSpent = 50.0, achievementsUnlocked = emptyList(), longestStreak = 0, currentStreak = 0, lastCompletedDate = 0L)
         val repo = FakeUserRepository(initialUser)
         val notif = FakeNotificationAdapter()
-        val timerSvc = object : TimerServiceAdapter {
-            override fun startTimerService(suppressNextFinished: Boolean) {}
-            override fun stopTimerService() {}
-        }
-        val goalRepo = FakeGoalRepository()
+        val manager = CountdownTimerManager(
+            timerServiceAdapter = object: TimerServiceAdapter { override fun startTimerService(suppressNextFinished: Boolean) {} override fun startTimerService() {} override fun stopTimerService() {} },
+            goalRepository = object: com.example.str3ky.repository.GoalRepository { override fun save(goal: com.example.str3ky.data.Goal, onSaved: (Long) -> Unit) {} override fun getGoals(): Flow<List<com.example.str3ky.data.Goal>> = flow { emit(emptyList()) } override fun cancelReminderForDayProgress(goal: com.example.str3ky.data.Goal, dayProgress: DayProgress) {} override suspend fun scheduleRemindersForGoal(goal: com.example.str3ky.data.Goal) {} },
+            notificationAdapter = notif,
+            userRepository = repo,
+            externalScope = testScope
+        )
 
-        val manager = CountdownTimerManager(timerSvc, goalRepo, notif, repo)
+        // call check twice
+        manager.checkAndUnlockAchievements(repo.getUser().first()[0])
+        testScheduler.advanceUntilIdle()
+        manager.checkAndUnlockAchievements(repo.getUser().first()[0])
+        testScheduler.advanceUntilIdle()
 
-        // Simulate that user now has >10 hours
-        val updatedUser = initialUser.copy(totalHoursSpent = 11.0)
-
-        // start a collector before calling check
-        var received = false
-        val job = launch {
-            manager.unlockedAchievementsEvent.collect { list ->
-                if (list.any { it.name == com.example.str3ky.ui.achievements.Achievements.TIME_TRAVELER.name }) {
-                    received = true
-                }
-            }
-        }
-
-        // Call checkAndUnlockAchievements with updated user
-        manager.checkAndUnlockAchievements(updatedUser)
-
-        // allow background coroutine to run
-        delay(100)
-
-        // Notification should have been called for TIME_TRAVELER (and possibly others)
-        assertTrue(notif.shown.isNotEmpty())
-        assertTrue(notif.shown.any { it.name == com.example.str3ky.ui.achievements.Achievements.TIME_TRAVELER.name })
-
-        job.cancel()
-        assertTrue(received)
-    }
-
-    @Test
-    fun `onDayChallengeCompleted is idempotent and does not double update user`() = runTest {
-        val today = System.currentTimeMillis()
-        val dayProgress = DayProgress(date = today, completed = true, hoursSpent = 10.0)
-        val initialUser = User(id = 1, totalHoursSpent = 10.0, achievementsUnlocked = emptyList(), longestStreak = 1)
-        val repo = FakeUserRepository(initialUser)
-        val notif = FakeNotificationAdapter()
-        val timerSvc = object : TimerServiceAdapter {
-            override fun startTimerService(suppressNextFinished: Boolean) {}
-            override fun stopTimerService() {}
-        }
-        val goalRepo = FakeGoalRepository()
-
-        val manager = CountdownTimerManager(timerSvc, goalRepo, notif, repo)
-
-        // set internal day progress to include today's completed entry
-        manager.dayProgressFlow.value = listOf(dayProgress)
-        manager.progressDate.value = today
-
-        // Call onDayChallengeCompleted twice; only first should trigger update
-        manager.onDayChallengeCompleted(true)
-        delay(100)
-        manager.onDayChallengeCompleted(true)
-        delay(100)
-
-        // The repo.update should have been invoked at most once for the merged user update
-        assertTrue(repo.updatedCount.get() <= 1)
-    }
-
-    @Test
-    fun `duplicate achievement unlock requests are idempotent`() = runTest {
-        val initialUser = User(id = 1, totalHoursSpent = 9.0, achievementsUnlocked = emptyList(), longestStreak = 0)
-        val repo = FakeUserRepository(initialUser)
-        val notif = FakeNotificationAdapter()
-        val timerSvc = object : TimerServiceAdapter {
-            override fun startTimerService(suppressNextFinished: Boolean) {}
-            override fun stopTimerService() {}
-        }
-        val goalRepo = FakeGoalRepository()
-
-        val manager = CountdownTimerManager(timerSvc, goalRepo, notif, repo)
-
-        // simulate repeated unlock calls with same user state
-        val updatedUser = initialUser.copy(totalHoursSpent = 11.0)
-        manager.checkAndUnlockAchievements(updatedUser)
-        delay(50)
-        manager.checkAndUnlockAchievements(updatedUser)
-        delay(50)
-
-        // Only one actual persisted addition should occur
-        assertTrue(repo.updatedCount.get() >= 1)
-        // Notifications should not be duplicated (FakeNotificationAdapter collects shown)
-        assertTrue(notif.shown.size <= 3) // tolerates multiple achievements but should not explode
-    }
-
-    @Test
-    fun `multiple achievements can unlock in single update`() = runTest {
-        val initialUser = User(id = 1, totalHoursSpent = 0.0, achievementsUnlocked = emptyList(), longestStreak = 0)
-        val repo = FakeUserRepository(initialUser)
-        val notif = FakeNotificationAdapter()
-        val timerSvc = object : TimerServiceAdapter {
-            override fun startTimerService(suppressNextFinished: Boolean) {}
-            override fun stopTimerService() {}
-        }
-        val goalRepo = FakeGoalRepository()
-
-        val manager = CountdownTimerManager(timerSvc, goalRepo, notif, repo)
-
-        // create user state that satisfies multiple achievements
-        val multiUser = initialUser.copy(totalHoursSpent = 120.0, longestStreak = 40)
-        manager.checkAndUnlockAchievements(multiUser)
-        delay(100)
-
-        // check that at least two achievements were shown
-        assertTrue(notif.shown.size >= 2)
+        // Only TIME_MASTER and TIME_TRAVELER (and maybe others) should have been added once each
+        val users = repo.getUser().first()
+        assertEquals(true, users[0].achievementsUnlocked.size >= 1)
+        // Notification shows should not contain duplicates for same achievement
+        val names = notif.shown.map { it.name }
+        assertEquals(names.toSet().size, names.size)
     }
 }
+

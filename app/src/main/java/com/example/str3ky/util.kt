@@ -109,3 +109,19 @@ fun Double.toMinutes(): Long {
     if (this < 0.0) return 0L
     return (this * 60.0).toLong()
 }
+
+// New helper: map total minutes to recommended sessions & breaks
+fun computeSessionsAndBreaksForTotalMinutes(minutes: Int): Pair<Int, Int> {
+    val clamped = minutes.coerceIn(10, 240)
+    return when (clamped) {
+        in 10..25 -> Pair(1, 0)
+        in 26..50 -> Pair(2, 1)
+        in 51..79 -> Pair(3, 2)
+        in 80..119 -> Pair(4, 3)
+        in 120..149 -> Pair(5, 4)
+        in 150..179 -> Pair(6, 5)
+        in 180..209 -> Pair(7, 6)
+        in 210..240 -> Pair(8, 7)
+        else -> Pair(1, 0)
+    }
+}

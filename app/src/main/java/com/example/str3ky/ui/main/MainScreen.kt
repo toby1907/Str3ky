@@ -22,8 +22,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material3.DividerDefaults
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -34,12 +36,11 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -50,7 +51,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.BlendMode.Companion.Screen
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -66,11 +66,12 @@ import com.example.str3ky.ui.main.components.OrderSection
 import com.example.str3ky.ui.nav.ACHIEVEMENTS_SCREEN
 import com.example.str3ky.ui.nav.PROGRESS_SCREEN
 import com.example.str3ky.use_case.GoalsEvent
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.example.str3ky.ui.achievements.AchievementViewModel
+import com.example.str3ky.ui.achievements.AchievementBanner
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,26 +83,42 @@ fun HomeScreen(
 ) {
     val state = viewModel.state.value
     val scope = rememberCoroutineScope()
+    val achievementVM: AchievementViewModel = hiltViewModel()
+    val unseen by achievementVM.unseenCount.collectAsState()
 
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(text = "Str3ky") },
                 actions = {
-                    var expanded by remember{ mutableStateOf(false)}
-                    val scrollState = rememberScrollState()
-
                  Row(verticalAlignment = Alignment.CenterVertically,
-                     horizontalArrangement = Arrangement.End,
-                     modifier = Modifier.padding(start = 4.dp)
-                 )
-                 {
+                      horizontalArrangement = Arrangement.End,
+                      modifier = Modifier.padding(start = 4.dp)
+                  )
+                  {
+                    // Trophy icon with badge to navigate to Achievements
+                    IconButton(onClick = { navController.navigate(ACHIEVEMENTS_SCREEN); achievementVM.markAllSeen() }) {
+                        if (unseen > 0) {
+                            BadgedBox(badge = { Badge { Text(text = unseen.toString()) } }) {
+                                Icon(
+                                    imageVector = Icons.Filled.EmojiEvents,
+                                    contentDescription = "Achievements"
+                                )
+                            }
+                        } else {
+                            Icon(
+                                imageVector = Icons.Filled.EmojiEvents,
+                                contentDescription = "Achievements"
+                            )
+                        }
+                    }
                      IconButton(onClick = {onNavigateToAddVoice() }) {
-                         Icon(
-                             painter = painterResource(id = R.drawable.add_icon),
-                             contentDescription = ""
-                         )
-                     }
+                          Icon(
+                              painter = painterResource(id = R.drawable.add_icon),
+                              contentDescription = ""
+                          )
+                      }
                      IconButton(onClick = {
                             viewModel.onEvent(GoalsEvent.ToggleOrderSection)
                      }) {
@@ -156,14 +173,6 @@ fun HomeScreen(
                                      )
                                  }
                              )
-                             // If you had many items and wanted the scroll behavior:
-                             /*
-                             LaunchedEffect(menuExpanded) {
-                                 if (menuExpanded && menuScrollState.maxValue > 0) {
-                                     menuScrollState.animateScrollTo(menuScrollState.maxValue)
-                                 }
-                             }
-                             */
                          }
                      }
                      // --- Dropdown Menu Integration End ---
@@ -174,22 +183,22 @@ fun HomeScreen(
                     actionIconContentColor = MaterialTheme.colorScheme.onSurface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
-                
-                )   
+                )
         },
         content = { it ->
 
           Column(
-              modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(it)
-          ) {
-                val items = viewModel.goalList.collectAsState().value
-                AnimatedVisibility(
-                    visible = state.isOrderSectionVisible,
-                    enter = fadeIn() + slideInVertically(),
-                    exit = fadeOut() + slideOutVertically()
-                ) {
+               modifier = Modifier
+                   .fillMaxWidth()
+                   .padding(it)
+           ) {
+                // Global achievement banner (shows recently unlocked trophies)
+                AchievementBanner(viewModel = achievementVM)
+                 AnimatedVisibility(
+                     visible = state.isOrderSectionVisible,
+                     enter = fadeIn() + slideInVertically(),
+                     exit = fadeOut() + slideOutVertically()
+                 ) {
                     OrderSection(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -224,6 +233,7 @@ fun HomeScreen(
         }
     )
 
+
 }
 
 
@@ -240,9 +250,8 @@ fun ChallengListItem(item: Goal, navController: NavHostController, onDeleteClick
 
             },
             headlineContent = {
-
                 Text(
-                    text = item.title ?: "",
+                    text = item.title,
                     color = MaterialTheme.colorScheme.primary
                 )
 
@@ -265,7 +274,7 @@ fun ChallengListItem(item: Goal, navController: NavHostController, onDeleteClick
 
                 ) {
                     Text(
-                        text = if (item.title != "") "${item.title[0].uppercaseChar()}" else ""
+                        text = if (item.title.isNotEmpty()) "${item.title[0].uppercaseChar()}" else ""
                     )
                 }
             },
@@ -344,5 +353,3 @@ fun ChallengListItem(item: Goal, navController: NavHostController, onDeleteClick
      HorizontalDivider(color = MaterialTheme.colorScheme.onSurface, thickness = 0.25.dp)
     }
 }
-
-

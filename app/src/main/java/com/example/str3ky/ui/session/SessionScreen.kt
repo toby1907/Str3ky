@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -193,7 +194,8 @@ private fun Timer(
         // Only show COMPLETED when the manager explicitly reports completion, the timer state is Finished,
         // and we have a non-zero finished timestamp. This avoids showing a stale 'Completed' label during navigation/reset races.
         val isManagerCompleted = viewModel.countdownTimerManager.isCompleted.value
-        val isTimerFinishedState = viewModel.timerState.value == TimerState.Finished
+        // Use the already-collected timerState parameter instead of calling .value inside composition
+        val isTimerFinishedState = timerState == TimerState.Finished
         val lastFinishedAt = viewModel.countdownTimerManager.lastFinishedAt.collectAsState(initial = 0L).value
         val lastFinishedPhase = viewModel.countdownTimerManager.lastFinishedPhase.collectAsState(initial = null).value
         val isFinishedConfirmed = isManagerCompleted && isTimerFinishedState && lastFinishedAt != 0L && lastFinishedPhase != null
@@ -205,11 +207,21 @@ private fun Timer(
         }
         val pomoName = effectivePhaseEnum.name
         val focusSet = viewModel.countdownTimerManager.focusSet.collectAsState(initial = 0)
-        val totalFocusSet =
-            viewModel.countdownTimerManager.totalFocusSet.collectAsState(initial = 0)
-        val breakSet = viewModel.countdownTimerManager.breakSet.collectAsState(initial = 0)
-        val totalBreakSet =
-            viewModel.countdownTimerManager.totalBreakSet.collectAsState(initial = 0)
+        // Collect totalFocusSet first so we can use it in computedInitialSessions without calling .value on flows directly
+        val totalFocusSetState = viewModel.countdownTimerManager.totalFocusSet.collectAsState(initial = viewModel.initialTotalSessions)
+        val managerTotalSessions = totalFocusSetState.value
+        val computedInitialSessions = maxOf(viewModel.initialTotalSessions, managerTotalSessions)
+
+        val totalFocusSet = totalFocusSetState
+        // Initialize breakSet using the already-collected public focusSet state instead of accessing a private flow
+        val breakSet = viewModel.countdownTimerManager.breakSet.collectAsState(initial = focusSet.value)
+        // Derive the displayed total breaks directly from the total sessions (totalSessions - 1)
+        val displayedTotalBreaks = if (totalFocusSet.value > 1) totalFocusSet.value - 1 else 0
+
+        // Log the computed seeds once at composition to help debug transient UI seeds
+        LaunchedEffect(key1 = computedInitialSessions) {
+            Log.d("SessionScreen", "computedInitialSessions=$computedInitialSessions displayedTotalBreaks=${if (computedInitialSessions>1) computedInitialSessions-1 else 0} managerTotalSessions=${managerTotalSessions} saved=${viewModel.initialTotalSessions}")
+        }
 
         // Use timerState as the primary source of truth for whether a session/break is active to
         // avoid a small race where the manager's isSessionInProgress flow may update slightly later.
@@ -235,7 +247,7 @@ private fun Timer(
             }
 
             CountdownTimerManager.Phase.BREAK.name -> {
-                "Break $currentBreakIndex/${totalBreakSet.value}"
+                "Break $currentBreakIndex/$displayedTotalBreaks"
             }
 
             else -> {
@@ -261,11 +273,11 @@ private fun Timer(
         {
             val myFlow =
                 viewModel.countdownTimerManager.currentTimeTargetInMillis.collectAsState(initial = 0L)
-            val progress =
-                (viewModel.countdownTimerManager.timeLeftInMillis.collectAsState(initial = 0L).value.toFloat() / myFlow.value.toFloat())
+            val timeLeft = viewModel.countdownTimerManager.timeLeftInMillis.collectAsState(initial = 0L).value
+            val progress = if (myFlow.value > 0L) (timeLeft.toFloat() / myFlow.value.toFloat()) else 0f
             Box() {
                 CircularProgressIndicator(
-                    progress = { progress },
+                    progress = progress,
                     modifier = modifier
                         .fillMaxSize()
                         .scale(scaleX = -1f, scaleY = 1f),
@@ -274,7 +286,7 @@ private fun Timer(
                 )
                 //background
                 CircularProgressIndicator(
-                    progress = { 1f },
+                    progress = 1f,
                     modifier = modifier
                         .fillMaxSize()
                         .scale(scaleX = -1f, scaleY = 1f),
@@ -283,8 +295,7 @@ private fun Timer(
                     color = colorScheme.primary.copy(alpha = .25f)
                 )
             }
-            val i =
-                viewModel.countdownTimerManager.timeLeftInMillis.collectAsState(initial = 0L).value
+            val i = timeLeft
             val minutes = i / 1000 / 60
             val seconds = i / 1000 % 60
             val formattedTime = String.format(Locale.US, "%02d:%02d", minutes, seconds)

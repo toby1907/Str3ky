@@ -2,14 +2,13 @@ package com.example.str3ky.data
 
 import android.os.CountDownTimer
 import android.util.Log
-import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import com.example.str3ky.core.notification.TimerServiceAdapter
 import com.example.str3ky.millisecondsToMinutes
 import com.example.str3ky.minutesToHours
 import com.example.str3ky.repository.GoalRepository
 import com.example.str3ky.repository.UserRepository
-import com.example.str3ky.ui.achievements.checkAchievements
+import com.example.str3ky.ui.achievements.getNewlyUnlockedAchievements
 import com.example.str3ky.ui.add_challenge_screen.GoalState
 import com.example.str3ky.ui.progress.toMinutes
 import com.example.str3ky.ui.session.SessionScreenState
@@ -153,7 +152,14 @@ class CountdownTimerManager @Inject constructor(
         started = SharingStarted.WhileSubscribed(300),
         initialValue = CombinedData.EMPTY
     )
-    private var isSessionInProgressFlow =MutableStateFlow(false)
+    private val isSessionInProgressFlow = MutableStateFlow(false)
+    // Public read-only view for other components (e.g., TimerService) to observe whether a session is active
+    val isSessionInProgress: StateFlow<Boolean> = isSessionInProgressFlow.asStateFlow()
+
+    // Backwards-compatible simple boolean accessor used by some consumers (TimerService) to avoid
+    // needing to import or observe the StateFlow directly.
+    fun sessionInProgress(): Boolean = isSessionInProgressFlow.value
+
     private var _isBreakInProgress = mutableStateOf(
         false
     )
@@ -480,6 +486,13 @@ class CountdownTimerManager @Inject constructor(
                         val newTotal = user.totalHoursSpent + sessionHours
                         val merged = user.copy(totalHoursSpent = newTotal)
                         userRepository.update(merged)
+
+                        // Immediately check for any achievements unlocked by the increased hours
+                        try {
+                            checkAndUnlockAchievements(merged)
+                        } catch (e: Exception) {
+                            Log.w("CountdownTimerManager", "Failed to check/unlock achievements after hours update: ${e.message}")
+                        }
                     }
                 } catch (e: Exception) {
                     Log.w("CountdownTimerManager", "Failed to persist user hours in coroutine: ${e.message}")
@@ -639,42 +652,44 @@ class CountdownTimerManager @Inject constructor(
 
     fun checkAndUnlockAchievements(user: User) {
 
-        val allChecked = checkAchievements(user)
-        // Only newly unlocked achievements are those with isUnlocked == true AND not already in user's list
-        val newlyUnlocked = allChecked.filter { it.isUnlocked && !user.achievementsUnlocked.any { unlocked -> unlocked.name == it.name } }
+        // Use explicit newly-unlocked diff function to keep intent clear and idempotent
+        val newlyUnlocked = getNewlyUnlockedAchievements(user)
 
-        if (newlyUnlocked.isNotEmpty()) {
-            // Use repository atomic update to avoid read-modify-write races
-            scope.launch {
-                try {
-                    // Use the new atomic add API which returns only the achievements that were actually persisted
-                    val actualAdded = try {
-                        userRepository.addAchievementsAtomically(newlyUnlocked)
-                    } catch (e: Exception) {
-                        Log.w("Achievements", "addAchievementsAtomically failed: ${e.message}")
-                        emptyList<Achievement>()
-                    }
+        if (newlyUnlocked.isEmpty()) {
+            Log.d("Achievements", "checkAndUnlockAchievements - no newly unlocked achievements for user=${user.id}")
+            return
+        }
 
-                    if (actualAdded.isNotEmpty()) {
-                        Log.d("Achievements", "New achievements unlocked: $actualAdded")
-
-                        // Show a notification for each newly unlocked achievement
-                        actualAdded.forEach { achievement ->
-                            try {
-                                notificationAdapter.showAchievementUnlockedNotification(achievement)
-                            } catch (e: Exception) {
-                                Log.w("Achievements", "Failed to show achievement notification for ${achievement.name}: ${e.message}")
-                            }
-                        }
-
-                        // Emit event for UI to display an in-app banner
-                        _unlockedAchievementsEvent.emit(actualAdded)
-                    } else {
-                        Log.d("Achievements", "No actual achievements added (likely already present). Skipping notifications/emits.")
-                    }
+        scope.launch {
+            try {
+                // Persist only truly new achievements; the repository method dedupes atomically
+                val actualAdded = try {
+                    userRepository.addAchievementsAtomically(newlyUnlocked)
                 } catch (e: Exception) {
-                    Log.w("Achievements", "Failed to persist/emit new achievements: ${e.message}")
+                    Log.w("Achievements", "addAchievementsAtomically failed: ${e.message}")
+                    emptyList<Achievement>()
                 }
+
+                if (actualAdded.isEmpty()) {
+                    Log.d("Achievements", "No actual achievements added (likely already present). Skipping notifications/emits.")
+                    return@launch
+                }
+
+                Log.d("Achievements", "New achievements unlocked: $actualAdded")
+
+                // Show a notification for each newly unlocked achievement
+                actualAdded.forEach { achievement ->
+                    try {
+                        notificationAdapter.showAchievementUnlockedNotification(achievement)
+                    } catch (e: Exception) {
+                        Log.w("Achievements", "Failed to show achievement notification for ${achievement.name}: ${e.message}")
+                    }
+                }
+
+                // Emit event for UI to display an in-app banner
+                _unlockedAchievementsEvent.emit(actualAdded)
+            } catch (e: Exception) {
+                Log.w("Achievements", "Failed to persist/emit new achievements: ${e.message}")
             }
         }
     }

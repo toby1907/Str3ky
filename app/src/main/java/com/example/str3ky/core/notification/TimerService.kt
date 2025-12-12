@@ -84,7 +84,37 @@ class TimerService : Service() {
                     // Persist the latest timer state for restoration after process death
                     timerStateCache.updateTimerState(timerStates)
 
-                    val isRunning = countdownTimerManager.isSessionInProgress.value
+                    // Guard: if the manager already reports COMPLETED/Finished, do not post any
+                    // running/resume service notifications — remove them instead. This prevents
+                    // races where the service posts a stale running notification just after the
+                    // manager transitioned to COMPLETED and posted the completed notification.
+                    val managerTimerState = countdownTimerManager.timerState.value
+                    val managerCompletedFlag = try { countdownTimerManager.isCompleted.value } catch (e: Exception) { false }
+                    if (managerTimerState == TimerState.Finished || managerCompletedFlag) {
+                        Log.d(TAG, "Manager in Finished/Completed state; removing service/resume notifications and skipping update.")
+                        notificationHelper.removeTimerServiceNotification()
+                        notificationHelper.removeResumeTimerNotification()
+                        return@collectLatest
+                    }
+
+                    // Consider the manager 'running' only when its timerState reports Running
+                    // and the sessionInProgress() flag is true. This reduces races where a
+                    // very-late combinedFlow emission looks 'running' but the manager has
+                    // already transitioned to Finished.
+                    val isRunning = (countdownTimerManager.timerState.value == TimerState.Running) && countdownTimerManager.sessionInProgress()
+
+                    // Additional race guard: if the remaining time is very small (<= 1500ms)
+                    // and the manager recently recorded a finished timestamp, skip posting
+                    // the running notification to avoid the stale "Focus X/Y 0:01" case.
+                    val lastFinished = try { countdownTimerManager.lastFinishedAt.value } catch (e: Exception) { 0L }
+                    if (timerStates.timeLeftInMillis <= 1500L && lastFinished != 0L && kotlin.math.abs(System.currentTimeMillis() - lastFinished) < 3000L) {
+                        Log.d(TAG, "Skipping service update because timeLeft=${timerStates.timeLeftInMillis} and lastFinished was $lastFinished")
+                        // Remove any running/resume notifications just in case
+                        notificationHelper.removeTimerServiceNotification()
+                        notificationHelper.removeResumeTimerNotification()
+                        return@collectLatest
+                    }
+
                     if (isRunning) {
                         notificationHelper.updateTimerServiceNotification(
                             timerStates.currentPhase,
@@ -102,8 +132,8 @@ class TimerService : Service() {
                     } else {
                         // Do not show resume notification when the timer is in Initial state (e.g., after reset)
                         val ts = countdownTimerManager.timerState.value
-                        // If the manager is in Initial or Finished state, ensure no resume or running notifications are shown.
-                        if (ts == com.example.str3ky.data.TimerState.Initial || ts == com.example.str3ky.data.TimerState.Finished) {
+                        // If the manager is in Initial state, ensure no resume or running notifications are shown.
+                        if (ts == com.example.str3ky.data.TimerState.Initial) {
                             notificationHelper.removeTimerServiceNotification()
                             notificationHelper.removeResumeTimerNotification()
                         } else {
@@ -158,7 +188,7 @@ class TimerService : Service() {
                         // Post completed notification whenever we have a valid goalId (don't gate on totalFocusSet)
                         if (goalId != -1) {
                             // Extra safety: if manager currently reports a session in progress, skip posting completed
-                            if (countdownTimerManager.isSessionInProgress.value) {
+                            if (countdownTimerManager.sessionInProgress()) {
                                 Log.w(TAG, "Manager reports session in progress at finished token=$token; skipping completed notification to avoid race")
                                 return@collectLatest
                             }

@@ -1,5 +1,6 @@
 package com.example.str3ky.ui.session
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,8 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,20 +36,25 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.example.str3ky.R
-import com.example.str3ky.theme.Str3kyTheme
 import com.example.str3ky.ui.nav.SESSION_SCREEN
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SessionSettingsScreen(nav: NavHostController) {
     val viewModel:FocusSessionViewModel = hiltViewModel()
+
+    // Ensure UI-derived totals are recalculated whenever the timer value changes
+    LaunchedEffect(key1 = viewModel.timerValue.value) {
+        viewModel.updateSessionsAndBreaks()
+        viewModel.sessionDurationCalculation()
+        Log.d("SessionSettings", "timerValue=${viewModel.timerValue.value} sessions=${viewModel.numSessions.intValue} breaks=${viewModel.numBreaks.intValue} sessionDuration=${viewModel.sessionDuration.value}")
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -113,8 +118,14 @@ fun SessionSettingsScreen(nav: NavHostController) {
                             ),
                             singleLine = true,
                             value = viewModel.timerValue.value.toString(),
-                            onValueChange = {
-
+                            onValueChange = { newText ->
+                                // parse ints safely and clamp between 10 and 240
+                                val parsed = newText.filter { it.isDigit() }
+                                val minutes = parsed.toIntOrNull() ?: 10
+                                val clamped = minutes.coerceIn(10, 240)
+                                viewModel.timerValue.value = clamped
+                                viewModel.updateSessionsAndBreaks()
+                                viewModel.sessionDurationCalculation()
                             }
                         )
                         Text(
@@ -187,7 +198,11 @@ Spacer(modifier = Modifier.padding(16.dp))
                      shape = RoundedCornerShape(size = 10.dp)
                  ),
                  onClick = {
+                     // Ensure derived values are up-to-date before navigating
+                     viewModel.updateSessionsAndBreaks()
                      viewModel.sessionDurationCalculation()
+                     // Log before navigation so we can inspect what values will be passed
+                     Log.d("SessionSettings", "NAV start: timerValue=${viewModel.timerValue.value} sessions=${viewModel.numSessions.intValue} breaks=${viewModel.numBreaks.intValue} sessionDuration=${viewModel.sessionDuration.value}")
                      nav.navigate(SESSION_SCREEN+"?goalId=${viewModel.goalId.value}&totalSessions=${viewModel.numSessions.intValue}&sessionDuration=${viewModel.sessionDuration.value}&progressDate=${viewModel.progressDate.value}")
 
                  }) {

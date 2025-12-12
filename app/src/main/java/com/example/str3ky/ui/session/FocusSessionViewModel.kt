@@ -6,12 +6,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.str3ky.data.CountdownTimerManager
 import com.example.str3ky.millisecondsToMinutes
 import com.example.str3ky.repository.GoalRepositoryImpl
+import com.example.str3ky.computeSessionsAndBreaksForTotalMinutes
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 
@@ -45,7 +44,7 @@ class FocusSessionViewModel @Inject constructor(
         savedStateHandle.get<Int>("goalId")?.let { goalId ->
             if (goalId != -1) {
                 currentGoalId = goalId
-                _goalId.value = goalId
+                _goalId.intValue = goalId
             }
         }
         savedStateHandle.get<Long>("focusTime")?.let { focusTime ->
@@ -55,9 +54,17 @@ class FocusSessionViewModel @Inject constructor(
         }
         savedStateHandle.get<Long>("progressDate")?.let { date ->
             if (date != 0L) {
-            progressDate.value = date
+                progressDate.value = date
             }
         }
+
+        // Ensure the derived values (numSessions, numBreaks, sessionDuration)
+        // are calculated based on the current timerValue at creation time.
+        updateSessionsAndBreaks()
+        sessionDurationCalculation()
+
+        // Log initial computed values to help debug mapping issues
+        Log.d("FocusSessionVM", "init: timerValue=${timerValue.value}, sessions=${numSessions.intValue}, breaks=${numBreaks.intValue}, sessionDuration=${sessionDuration.value}")
     }
 
     // Function to increase timer
@@ -69,7 +76,8 @@ class FocusSessionViewModel @Inject constructor(
             else -> currentValue // No change outside the specified range
         }
         timerValue.value = incrementedValue.coerceIn(10, 240) // Ensure it stays within bounds
-        numOfSessionsAndBreaks()
+        updateSessionsAndBreaks()
+        sessionDurationCalculation()
     }
 
     // Function to decrease timer
@@ -81,73 +89,48 @@ class FocusSessionViewModel @Inject constructor(
             else -> currentValue // No change outside the specified range
         }
         timerValue.value = decrementedValue.coerceIn(10, 240) // Ensure it stays within bounds
-        numOfSessionsAndBreaks()
+        updateSessionsAndBreaks()
+        sessionDurationCalculation()
     }
 
     // Function to toggle the skip break option
     fun toggleSkipBreak() {
         skipBreak.value = !skipBreak.value
         if (skipBreak.value) {
+            // when skipping break, only one session and no breaks
             numSessions.intValue = 1
             numBreaks.intValue = 0
         } else {
-            numOfSessionsAndBreaks()
+            updateSessionsAndBreaks()
         }
+        // recalc session duration after change
+        sessionDurationCalculation()
     }
 
-    // Function to start the focus session
-    private fun numOfSessionsAndBreaks() {
-        when (timerValue.value) {
-            in 10..25 -> {
-                numSessions.intValue = 1
-                numBreaks.intValue = 0
-            }
-
-            in 30..65 -> {
-                numSessions.intValue = 2
-                numBreaks.intValue = 1
-            }
-
-            in 80..95 -> {
-                numSessions.intValue = 3
-                numBreaks.intValue = 2
-            }
-
-            in 110..140 -> {
-                numSessions.intValue = 4
-                numBreaks.intValue = 3
-            }
-
-            in 155..170 -> {
-                numSessions.intValue = 6
-                numBreaks.intValue = 5
-            }
-
-            in 185..215 -> {
-                numSessions.intValue = 7
-                numBreaks.intValue = 6
-            }
-
-            in 200..240 -> {
-                numSessions.intValue = 8
-                numBreaks.intValue = 7
-            }
-
-        }
-
-        //  sessionDurationCalculation()
-
+    // Public function to set number of sessions and breaks based on total timer value (clamped)
+    fun updateSessionsAndBreaks() {
+        val minutes = timerValue.value.coerceIn(10, 240)
+        val (sessions, breaks) = computeSessionsAndBreaksForTotalMinutes(minutes)
+        numSessions.intValue = sessions
+        numBreaks.intValue = breaks
+        Log.d("FocusSessionVM", "updateSessionsAndBreaks: minutes=$minutes -> sessions=${numSessions.intValue}, breaks=${numBreaks.intValue}")
     }
 
     fun sessionDurationCalculation() {
+        // Use clamped minutes for computation
+        val minutes = timerValue.value.coerceIn(10, 240)
+
         // Calculate total break time (in minutes)
         val totalBreakTime = numBreaks.intValue * 5
 
         // Adjusted timer value after removing break time
-        val adjustedTimerValue = timerValue.value - totalBreakTime
+        val adjustedTimerValue = (minutes - totalBreakTime).coerceAtLeast(0)
+
+        // Protect against division by zero
+        val sessions = numSessions.intValue.coerceAtLeast(1)
 
         // Calculate session duration (including breaks)
-        sessionDuration.value = adjustedTimerValue / numSessions.intValue
+        sessionDuration.value = adjustedTimerValue / sessions
     }
 
 
