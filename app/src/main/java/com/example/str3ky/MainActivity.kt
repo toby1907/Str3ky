@@ -2,10 +2,12 @@
 
 package com.example.str3ky
 
+import android.app.PictureInPictureParams
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Rational
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -28,6 +30,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -44,6 +47,9 @@ import com.example.str3ky.ui.snackbar.SnackbarController
 import com.example.str3ky.ui.snackbar.SnackbarEvent
 import javax.inject.Inject
 import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import com.example.str3ky.data.CountdownTimerManager
 
 private const val USER_PREFERENCES_NAME = "user_preferences"
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = USER_PREFERENCES_NAME)
@@ -52,9 +58,13 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = USE
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var goalRepository: GoalRepositoryImpl
+    @Inject
+    lateinit var countdownTimerManager: CountdownTimerManager
 
      // Track three states: not checked, granted, denied
      private var permissionState by mutableStateOf<PermissionState>(PermissionState.NotChecked)
+    // Compose-observed flag for PiP mode
+    private var isInPip by mutableStateOf(false)
 
     sealed class PermissionState {
         object NotChecked : PermissionState()
@@ -104,6 +114,23 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // Observe lifecycle to enter PiP when appropriate
+                lifecycle.addObserver(object : DefaultLifecycleObserver {
+                    override fun onStop(owner: LifecycleOwner) {
+                        super.onStop(owner)
+                        // Only enter PiP on devices that support it and if a session is active
+                        try {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                val inProgress = countdownTimerManager.sessionInProgress()
+                                if (inProgress) {
+                                    enterPipMode()
+                                }
+                            }
+                        } catch (_: Throwable) {
+                        }
+                    }
+                })
+
                 when (permissionState) {
                     PermissionState.NotChecked -> {
                         // Show loading or nothing while checking
@@ -115,13 +142,19 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                     PermissionState.Granted -> {
-                        // Show main app
+                        // Show main app or compact PiP UI
                         val navController = rememberNavController()
-                        Scaffold() {
-                            // Show achievement banner at the top of the scaffold content
-                            Column(modifier = Modifier.padding(it)) {
-                                AchievementBanner()
-                                MyAppNavHost(navController = navController, modifier = Modifier.padding(top = 8.dp))
+                        if (isInPip) {
+                            // Compact PiP content: show current time left
+                            val timeLeft by countdownTimerManager.timeLeftInMillisFlow.collectAsState()
+                            PiPMiniPlayer(timeLeftMillis = timeLeft)
+                        } else {
+                            Scaffold() {
+                                // Show achievement banner at the top of the scaffold content
+                                Column(modifier = Modifier.padding(it)) {
+                                    AchievementBanner()
+                                    MyAppNavHost(navController = navController, modifier = Modifier.padding(top = 8.dp))
+                                }
                             }
                         }
                     }
@@ -144,6 +177,32 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    private fun enterPipMode() {
+         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+             try {
+                 val title = "Str3ky Session"
+                 val subtitle = "Focus ongoing"
+                 val builder = PictureInPictureParams.Builder()
+                     .setAspectRatio(Rational(16, 9))
+                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                     // setTitle/setSubtitle were added in API 31 (S)
+                     builder.setTitle(title)
+                     builder.setSubtitle(subtitle)
+                 }
+                 val params = builder.build()
+                 enterPictureInPictureMode(params)
+             } catch (_: Throwable) {
+             }
+         }
+     }
+
+    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration?) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
+        runOnUiThread {
+            isInPip = isInPictureInPictureMode
         }
     }
 }
@@ -169,4 +228,19 @@ fun PermissionDialog(
             }
         }
     )
+}
+
+@Composable
+fun PiPMiniPlayer(timeLeftMillis: Long) {
+    // Simple compact UI for PiP mode
+    val seconds = (timeLeftMillis / 1000) % 60
+    val minutes = (timeLeftMillis / 1000) / 60
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(color = colorScheme.primaryContainer),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(text = String.format("%02d:%02d", minutes, seconds), style = MaterialTheme.typography.titleLarge.copy(color = colorScheme.onPrimary))
+    }
 }

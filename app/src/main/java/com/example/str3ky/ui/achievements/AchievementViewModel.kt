@@ -67,5 +67,37 @@ class AchievementViewModel @Inject constructor(
     fun markAllSeen() {
         _unseenCount.value = 0
         _recentUnlocked.value = emptyList()
+
+        // Persist seen flag for all unlocked achievements in the user atomically
+        viewModelScope.launch {
+            try {
+                userRepository.updateUserAtomically { current ->
+                    val updated = current.copy(
+                        achievementsUnlocked = current.achievementsUnlocked.map { it.copy(isSeen = true) }
+                    )
+                    updated
+                }
+            } catch (e: Exception) {
+                // Best-effort; keep UI state cleared even if persistence fails
+            }
+        }
+    }
+
+    // Mark a single achievement as seen by name (persisted)
+    fun markAchievementSeen(name: String) {
+        viewModelScope.launch {
+            try {
+                userRepository.updateUserAtomically { current ->
+                    val updatedList = current.achievementsUnlocked.map {
+                        if (it.name == name) it.copy(isSeen = true) else it
+                    }
+                    current.copy(achievementsUnlocked = updatedList)
+                }
+                // reduce unseen count if present
+                _unseenCount.value = (_unseenCount.value - 1).coerceAtLeast(0)
+            } catch (e: Exception) {
+                // ignore failures
+            }
+        }
     }
 }

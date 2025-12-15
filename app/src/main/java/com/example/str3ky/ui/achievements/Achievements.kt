@@ -116,17 +116,22 @@ fun calculateTimeAchievementProgress(user: User, achievement: Achievement): Achi
 fun getUpdatedAchievements(user: User): List<Achievement> {
     val updatedAchievements = mutableListOf<Achievement>()
 
+    // Map existing unlocked achievements by name to preserve isSeen flag
+    val seenMap = user.achievementsUnlocked.associateBy({ it.name }, { it.isSeen })
+
     for (achievement in Achievements.allAchievements) {
         val updatedAchievement = when {
             achievement.daysRemaining != null -> {
                 val progress = calculateStreakAchievementProgress(user, achievement)
-                progress.copy(isUnlocked = user.longestStreak >= achievement.daysRemaining)
+                val isUnlocked = user.longestStreak >= achievement.daysRemaining
+                progress.copy(isUnlocked = isUnlocked, isSeen = seenMap[achievement.name] ?: false)
             }
             achievement.hoursRemaining != null -> {
                 val progress = calculateTimeAchievementProgress(user, achievement)
-                progress.copy(isUnlocked = user.totalHoursSpent >= achievement.hoursRemaining)
+                val isUnlocked = user.totalHoursSpent >= achievement.hoursRemaining
+                progress.copy(isUnlocked = isUnlocked, isSeen = seenMap[achievement.name] ?: false)
             }
-            else -> achievement // Should not happen, but just in case
+            else -> achievement.copy(isSeen = seenMap[achievement.name] ?: false) // Should not happen
         }
         updatedAchievements.add(updatedAchievement)
     }
