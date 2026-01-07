@@ -29,3 +29,18 @@ data class GoalScreenState(
 data class GoalState(
     val goal:Goal? = null
 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

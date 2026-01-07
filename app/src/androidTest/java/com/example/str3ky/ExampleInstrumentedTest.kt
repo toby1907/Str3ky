@@ -22,3 +22,18 @@ class ExampleInstrumentedTest {
         assertEquals("com.example.str3ky", appContext.packageName)
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

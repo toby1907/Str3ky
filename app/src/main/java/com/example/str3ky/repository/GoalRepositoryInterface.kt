@@ -17,3 +17,19 @@ interface GoalRepository {
     fun cancelRemindersForGoal(goal: Goal, dayProgressList: List<DayProgress>)
     fun cancelReminderForDayProgress(goal: Goal, dayProgress: DayProgress)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

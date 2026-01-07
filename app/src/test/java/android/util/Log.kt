@@ -21,3 +21,19 @@ object Log {
     @JvmStatic
     fun println(priority: Int, tag: String?, msg: String?): Int = 0
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -702,3 +702,18 @@ sealed class TimerState {
     object Paused : TimerState()
     object Finished : TimerState()
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

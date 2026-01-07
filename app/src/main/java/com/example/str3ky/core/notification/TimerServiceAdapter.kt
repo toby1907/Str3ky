@@ -5,3 +5,19 @@ interface TimerServiceAdapter {
     fun stopTimerService()
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

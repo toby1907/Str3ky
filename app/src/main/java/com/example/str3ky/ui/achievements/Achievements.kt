@@ -9,43 +9,62 @@ import com.example.str3ky.ui.achievements.Achievements.TIME_LORD
 import com.example.str3ky.ui.achievements.Achievements.TIME_MASTER
 import com.example.str3ky.ui.achievements.Achievements.TIME_TRAVELER
 import com.florianwalther.incentivetimer.core.ui.IconKey
+import com.example.str3ky.R
 
 object Achievements {
     val BEGINNER_STREAK = Achievement(
         name = "Beginner Streak",
         chanceInPercent = 100,
         iconKey = IconKey.STAR,
-        daysRemaining = 3 // Initial days remaining
+        daysRemaining = 3, // Initial days remaining
+        description = "Completed a 3-day streak — nice start! Keep the momentum going to earn bigger streak badges.",
+        // use bronze medal for beginner
+        badgeDrawableRes = R.drawable.medal_bronze
     )
     val NOVICE_STREAK = Achievement(
         name = "Novice Streak",
         chanceInPercent = 100,
         iconKey = IconKey.TV,
-        daysRemaining = 7 // Initial days remaining
+        daysRemaining = 7, // Initial days remaining
+        description = "A full week of focused sessions — great dedication. Aim for longer streaks to unlock the Master badge.",
+        // use silver medal for novice
+        badgeDrawableRes = R.drawable.medal_silver
     )
     val MASTER_STREAK = Achievement(
         name = "Master Streak",
         chanceInPercent = 100,
         iconKey = IconKey.PETS,
-        daysRemaining = 30 // Initial days remaining
+        daysRemaining = 30, // Initial days remaining
+        description = "30-day streak achieved! You're building a strong habit — outstanding work.",
+        // use gold medal for master
+        badgeDrawableRes = R.drawable.medal_gold
     )
     val TIME_TRAVELER = Achievement(
         name = "Time Traveler",
         chanceInPercent = 100,
         iconKey = IconKey.GROUP,
-        hoursRemaining = 10 // Initial hours remaining
+        hoursRemaining = 10, // Initial hours remaining
+        description = "Accumulated 10 hours of focus time. Small wins add up — keep going.",
+        // small trophy/star for time traveler
+        badgeDrawableRes = R.drawable.trophy_star
     )
     val TIME_MASTER = Achievement(
         name = "Time Master",
         chanceInPercent = 100,
         iconKey = IconKey.CAKE,
-        hoursRemaining = 50 // Initial hours remaining
+        hoursRemaining = 50, // Initial hours remaining
+        description = "50 hours of focused work — you're mastering your time. Great achievement.",
+        // cup trophy for time master
+        badgeDrawableRes = R.drawable.trophy_cup
     )
     val TIME_LORD = Achievement(
         name = "Time Lord",
         chanceInPercent = 100,
         iconKey = IconKey.BEVERAGE,
-        hoursRemaining = 100 // Initial hours remaining
+        hoursRemaining = 100, // Initial hours remaining
+        description = "100 hours of focus completed — impressive dedication and consistency.",
+        // special award graphic for the top-tier time lord
+        badgeDrawableRes = R.drawable.award_6
     )
 
     val allAchievements = listOf(

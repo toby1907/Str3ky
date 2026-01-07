@@ -28,3 +28,18 @@ enum class IconKey(val rewardIcon: ImageVector) {
 }
 
 val defaultRewardIconKey = IconKey.STAR
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

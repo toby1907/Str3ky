@@ -19,7 +19,9 @@ import com.example.str3ky.core.notification.EXTRA_TIMER_RUNNING
 import com.example.str3ky.core.notification.EXTRA_TIME_LEFT_IN_MILLIS
 import com.example.str3ky.core.notification.EXTRA_FOCUS_COMPLETED
 import com.example.str3ky.core.notification.EXTRA_BREAK_COMPLETED
+
 import com.example.str3ky.core.notification.TimerNotificationBroadcastReceiver
+import com.example.str3ky.core.notification.TimerService.Companion.EXTRA_GOAL_ID
 import com.example.str3ky.data.CountdownTimerManager
 import com.example.str3ky.data.Achievement
 import com.example.str3ky.formatMillisecondsToTimeString
@@ -79,13 +81,21 @@ class DefaultNotificationHelper @Inject constructor(
             timeLeftInMillis,
             timerRunning,
             focusCompleted,
-            breakCompleted
+            breakCompleted,
+            goalId
         )
 
         // Short label for title: e.g., "Focus 1/2" or "Break 1/1"
         val shortTitle = when (currentPhase) {
-            CountdownTimerManager.Phase.FOCUS_SESSION -> "Focus ${focusCompleted + if (timerRunning) 1 else 0}/${totalSessions}"
-            CountdownTimerManager.Phase.BREAK -> "Break ${breakCompleted + if (timerRunning) 1 else 0}/${Math.max(1, totalSessions - 1)}"
+            CountdownTimerManager.Phase.FOCUS_SESSION -> {
+                val idx = (focusCompleted + if (timerRunning) 1 else 0).coerceAtLeast(1).coerceAtMost(Math.max(1, totalSessions))
+                "Focus $idx/${Math.max(1, totalSessions)}"
+            }
+            CountdownTimerManager.Phase.BREAK -> {
+                val totalBreaks = Math.max(1, totalSessions - 1)
+                val idx = (breakCompleted + if (timerRunning) 1 else 0).coerceAtLeast(1).coerceAtMost(totalBreaks)
+                "Break $idx/$totalBreaks"
+            }
             else -> currentPhase.name
         }
 
@@ -164,6 +174,7 @@ class DefaultNotificationHelper @Inject constructor(
         timerRunning: Boolean,
         focusCompleted: Int,
         breakCompleted: Int,
+        goalId: Int = -1,
     ): PendingIntent {
         val broadcastIntent =
             Intent(applicationContext, TimerNotificationBroadcastReceiver::class.java).apply {
@@ -172,11 +183,13 @@ class DefaultNotificationHelper @Inject constructor(
                 putExtra(EXTRA_TIMER_RUNNING, timerRunning)
                 putExtra(EXTRA_FOCUS_COMPLETED, focusCompleted)
                 putExtra(EXTRA_BREAK_COMPLETED, breakCompleted)
+                putExtra(EXTRA_GOAL_ID, goalId)
             }
-        // Use distinct request codes: 1 for pause (running=true), 2 for resume (running=false)
-        val requestCode = if (timerRunning) 1 else 2
+        // Build a requestCode that varies by goal and running state to avoid PendingIntent collisions
+        val base = (goalId and 0xFFFF)
+        val requestCode = base * 10 + if (timerRunning) 1 else 2
         // Debug: log action details to help trace user interactions via notifications
-        Log.d(TAG, "getTimerNotificationActionIntent: phase=$currentPhase timeLeft=$timeLeftInMillis running=$timerRunning focusCompleted=$focusCompleted breakCompleted=$breakCompleted requestCode=$requestCode")
+        Log.d(TAG, "getTimerNotificationActionIntent: phase=$currentPhase timeLeft=$timeLeftInMillis running=$timerRunning focusCompleted=$focusCompleted breakCompleted=$breakCompleted requestCode=$requestCode goalId=$goalId")
         return PendingIntent.getBroadcast(
             applicationContext,
             requestCode,
@@ -338,3 +351,19 @@ const val RESUME_TIMER_NOTIFICATION_ID = -2
 private const val TIMER_COMPLETED_NOTIFICATION_ID = -3
 // Short logging tag to stay within Android Log limit (23 chars)
 private const val TAG = "NotifHelper"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

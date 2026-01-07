@@ -145,3 +145,18 @@ kapt {
         arg ("room.schemaLocation", "$projectDir/schemas".toString())
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

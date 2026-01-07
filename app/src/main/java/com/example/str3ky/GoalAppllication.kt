@@ -5,3 +5,18 @@ import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
 class GoalApplication: Application()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

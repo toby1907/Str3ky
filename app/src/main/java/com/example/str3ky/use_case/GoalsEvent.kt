@@ -9,3 +9,19 @@ sealed class  GoalsEvent {
     object RestoreNote: GoalsEvent()
     object ToggleOrderSection: GoalsEvent()
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

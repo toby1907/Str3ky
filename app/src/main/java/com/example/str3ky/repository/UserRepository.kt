@@ -16,3 +16,19 @@ interface UserRepository {
     // Atomically add achievements to the current user and return the list of achievements that were actually added
     suspend fun addAchievementsAtomically(achievementsToAdd: List<Achievement>): List<Achievement>
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

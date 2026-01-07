@@ -1,5 +1,8 @@
 package com.example.str3ky.ui.main
 
+import android.app.Activity
+import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -12,6 +15,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -51,13 +55,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavHostController
+import androidx.core.view.WindowCompat
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalView
 import com.example.str3ky.R
 import com.example.str3ky.data.Goal
 import com.example.str3ky.data.Occurrence
@@ -72,6 +83,7 @@ import java.util.Date
 import java.util.Locale
 import com.example.str3ky.ui.achievements.AchievementViewModel
 import com.example.str3ky.ui.achievements.AchievementBanner
+import androidx.navigation.NavHostController
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,6 +95,25 @@ fun HomeScreen(
 ) {
     val state = viewModel.state.value
     val scope = rememberCoroutineScope()
+    val view = LocalView.current
+    // Read the theme color in composable scope and reuse in SideEffect
+    val primaryContainerColor = MaterialTheme.colorScheme.primaryContainer
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val opaque = primaryContainerColor.copy(alpha = 1f)
+    if (!view.isInEditMode) {
+        SideEffect {
+            (view.context as? Activity)?.window?.apply {
+                // Draw behind system bars so the TopAppBar background can cover the status bar area
+                try { WindowCompat.setDecorFitsSystemWindows(this, false) } catch (_: Throwable) {}
+                statusBarColor = backgroundColor.toArgb()
+                // Match the window background to the app bar color to avoid any visible seam
+                try { setBackgroundDrawable(ColorDrawable(opaque.toArgb())) } catch (_: Throwable) {}
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    try { setStatusBarContrastEnforced(false) } catch (_: Throwable) {}
+                }
+            }
+        }
+    }
     val achievementVM: AchievementViewModel = hiltViewModel()
     val unseen by achievementVM.unseenCount.collectAsState()
 
@@ -90,14 +121,17 @@ fun HomeScreen(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(text = "Str3ky") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(0.dp),
+                title = {
+                    Text(
+                        text = "Challenges",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                },
                 actions = {
-                 Row(verticalAlignment = Alignment.CenterVertically,
-                      horizontalArrangement = Arrangement.End,
-                      modifier = Modifier.padding(start = 4.dp)
-                  )
-                  {
-                    // Trophy icon with badge to navigate to Achievements
+                    // Trophy icon with badge
                     IconButton(onClick = { navController.navigate(ACHIEVEMENTS_SCREEN); achievementVM.markAllSeen() }) {
                         if (unseen > 0) {
                             BadgedBox(badge = { Badge { Text(text = unseen.toString()) } }) {
@@ -113,77 +147,75 @@ fun HomeScreen(
                             )
                         }
                     }
-                     IconButton(onClick = {onNavigateToAddVoice() }) {
-                          Icon(
-                              painter = painterResource(id = R.drawable.add_icon),
-                              contentDescription = ""
-                          )
-                      }
-                     IconButton(onClick = {
-                            viewModel.onEvent(GoalsEvent.ToggleOrderSection)
-                     }) {
+
+                    // Add challenge
+                    IconButton(onClick = { onNavigateToAddVoice() }) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.add_icon),
+                            contentDescription = "Add challenge"
+                        )
+                    }
+
+                    // Sort
+                    IconButton(onClick = { viewModel.onEvent(GoalsEvent.ToggleOrderSection) }) {
                         Icon(
                             painter = painterResource(id = R.drawable.sorting_icon),
-                            contentDescription = ""
+                            contentDescription = "Sort challenges"
                         )
-                     }
+                    }
 
-                     // --- Dropdown Menu Integration Start ---
-                     var menuExpanded by remember { mutableStateOf(false) }
-                     val menuScrollState = rememberScrollState()
+                    // Overflow menu
+                    var menuExpanded by remember { mutableStateOf(false) }
+                    val menuScrollState = rememberScrollState()
 
-                     Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
-                         // This IconButton triggers the dropdown menu
-                         IconButton(onClick = { menuExpanded = true }) {
-                             Icon(
-                                 painter = painterResource(id = R.drawable.more_vert_24px), // Standard "more options" icon
-                                 contentDescription = "More options"
-                             )
-                         }
+                    Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
+                        IconButton(onClick = { menuExpanded = true }) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.more_vert_24px),
+                                contentDescription = "More options"
+                            )
+                        }
 
-                         DropdownMenu(
-                             expanded = menuExpanded,
-                             onDismissRequest = { menuExpanded = false },
-                             scrollState = menuScrollState,
-                         ) {
-                             DropdownMenuItem(
-                                 text = { Text("Achievements") },
-                                 onClick = {
-                                     menuExpanded = false
-                                     navController.navigate(ACHIEVEMENTS_SCREEN)
-                                 },
-                                 leadingIcon = {
-                                     Icon(
-                                         painter = painterResource(id = R.drawable.arrow_up_circle_icon),
-                                         contentDescription = ""
-                                     )
-                                 }
-                             )
-                             // Add more DropdownMenuItems as needed
-                             DropdownMenuItem(
-                                 text = { Text("Settings") }, // Example
-                                 onClick = {
-                                     menuExpanded = false
-                                     // TODO: Navigate to settings or handle click
-                                 },
-                                 leadingIcon = {
-                                     Icon(
-                                         Icons.Outlined.Edit, // Example icon
-                                         contentDescription = null
-                                     )
-                                 }
-                             )
-                         }
-                     }
-                     // --- Dropdown Menu Integration End ---
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false },
+                            scrollState = menuScrollState,
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Achievements") },
+                                onClick = {
+                                    menuExpanded = false
+                                    navController.navigate(ACHIEVEMENTS_SCREEN)
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.arrow_up_circle_icon),
+                                        contentDescription = ""
+                                    )
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Settings") },
+                                onClick = {
+                                    menuExpanded = false
+                                    // TODO: Navigate to settings
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Outlined.Edit,
+                                        contentDescription = null
+                                    )
+                                }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    containerColor = MaterialTheme.colorScheme.background,
                     actionIconContentColor = MaterialTheme.colorScheme.onSurface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
-                )
+            )
         },
         content = { it ->
 
@@ -193,7 +225,20 @@ fun HomeScreen(
                    .padding(it)
            ) {
                 // Global achievement banner (shows recently unlocked trophies)
-                AchievementBanner(viewModel = achievementVM)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentSize(Alignment.TopCenter)
+                        .padding(horizontal = 16.dp)
+                        .clickable {
+                            navController.navigate(ACHIEVEMENTS_SCREEN)
+                            achievementVM.markAllSeen()
+                        }
+                        .semantics { contentDescription = "Achievement notification" }
+                ) {
+                    AchievementBanner(viewModel = achievementVM)
+                }
+
                  AnimatedVisibility(
                      visible = state.isOrderSectionVisible,
                      enter = fadeIn() + slideInVertically(),
@@ -279,61 +324,76 @@ fun ChallengListItem(item: Goal, navController: NavHostController, onDeleteClick
                 }
             },
             supportingContent = {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+                Column {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-                        verticalAlignment = Alignment.CenterVertically
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
 
-                        Icon(
-                            painter = painterResource(id = R.drawable.arrow_up_circle_icon),
-                            contentDescription = ""
-                        )
-                        Text(
-                            text = millisecondsToMinutes(item.focusSet).toString() + " mins",
-                            style = TextStyle(fontSize = 8.sp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.calendar_icon),
-                            contentDescription = ""
-                        )
-                        val text = when (item.occurrence.dayOption.name) {
-                            Occurrence.DAILY.name -> "Daily"
-                            Occurrence.DAILY_WITHOUT_WEEKEND.name -> ""
-                            Occurrence.CUSTOM.name -> "${item.occurrence.selectedDays.size} days weekly"
-                            else -> ""
+                            Icon(
+                                painter = painterResource(id = R.drawable.arrow_up_circle_icon),
+                                contentDescription = ""
+                            )
+                            Text(
+                                text = millisecondsToMinutes(item.focusSet).toString() + " mins",
+                                style = TextStyle(fontSize = 8.sp),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
                         }
-                        Text(
-                            text = text,
-                            style = TextStyle(fontSize = 8.sp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.alert_icon),
-                            contentDescription = ""
-                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.calendar_icon),
+                                contentDescription = ""
+                            )
+                            val text = when (item.occurrence.dayOption.name) {
+                                Occurrence.DAILY.name -> "Daily"
+                                Occurrence.DAILY_WITHOUT_WEEKEND.name -> ""
+                                Occurrence.CUSTOM.name -> "${item.occurrence.selectedDays.size} days weekly"
+                                else -> ""
+                            }
+                            Text(
+                                text = text,
+                                style = TextStyle(fontSize = 8.sp),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.Start),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.alert_icon),
+                                contentDescription = ""
+                            )
 
+                            Text(
+                                text = if (item.alarmTime != null) {
+                                    val selectedDate = Date(item.alarmTime)
+                                    formatter.format(selectedDate)
+                                } else "Not Set",
+                                style = TextStyle(fontSize = 8.sp),
+                                color = MaterialTheme.colorScheme.onPrimary
+                            )
+                        }
+                    }
+
+                    // Show description (if available) under the supporting row
+                    val desc = item.description
+                    if (desc.isNotBlank()) {
                         Text(
-                            text = if (item.alarmTime != null) {
-                                val selectedDate = Date(item.alarmTime)
-                                formatter.format(selectedDate)
-                            } else "Not Set",
-                            style = TextStyle(fontSize = 8.sp),
-                            color = MaterialTheme.colorScheme.onPrimary
+                            text = desc,
+                            style = TextStyle(fontSize = 12.sp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 6.dp)
                         )
                     }
                 }

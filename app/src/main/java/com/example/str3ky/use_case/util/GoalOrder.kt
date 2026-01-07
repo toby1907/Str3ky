@@ -14,3 +14,18 @@ sealed class GoalOrder(val orderType: OrderType) {
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

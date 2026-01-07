@@ -61,3 +61,19 @@ class AchievementsAdditionalTest {
         assertEquals(5, novice.daysRemaining)
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

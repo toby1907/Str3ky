@@ -6,3 +6,18 @@ data class GoalUseCases(
     val addGoal: AddGoal,
 
     )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -56,3 +56,19 @@ If you prefer to build, install, and capture logs from Windows PowerShell (outsi
 Quick note: the testing README includes Room migration guidance and a dev-only `.fallbackToDestructiveMigration()` option you can enable for fast iteration (this will erase local DB data). Use the migration path in production builds to preserve user data.
 
 - If you prefer to build and test from PowerShell (outside Android Studio), see `README-TESTING-POWERSHELL.md` in the project root for exact commands and troubleshooting steps.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -6,9 +6,10 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// NOTE: For a production-ready "gamified" font, add a font file under res/font (e.g. gamified_regular.ttf)
-// and replace FontFamily.Serif below with: FontFamily(Font(R.font.gamified_regular)).
-// This temporary approach uses the platform's Serif family to produce a clear visual change without adding binary assets.
+// Using built-in Serif font for stability. If you want a packaged custom font, add a TTF
+// to res/font (for example res/font/gamified_regular.ttf) and replace FontFamily.Serif with
+// FontFamily(Font(R.font.gamified_regular)). Avoid downloadable fonts in production unless
+// you handle provider availability and network errors.
 
 val Typography = Typography(
     titleLarge = TextStyle(
@@ -37,3 +38,18 @@ val Typography = Typography(
         letterSpacing = 0.4.sp
     )
 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

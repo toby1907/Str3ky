@@ -24,3 +24,19 @@
    - [ ] Add runtime POST_NOTIFICATIONS flow with rationale + settings link.
    - [ ] Document alarm/notification behavior in-app (e.g., settings screen toggle) so users can re-enable if disabled.
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

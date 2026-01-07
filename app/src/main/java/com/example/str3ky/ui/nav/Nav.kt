@@ -49,7 +49,7 @@ fun MyAppNavHost(
 
 
 
-    val appState = rememberAppNavState()
+    val appState = remember(navController) { AppNavState(navController) }
 
     NavHost(
         modifier = modifier,

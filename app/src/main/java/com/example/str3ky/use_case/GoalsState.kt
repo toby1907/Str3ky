@@ -9,3 +9,18 @@ data class GoalsState(
     val goalOrder: GoalOrder = GoalOrder.Date(OrderType.Descending),
     val isOrderSectionVisible: Boolean = false
 )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

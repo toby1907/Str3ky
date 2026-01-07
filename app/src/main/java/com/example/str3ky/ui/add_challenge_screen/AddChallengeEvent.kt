@@ -25,3 +25,18 @@ sealed class UiEvent {
     object SaveNote : UiEvent()
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

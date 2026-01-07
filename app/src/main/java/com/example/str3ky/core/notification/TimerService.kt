@@ -17,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.example.str3ky.data.TimerState
@@ -44,6 +45,78 @@ class TimerService : Service() {
     private var suppressNextFinished = false
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Handle PiP action intents quickly before full startup logic
+        val action = intent?.action
+        if (action != null) {
+            Log.d(TAG, "TimerService received action: $action")
+            when (action) {
+                ACTION_REFRESH_NOTIFICATION -> {
+                    // If service is already running and collectors are active, do a quick refresh
+                    // and return. If the service is not yet started, fall through so the startup
+                    // path will call startForeground and set up collectors which will keep
+                    // updating notifications regularly.
+                    val serviceAlreadyRunning = timerJob != null && timerJob?.isActive == true
+                    if (serviceAlreadyRunning) {
+                        serviceScope.launch {
+                            try {
+                                val timerStates = countdownTimerManager.combinedFlow.first()
+                                val isRunning = (countdownTimerManager.timerState.value == TimerState.Running) && countdownTimerManager.sessionInProgress()
+                                if (isRunning) {
+                                    notificationHelper.updateTimerServiceNotification(
+                                        timerStates.currentPhase,
+                                        timerStates.timeLeftInMillis,
+                                        true,
+                                        timerStates.goalId,
+                                        timerStates.totalFocusSet,
+                                        millisecondsToMinutes(timerStates.timeLeftInMillis),
+                                        timerStates.progressDate,
+                                        timerStates.focusCompleted,
+                                        timerStates.breakCompleted
+                                    )
+                                } else {
+                                    notificationHelper.showResumeTimerNotification(
+                                        currentPhase = timerStates.currentPhase,
+                                        timeLeftInMillis = timerStates.timeLeftInMillis,
+                                        focusCompleted = timerStates.focusCompleted,
+                                        breakCompleted = timerStates.breakCompleted
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Failed to refresh notification: ${e.message}")
+                            }
+                        }
+                        return START_NOT_STICKY
+                    }
+                    // else: allow normal startup flow to run (startForeground + collectors)
+                }
+                ACTION_PIP_TOGGLE_PLAY_PAUSE -> {
+                    try {
+                        // If running -> pause, else resume
+                        if (countdownTimerManager.timerState.value == TimerState.Running && countdownTimerManager.sessionInProgress()) {
+                            Log.d(TAG, "PiP action: pausing countdown")
+                            countdownTimerManager.pauseCountdown()
+                        } else {
+                            Log.d(TAG, "PiP action: resuming countdown")
+                            // resumeCountdown expects an openAndPopUp lambda; provide a no-op
+                            countdownTimerManager.resumeCountdown { _, _ -> }
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to handle PIP toggle action: ${e.message}")
+                    }
+                    return START_NOT_STICKY
+                }
+                ACTION_PIP_STOP -> {
+                    Log.d(TAG, "PiP action: stop requested")
+                    try {
+                        handleStop()
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to handle PIP stop action: ${e.message}")
+                    }
+                    return START_NOT_STICKY
+                }
+            }
+        }
+
         // Use API-34 overload to provide foreground service type when available to satisfy targetSdk 34 requirements.
         val baseNotification = notificationHelper.getBaseTimerServiceNotification().build()
 
@@ -298,5 +371,24 @@ class TimerService : Service() {
         const val EXTRA_PROGRESS_DATE = "extra_progress_date"
 
         const val ACTION_SUPPRESS_NEXT_FINISHED = "com.example.str3ky.action.SUPPRESS_NEXT_FINISHED"
+        const val ACTION_PIP_TOGGLE_PLAY_PAUSE = "com.example.str3ky.action.PIP_TOGGLE_PLAY_PAUSE"
+        const val ACTION_PIP_STOP = "com.example.str3ky.action.PIP_STOP"
+        const val ACTION_REFRESH_NOTIFICATION = "com.example.str3ky.action.REFRESH_NOTIFICATION"
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

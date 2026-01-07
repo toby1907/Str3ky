@@ -125,3 +125,19 @@ fun ColorGrid(colorPalette: List<List<Color>>, onClick: (Int) -> Unit,onOk: () -
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

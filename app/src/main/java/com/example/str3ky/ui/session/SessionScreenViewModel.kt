@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 @HiltViewModel
@@ -69,6 +70,10 @@ class SessionScreenViewModel
     val initialSessionDuration: Int = savedSessionDuration ?: countdownTimerManager.sessionDuration.value
     val initialTotalBreaks: Int = if (initialTotalSessions > 1) initialTotalSessions - 1 else 0
 
+    // When true, the UI should suppress immediate auto-navigation to DONE (used when arriving fresh from SessionSettings)
+    private val _suppressAutoNavigate = MutableStateFlow(false)
+    val suppressAutoNavigate = _suppressAutoNavigate.asStateFlow()
+
     // Clean init: set totals/session duration synchronously and keep async flows for goal loading and combinedFlow
     init {
         // Debug log initial seeds
@@ -92,6 +97,18 @@ class SessionScreenViewModel
             countdownTimerManager.timeLeftInMillisFlow.value = 10000L
             countdownTimerManager._sessionTotalDurationMillis.value = 10000L
             countdownTimerManager.sessionDuration.value = initialSessionDuration
+        }
+
+        // If this screen was opened with explicit navigation parameters (starting a fresh session),
+        // ensure any previous 'completed' state is cleared synchronously so collectors won't see stale completed state.
+        if (savedTotalSessions != null || savedSessionDuration != null) {
+            try {
+                // Suppress auto-navigation until the user explicitly starts the session
+                _suppressAutoNavigate.value = true
+                countdownTimerManager.resetCountdown()
+            } catch (e: Throwable) {
+                Log.w("SessionScreenVM", "Failed to resetCountdown on navigation seed: ${e.message}")
+            }
         }
 
         // CombinedFlow collector for emitting sessionCompleted event
@@ -144,6 +161,8 @@ class SessionScreenViewModel
                 countdownTimerManager.resetCountdown()
                 kotlinx.coroutines.delay(400)
             }
+            // Clear suppression before starting a fresh session so completion is handled normally after this run
+            _suppressAutoNavigate.value = false
             countdownTimerManager.startSession(openAndPopUp)
         }
     }

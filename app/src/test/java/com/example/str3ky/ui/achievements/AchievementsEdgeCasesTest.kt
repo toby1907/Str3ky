@@ -40,3 +40,19 @@ class AchievementsEdgeCasesTest {
         assertFalse("BEGINNER_STREAK should not be considered newly unlocked", newlyUnlocked.any { it.name == Achievements.BEGINNER_STREAK.name })
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

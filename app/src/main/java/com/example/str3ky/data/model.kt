@@ -98,7 +98,10 @@ data class Achievement(
     val isUnlocked: Boolean = false,
     val isSeen: Boolean = false,
     val daysRemaining: Int? = null, // Nullable for streak-based achievements
-    val hoursRemaining: Int? = null // Nullable for time-based achievements
+    val hoursRemaining: Int? = null, // Nullable for time-based achievements
+    val description: String = "", // Optional description for dialogs
+    val badgeDrawableRes: Int? = null, // optional drawable resource for badge background
+    val lottieRes: Int? = null // optional lottie animation resource for per-badge animation
     )
 
 data class CombinedData(
@@ -127,3 +130,19 @@ data class CombinedData(
 enum class TimerActions{
     START,STOP,PAUSE,CANCEL,COMPLETED
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

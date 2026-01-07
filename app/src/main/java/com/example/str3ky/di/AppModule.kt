@@ -113,3 +113,19 @@ object AppModule {
     fun provideDefaultCoroutineScope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
