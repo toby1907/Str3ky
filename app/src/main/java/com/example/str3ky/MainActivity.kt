@@ -73,6 +73,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.delay
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.core.view.WindowCompat
 
 private const val USER_PREFERENCES_NAME = "user_preferences"
 private const val ACTION_EXPAND_FROM_PIP = "com.example.str3ky.ACTION_EXPAND_FROM_PIP"
@@ -175,6 +177,13 @@ class MainActivity : ComponentActivity() {
                         // Show main app or compact PiP UI
                         val navController = rememberNavController()
 
+                        // Ensure the activity draws behind system bars so we can control the status bar overlap
+                        LaunchedEffect(Unit) {
+                            try {
+                                WindowCompat.setDecorFitsSystemWindows(window, false)
+                            } catch (_: Throwable) { }
+                        }
+
                         // Collect PiP commands from activity (e.g. expand action) and react
                         LaunchedEffect(Unit) {
                             pipCommand.collectLatest { intentFromPip ->
@@ -267,12 +276,24 @@ class MainActivity : ComponentActivity() {
                              val target by countdownTimerManager.currentTimeTargetInMillisFlow.collectAsState()
                              PiPMiniPlayer(timeLeftMillis = timeLeft, targetMillis = target, phase = currentPhase)
                          } else {
-                             Scaffold() {
-                                 // Show achievement banner at the top of the scaffold content
-                                 Box(modifier = Modifier.padding(it)) {
-                                     Column {
+                             Scaffold { innerPadding ->
+                                 // Main app content: achievement banner at top, nav host below
+                                 Box(
+                                     modifier = Modifier
+                                         .fillMaxSize()
+                                         // Respect system bars while drawing behind them, and apply Scaffold padding
+                                         .padding(innerPadding)
+                                 ) {
+                                     Column(
+                                         modifier = Modifier
+                                             .fillMaxSize()
+                                             .statusBarsPadding() // Push content below the status bar while background still extends behind it
+                                     ) {
                                          AchievementBanner()
-                                         MyAppNavHost(navController = navController, modifier = Modifier.weight(1f))
+                                         MyAppNavHost(
+                                             navController = navController,
+                                             modifier = Modifier.weight(1f)
+                                         )
                                      }
                                      // No manual PiP button: PiP is entered automatically when the user leaves the app
                                      // (onUserLeaveHint/onPause/onWindowFocusChanged handle automatic PiP entry).

@@ -27,6 +27,7 @@ import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -65,6 +66,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.border
+import androidx.compose.material3.TopAppBarDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -83,17 +85,15 @@ fun AchievementScreen(navController: NavHostController, viewModel: AchievementVi
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 title = {
                     Text(
                         text = "Achievements",
-                        style = MaterialTheme.typography.titleLarge.copy(color = colorScheme.onPrimary)
+                        style = MaterialTheme.typography.titleMedium.copy(color = colorScheme.onPrimary)
                     )
                 },
                 navigationIcon = {
-                    IconButton(
-                        onClick = { navController.navigate(MAIN_SCREEN) }
-                    ) {
+                    IconButton(onClick = { navController.navigate(MAIN_SCREEN) }) {
                         Icon(
                             painter = painterResource(id = R.drawable.arrow_back_icon),
                             contentDescription = "Back arrow"
@@ -123,7 +123,10 @@ fun AchievementScreen(navController: NavHostController, viewModel: AchievementVi
                             }
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
+                )
             )
         }
     ) { padding ->
@@ -163,7 +166,8 @@ fun AchievementScreen(navController: NavHostController, viewModel: AchievementVi
 }
 
 @Composable
-fun AchievementScreenContent(modifier: Modifier = Modifier,
+fun AchievementScreenContent(
+    modifier: Modifier = Modifier,
     viewModel: AchievementViewModel = hiltViewModel(),
     onOpenAchievement: (Achievement) -> Unit
 ) {
@@ -214,51 +218,69 @@ fun AchievementScreenContent(modifier: Modifier = Modifier,
             }
 
             // Badges section (replaces previous "Unlocked" listing)
-            item {
-                Spacer(modifier = Modifier.size(24.dp))
-                Text(
-                    text = "Badges",
-                    style = MaterialTheme.typography.titleMedium.copy(color = colorScheme.onPrimary),
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-
-            // Badges: only show claimed (isSeen) badges here
             if (claimedBadges.isNotEmpty()) {
                 item {
-                    BoxWithConstraints {
-                        // For small widths show a horizontal scrollable row of badges
-                        if (maxWidth < 700.dp) {
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                items(claimedBadges.size) { idx ->
-                                    val a = claimedBadges[idx]
+                    Spacer(modifier = Modifier.size(24.dp))
+                    // Section header
+                    Text(
+                        text = "Badges",
+                        style = MaterialTheme.typography.titleMedium.copy(color = colorScheme.onPrimary),
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                    // Distinct background container for badges
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    ) {
+                        // Inner content (LazyRow / LazyVerticalGrid) remains unchanged below
+                        BoxWithConstraints {
+                            // For small widths show a horizontal scrollable row of badges
+                            if (maxWidth < 700.dp) {
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                    items(claimedBadges.size) { idx ->
+                                        val a = claimedBadges[idx]
 
-                                    // badge visuals don't need local progress here
-
-                                    androidx.compose.animation.AnimatedVisibility(
-                                        visible = true,
-                                        enter = fadeIn(animationSpec = tween(220, delayMillis = idx * 40)) + scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = idx * 40)),
-                                        exit = fadeOut() + scaleOut()
-                                    ) {
-                                        // Claimed badges are clickable to view details
-                                        Badge(achievement = a, size = 56.dp, onClick = { onOpenAchievement(a) })
+                                        androidx.compose.animation.AnimatedVisibility(
+                                            visible = true,
+                                            enter = fadeIn(animationSpec = tween(220, delayMillis = idx * 40)) +
+                                                    scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = idx * 40)),
+                                            exit = fadeOut() + scaleOut()
+                                        ) {
+                                            Badge(
+                                                achievement = a,
+                                                size = 56.dp,
+                                                onClick = { onOpenAchievement(a) }
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                        } else {
-                            // On wide screens show a grid-like arrangement
-                            LazyVerticalGrid(columns = GridCells.Adaptive(96.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.padding(4.dp)) {
-                                items(claimedBadges.size) { idx ->
-                                    val a = claimedBadges[idx]
+                            } else {
+                                // On wide screens show a grid-like arrangement
+                                LazyVerticalGrid(
+                                    columns = GridCells.Adaptive(96.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.padding(4.dp)
+                                ) {
+                                    items(claimedBadges.size) { idx ->
+                                        val a = claimedBadges[idx]
 
-                                    // badge visuals don't need local progress here
-
-                                    androidx.compose.animation.AnimatedVisibility(
-                                        visible = true,
-                                        enter = fadeIn(animationSpec = tween(220, delayMillis = idx * 40)) + scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = idx * 40)),
-                                        exit = fadeOut() + scaleOut()
-                                    ) {
-                                        Badge(achievement = a, size = 72.dp, onClick = { onOpenAchievement(a) })
+                                        androidx.compose.animation.AnimatedVisibility(
+                                            visible = true,
+                                            enter = fadeIn(animationSpec = tween(220, delayMillis = idx * 40)) +
+                                                    scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = idx * 40)),
+                                            exit = fadeOut() + scaleOut()
+                                        ) {
+                                            Badge(
+                                                achievement = a,
+                                                size = 72.dp,
+                                                onClick = { onOpenAchievement(a) }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -267,7 +289,12 @@ fun AchievementScreenContent(modifier: Modifier = Modifier,
                 }
             } else {
                 item {
-                    Text(text = "No badges yet. Keep going to earn your first badge!", modifier = Modifier.padding(8.dp), color = colorScheme.onPrimary, style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        text = "No badges yet. Keep going to earn your first badge!",
+                        modifier = Modifier.padding(8.dp),
+                        color = colorScheme.onPrimary,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
                 }
             }
 

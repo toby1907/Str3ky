@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Button
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -57,24 +58,27 @@ fun SessionSettingsScreen(nav: NavHostController) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(text = "Focus Session Settings") },
-                actions = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = "Focus Session Settings",
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 },
+                actions = { },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    containerColor = MaterialTheme.colorScheme.background,
                     actionIconContentColor = MaterialTheme.colorScheme.onSurface,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 ),
                 navigationIcon = {
-                    IconButton(onClick = { nav.popBackStack()  }) {
+                    IconButton(onClick = { nav.popBackStack() }) {
                         Icon(
                             painter = painterResource(id = R.drawable.arrow_back_icon),
                             contentDescription = ""
                         )
                     }
                 }
-
             )
         },
         content = { it ->
@@ -271,19 +275,3 @@ fun TrailingIcon(viewModel: FocusSessionViewModel
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

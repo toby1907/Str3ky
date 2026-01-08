@@ -31,7 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -67,34 +67,27 @@ fun ProgressScreen(viewModel: ProgressScreenViewModel = hiltViewModel(), nav: Na
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(text = viewModel.goalName.value.goalName) },
-                navigationIcon = {
-                    IconButton(
-                        onClick = {
-                            // Always navigate back to the main screen when the back icon is pressed.
-                            nav.navigate(MAIN_SCREEN)
-                        }
-                    ) {
-                        Icon(modifier = Modifier.padding(8.dp),
-                            painter = painterResource(id = R.drawable.arrow_back_icon),
-                            contentDescription = "",)
-                    }
-
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = viewModel.goalName.value.goalName,
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 },
-                actions = {
-                    // Deactivated the Edit functionality cause its causing bug
-                  /*  IconButton(onClick = {
-
-                        nav.navigate(
-                            "$ADD_CHALLENGE_SCREEN?goalId=${viewModel.goalId.value}&goalColor=${viewModel.goalColor.value}"
+                navigationIcon = {
+                    IconButton(onClick = { nav.navigate(MAIN_SCREEN) }) {
+                        Icon(
+                            modifier = Modifier.padding(8.dp),
+                            painter = painterResource(id = R.drawable.arrow_back_icon),
+                            contentDescription = "",
                         )
-                        Log.d("ProgressScreen", "ProgressScreen: ${viewModel.goalId.value}")
-                    }) {
-                        Text("Edit")
-                    }*/
-
-                }
-
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    actionIconContentColor = MaterialTheme.colorScheme.onSurface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
+                )
             )
         },
         content = {
@@ -262,19 +255,3 @@ fun TableProgress(
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

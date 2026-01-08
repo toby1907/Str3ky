@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -277,13 +278,12 @@ fun SessionScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
+            CenterAlignedTopAppBar(
                 modifier = Modifier
                     .background(opaqueBackground)
                     .statusBarsPadding(),
-                title = { Text(text = "Focus Session") },
-                actions = {
-                },
+                title = { Text(text = "Focus Session", style = MaterialTheme.typography.titleMedium) },
+                actions = { },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = opaqueBackground,
                     actionIconContentColor = MaterialTheme.colorScheme.onSurface,
@@ -306,7 +306,7 @@ fun SessionScreen(
                     .fillMaxSize()
                     .background(screenBackground)
                     .padding(it),
-                verticalArrangement = Arrangement.Center,
+                verticalArrangement = Arrangement.Centerfor prod,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Timer(
